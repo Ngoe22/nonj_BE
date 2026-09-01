@@ -15,35 +15,38 @@ import { FriendshipModule } from './friendship/friendship.module.js';
 import { GroupModule } from './group/group.module.js';
 import { PostAnswerModule } from './post_answer/post_answer.module.js';
 import { UserExerciseTemplateModule } from './user_exercise_template/user_exercise_template.module.js';
+import { UserSetting } from './user/entities/user_setting.entity.js';
+import { UserExerciseTemplate } from './user_exercise_template/entities/user_exercise_template.entity.js';
 
 
 @Module({
-
   controllers: [AppController],
   providers: [AppService],
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-    }) ,
+    }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST || 'localhost',
       port: parseInt(process.env.DB_PORT || '5432', 10),
       username: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME ,
-      entities: [User],
+      database: process.env.DB_NAME,
+      // entities: [User, UserSetting, UserExerciseTemplate ],
+      autoLoadEntities: true ,
       synchronize: true,
+
     }),
     UserModule,
-    PostModule ,
+    PostModule,
     RefreshTokenModule,
     UserNotifModule,
     ReportModule,
     FriendRequestModule,
     FriendshipModule,
     GroupModule,
-    PostAnswerModule ,
+    PostAnswerModule,
     UserExerciseTemplateModule,
   ],
 })

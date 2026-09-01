@@ -1,0 +1,6 @@
+export enum Friend_Request_Status {
+  PENDING = 'PENDING',
+  REJECTED = 'REJECTED',
+  ACCEPTED = 'ACCEPTED',
+  SELF_CANCELLED = 'SELF_CANCELLED',
+}

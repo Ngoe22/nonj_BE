@@ -8,20 +8,20 @@ import {User} from "../../user/entities/user.entity.js";
 export abstract class BaseEntity {
 
     @CreateDateColumn({ type: "timestamp" })
-    createdAt: Date;
+    created_at: Date;
 
     @Column({ type: "uuid", nullable: true })
-    createdBy: string | null;
+    created_by: string | null;
 
     @UpdateDateColumn({ type: "timestamp" })
-    updatedAt: Date;
+    updated_at: Date;
 
     @Column({ type: "uuid", nullable: true })
-    updatedBy: string | null;
+    updated_by: string | null;
 
     @Column({ type: "timestamp", nullable: true })
-    deletedAt: Date | null;
+    deleted_at: Date | null;
 
     @Column({ type: "uuid", nullable: true })
-    deletedBy: string | null;
+    deleted_by: string | null;
 }

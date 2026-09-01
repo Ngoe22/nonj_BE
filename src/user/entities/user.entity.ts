@@ -23,7 +23,7 @@ import {Report} from "../../report/entities/report.entity.js";
 import {Post} from "../../post/entities/post.entity.js";
 import {PostAnswer} from "../../post_answer/entities/post_answer.entity.js";
 
-@Entity()
+@Entity("user")
 export class User extends BaseEntity  {
 
     @PrimaryGeneratedColumn("uuid")

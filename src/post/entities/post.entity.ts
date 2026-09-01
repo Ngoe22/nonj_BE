@@ -51,7 +51,7 @@ export class Post extends BaseEntity {
   @JoinColumn({ name: 'group_collection_id', referencedColumnName: 'id' })
   group_collection: Relation<GroupCollection>;
 
-  //
+  // ===================
 
   @OneToMany(() => PostAnswer, (post_answer) => post_answer.post)
   post_answer: PostAnswer;

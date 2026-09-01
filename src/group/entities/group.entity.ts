@@ -36,6 +36,12 @@ export class Group extends BaseEntity {
 
   @Column({
     type: 'varchar',
+    length: 50,
+  })
+  name: string;
+
+  @Column({
+    type: 'varchar',
     length: 500,
     nullable: true,
   })
@@ -48,7 +54,8 @@ export class Group extends BaseEntity {
   })
   join_mode: Group_Join_Mode;
 
-  //
+  // ===============================
+
   @OneToMany(() => GroupMember, (group_member) => group_member.group)
   group_member: GroupMember;
 

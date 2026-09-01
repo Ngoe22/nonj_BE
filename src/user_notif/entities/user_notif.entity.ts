@@ -6,6 +6,7 @@ import {User_Notif_Type} from "../enum/user_notif.enum.js";
 Index( "notif_user_created_at",  [ "user_id" , "created_at" ] )
 @Entity('user_notif')
 export class UserNotif {
+
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

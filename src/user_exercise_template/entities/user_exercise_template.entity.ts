@@ -19,6 +19,7 @@ import {Post} from "../../post/entities/post.entity.js";
 @Index(['created_by'])
 @Entity('user_exercise_template')
 export class UserExerciseTemplate extends BaseEntity {
+
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -50,6 +51,8 @@ export class UserExerciseTemplate extends BaseEntity {
     type: 'jsonb',
   })
   exercise_content: object;
+
+  // ==============================================
 
   @OneToMany(() => Post, (post) => post.source_template_id)
   post: Post;

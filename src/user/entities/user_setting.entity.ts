@@ -5,18 +5,18 @@ import {
   Index,
   JoinColumn,
   OneToOne,
-  PrimaryColumn,
   PrimaryGeneratedColumn,
-
-  UpdateDateColumn,
 } from 'typeorm';
 import type { Relation } from 'typeorm';
 import { BaseEntity } from "../../_common/entities/base.entity.js"
 import {User} from "./user.entity.js";
 import {User_Setting_Who_can_see_template} from "../enums/user.enum.js";
 
+// ==============================
+
 @Entity('user_setting')
 export class UserSetting extends BaseEntity {
+
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

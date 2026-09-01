@@ -17,6 +17,7 @@ import type {Relation} from 'typeorm';
 
 @Entity('user_exercise_template_collection')
 export class UserExerciseTemplateCollection extends BaseEntity {
+
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -36,7 +37,8 @@ export class UserExerciseTemplateCollection extends BaseEntity {
   })
   title: string;
 
-  //
+  // ==============================
+
   @OneToMany(() => UserExerciseTemplate, (template) => template.collection)
   template: Relation<UserExerciseTemplate>;
 }

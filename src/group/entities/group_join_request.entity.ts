@@ -26,22 +26,25 @@ export class GroupJoinRequest extends BaseEntity {
   })
   group: Relation<Group>;
 
-  @ManyToOne(() => User, (user) => user.group_join_request_reviewer)
-  @JoinColumn({
-    name: 'reviewer_id',
-    referencedColumnName: 'id',
-  })
-  reviewer: Relation<User>;
-
-  @Column({ type: 'timestamp', nullable: true })
-  reviewed_at: Date | null;
-
   @Column({
     type: 'enum',
     enum: Group_Join_Request_Status,
     default: Group_Join_Request_Status.PENDING,
   })
   status: Group_Join_Request_Status;
+
+  @ManyToOne(() => User, (user) => user.group_join_request_reviewer, {
+    onDelete: 'SET NULL',
+    nullable: true,
+  })
+  @JoinColumn({
+    name: 'reviewer_id',
+    referencedColumnName: 'id',
+  })
+  reviewer: Relation<User> | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  reviewed_at: Date | null;
 
   //
 }

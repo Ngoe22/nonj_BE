@@ -14,6 +14,7 @@ import {BaseEntity} from "../../_common/entities/base.entity.js";
 import { Friend_Request_Status } from '../enum/friend_request.enum.js';
 
 
+
 @Entity('friend_request')
 export class FriendRequest extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -32,8 +33,9 @@ export class FriendRequest extends BaseEntity {
   @JoinColumn({ name: 'receiver_id', referencedColumnName: 'id' })
   friend_request_receiver: Relation<User>;
 
-  @Column({ type: 'uuid', nullable: true })
-  status_update_by: string | null;
+  @ManyToOne(() => User, (user) => user.friend_update_by, { nullable: true })
+  @JoinColumn({ name: 'status_update_by', referencedColumnName: 'id' })
+  user: Relation<User> | null;
 
   @Column({
     type: 'enum',
@@ -41,6 +43,8 @@ export class FriendRequest extends BaseEntity {
     default: Friend_Request_Status.PENDING,
   })
   status: Friend_Request_Status;
+
+
 
   // ==============================
 

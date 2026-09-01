@@ -1,0 +1,66 @@
+
+
+import {Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn} from "typeorm";
+import {BaseEntity} from "../../_common/entities/base.entity.js";
+import {User} from "../../user/entities/user.entity.js";
+import {Matches} from "class-validator";
+import {type} from "node:os";
+import {Group_Join_Mode} from "../enum/group.enum.js";
+import {GroupMember} from "./group_member.entity.js";
+import {GroupJoinRequest} from "./group_join_request.entity.js";
+import {GroupCollection} from "./group_collection.entity.js";
+import {Post} from "../../post/entities/post.entity.js";
+
+@Entity("group")
+export class Group  extends BaseEntity  {
+
+    @PrimaryGeneratedColumn( "uuid")
+    id : string
+
+    @Index()
+    @ManyToOne( () => User, user => user.group  )
+    @JoinColumn({
+        name: "founder_id",
+        referencedColumnName: "id",
+    })
+    user : User
+
+    @Index()
+    @Matches(/^[a-z0-9]+$/)
+    @Column({
+        type: "varchar",
+        length:50 ,
+        unique: true
+    })
+    slug : string
+
+
+    @Column({
+        type: "varchar",
+        length: 500,
+        nullable: true
+    })
+    description: string;
+
+    @Column({
+        type: "enum",
+        enum : Group_Join_Mode ,
+        default : Group_Join_Mode.PRIVATE
+    })
+    join_mode : Group_Join_Mode
+
+    //
+    @OneToMany(() => GroupMember, group_member => group_member.group)
+    group_member: GroupMember;
+
+    @OneToMany(() => GroupJoinRequest, group_join_request => group_join_request.group)
+    group_join_request: GroupJoinRequest;
+
+    @OneToMany(() => GroupCollection , collection => collection.group )
+    collection : GroupCollection
+
+    @OneToMany(() => Post , post => post.group )
+    post : Post
+
+
+}

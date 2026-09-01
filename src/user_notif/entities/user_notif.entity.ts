@@ -1,0 +1,29 @@
+import {Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn} from "typeorm";
+import {User} from "../../user/entities/user.entity.js";
+import {User_Notif_Type} from "../enum/user_notif.enum.js";
+
+
+Index( "notif_user_created_at",  [ "user_id" , "created_at" ] )
+@Entity('user_notif')
+export class UserNotif {
+
+    @PrimaryGeneratedColumn("uuid")
+    id: string;
+
+
+    @ManyToOne( () => User, user => user.notif )
+    @JoinColumn({ name: "user_id" , referencedColumnName : "id" })
+    user : User
+
+    @Column({ type :"enum",enum : User_Notif_Type})
+    type : User_Notif_Type
+
+    @Column({ type :"jsonb"})
+    content : object
+
+    @Column({ type :"bool",default : false})
+    is_read : boolean
+
+
+
+}

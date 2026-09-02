@@ -29,9 +29,3 @@ export class TransformInterceptor<T> implements NestInterceptor<T, ApiResponse<T
 }
 
 
-// // Định nghĩa 1 lần duy nhất: Chữ T là một ô trống đang đợi điền thông tin
-// export interface ApiResponse<T> {
-//     statusCode: number;
-//     message: string;
-//     data: T; // Kiểu dữ liệu của data sẽ phụ thuộc vào chữ T truyền vào
-// }

@@ -6,9 +6,9 @@ import { User} from "./entities/user.entity.js";
 import {UserSetting} from "./entities/user_setting.entity.js";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User,UserSetting])] ,
+  imports: [TypeOrmModule.forFeature([User, UserSetting])],
   controllers: [UserController],
-  providers: [UserService ],
+  providers: [UserService],
   exports: [],
 })
 export class UserModule {}

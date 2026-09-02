@@ -40,7 +40,6 @@ export class User extends BaseEntity {
   role: User_Role;
 
   @Index()
-  @Matches(/^[a-z0-9]+$/)
   @Column('varchar', {
     length: 50,
     unique: true,
@@ -62,6 +61,7 @@ export class User extends BaseEntity {
   })
   nickname: string;
 
+
   @Column({
     type: 'text',
     nullable: true,
@@ -69,7 +69,7 @@ export class User extends BaseEntity {
   bio: string | null;
 
   @Column('text', { nullable: true })
-  avatar_url: string;
+  avatar_url: string | null ;
 
   @Column({
     type: 'enum',

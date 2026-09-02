@@ -10,8 +10,6 @@ import {GroupCollection} from "./group_collection.entity.js";
 import {Post} from "../../post/entities/post.entity.js";
 
 
-
-
 @Entity('group')
 export class Group extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -71,3 +69,5 @@ export class Group extends BaseEntity {
   @OneToMany(() => Post, (post) => post.group)
   post: Relation<Post>;
 }
+
+// ZLMT-QZNR

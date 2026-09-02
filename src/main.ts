@@ -3,23 +3,32 @@ import { AppModule } from './app.module.js';
 import { ValidationPipe } from "@nestjs/common";
 import {HttpExceptionFilter} from "./_common/filters/http-exception.filter.js";
 import {TransformInterceptor} from "./_common/interceptor/success.interceptor.js";
+import {
+  addTransactionalDataSource,
+  initializeTransactionalContext,
+} from 'typeorm-transactional';
+import { DataSource } from 'typeorm';
 
 async function bootstrap() {
-
   const app = await NestFactory.create(AppModule);
 
-  app.useGlobalPipes(new ValidationPipe(
-      {
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: false,
-        transformOptions : {
-          enableImplicitConversion : false,
-        }
-      }
-  ));
+  initializeTransactionalContext();
 
-  app.useGlobalFilters( new HttpExceptionFilter)
+  const dataSource = app.get(DataSource);
+  addTransactionalDataSource(dataSource);
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: false,
+      transformOptions: {
+        enableImplicitConversion: false,
+      },
+    }),
+  );
+
+  app.useGlobalFilters(new HttpExceptionFilter());
 
   app.useGlobalInterceptors(new TransformInterceptor());
 

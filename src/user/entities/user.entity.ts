@@ -26,6 +26,7 @@ import {UserNotif} from "../../user_notif/entities/user_notif.entity.js";
 import {Report} from "../../report/entities/report.entity.js";
 import {Post} from "../../post/entities/post.entity.js";
 import {PostAnswer} from "../../post_answer/entities/post_answer.entity.js";
+import { RefreshToken } from '../../refresh_token/entities/refresh_token.entity.js';
 
 @Entity('user')
 export class User extends BaseEntity {
@@ -53,7 +54,7 @@ export class User extends BaseEntity {
   email: string;
 
   @Column('text', { nullable: true })
-  hash_pw: string | null;
+  password: string | null;
 
   @Column({
     type: 'varchar',
@@ -61,15 +62,15 @@ export class User extends BaseEntity {
   })
   nickname: string;
 
-
   @Column({
-    type: 'text',
+    type: 'varchar',
+    length: 100,
     nullable: true,
   })
   bio: string | null;
 
   @Column('text', { nullable: true })
-  avatar_url: string | null ;
+  avatar_url: string | null;
 
   @Column({
     type: 'enum',
@@ -187,5 +188,10 @@ export class User extends BaseEntity {
 
   @OneToMany(() => Report, (report_reviewer) => report_reviewer.review_by)
   report_reviewer: Report;
+
+  // Auth
+
+  @OneToMany(() => RefreshToken, (refresh_token) => refresh_token.user)
+  refresh_token: RefreshToken;
 }
 

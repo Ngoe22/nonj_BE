@@ -17,6 +17,7 @@ import { PostAnswerModule } from './post_answer/post_answer.module.js';
 import { UserExerciseTemplateModule } from './user_exercise_template/user_exercise_template.module.js';
 import { UserSetting } from './user/entities/user_setting.entity.js';
 import { UserExerciseTemplate } from './user_exercise_template/entities/user_exercise_template.entity.js';
+import { AuthModule } from './auth/auth.module.js';
 
 
 @Module({
@@ -48,6 +49,7 @@ import { UserExerciseTemplate } from './user_exercise_template/entities/user_exe
     GroupModule,
     PostAnswerModule,
     UserExerciseTemplateModule,
+    AuthModule,
   ],
 })
 export class AppModule {}

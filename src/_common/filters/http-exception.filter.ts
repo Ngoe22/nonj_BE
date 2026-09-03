@@ -13,15 +13,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
       const request = ctx.getRequest<Request>();
       let returnObj = { statusCode :400 };
 
-      // console.log(exception);
+      console.log(exception);
 
       if (exception instanceof HttpException) {
-        // console.log(`http `);
+        console.log(`http `);
         returnObj = handleHttpException(exception);
       } else if (exception instanceof QueryFailedError) {
-        // console.log(`query failed `);
+        console.log(`query failed `);
         returnObj = handleQueryException(exception);
       } else {
+        console.log(`unknown `);
         returnObj = handleUnknowException();
       }
 
@@ -45,27 +46,16 @@ function handleHttpException(exception :HttpException) {
     ? { message: exceptionResponse }
     : (exceptionResponse as { message?: string });
 
-    if ( Array.isArray(errorBody.message) ) {
-      return {
-        statusCode: status,
-        message: errorBody.message,
-        errorCode : 'invalid_fields'
-      };
-    } else {
       return {
         statusCode: status,
         ...errorBody, //  include errorCode
-      };
-    }
-
-
+      }
 }
 
 function handleQueryException(exception: QueryFailedError) {
   const pgError = exception.driverError as DatabaseError;
   const match = pgError.detail?.match(/\((\w+)\)=/);
   const field = match?.[1] ?? 'field';
-
 
   switch (pgError.code) {
     case '23505': {

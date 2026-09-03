@@ -2,6 +2,7 @@ import { BaseEntity } from '../../_common/entities/base.entity.js';
 import {
   Column,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   OneToOne,
@@ -20,6 +21,7 @@ export class RefreshToken extends BaseEntity {
   @JoinColumn({ name: 'user_id', referencedColumnName: 'id' })
   user: Relation<User>;
 
+  @Index()
   @Column({ type: 'varchar', length: 257 })
   token_hash:string ;
 

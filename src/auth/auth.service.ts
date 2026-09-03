@@ -1,11 +1,11 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { User } from '../user/entities/user.entity.js';
-import { JwtService } from '@nestjs/jwt';
-import { Repository } from 'typeorm';
-import { RefreshToken } from '../refresh_token/entities/refresh_token.entity.js';
-import bcrypt from 'bcrypt';
-import { stringHash } from '../_common/helper/stringHash.js';
+import {Injectable, UnauthorizedException} from '@nestjs/common';
+import {InjectRepository} from '@nestjs/typeorm';
+import {User} from '../user/entities/user.entity.js';
+import {JwtService, TokenExpiredError} from '@nestjs/jwt';
+import {Repository} from 'typeorm';
+import {RefreshToken} from '../refresh_token/entities/refresh_token.entity.js';
+import {JwtPayload} from "../_common/types/request.js";
+import  bcrypt  from  "bcrypt"
 
 @Injectable()
 export class AuthService {
@@ -16,6 +16,66 @@ export class AuthService {
     @InjectRepository(RefreshToken)
     private refreshRepo: Repository<RefreshToken>,
   ) {}
+
+
+
+  // ============================ handle login ============================
+
+  async login( email: string, password: string ) {
+    const user = await this.userRepo.findOne({ where : { email: email } })
+    if (!user ||  !user.password || !await bcrypt.compare(password, user.password)   )
+      throw new UnauthorizedException({errorCode: 'invalid_credentials'});
+
+    const token = await this.generateTokens(user)
+
+
+  }
+
+
+
+  // ============================ handle token ============================
+
+  async generateTokens( user : User ) {
+
+    const payload = {
+      id : user.id,
+      user_name : user.user_name,
+      role : user.role,
+    }
+
+    const accessToken = await this.jwtService.signAsync(payload, {
+      secret: process.env.JWT_ACCESS_SECRET,
+      expiresIn: '15m',
+    });
+    const refreshToken = await this.jwtService.signAsync(payload, {
+      secret: process.env.JWT_REFRESH_SECRET,
+      expiresIn: '7d',
+    });
+
+    // await this.refreshRepo.save(  )
+
+    return { accessToken, refreshToken };
+  }
+
+
+  async validateToken(accessToken :string) : Promise<JwtPayload>  {
+      try {
+        return await this.jwtService.verifyAsync(accessToken, {
+          secret: process.env.JWT_ACCESS_SECRET,
+        }) ;
+      } catch(error) {
+        if (error instanceof TokenExpiredError) throw new UnauthorizedException({errorCode : 'token_expired'});
+        throw new UnauthorizedException({errorCode : 'token_invalid'});
+      }
+  }
+
+  async refreshToken(refreshToken : string )  {
+
+  }
+
+
+
+
   //
   // async validateUser(email: string, password: string) {
   //   const user = await this.userRepo.findOne({ where: { email } });

@@ -9,7 +9,7 @@ import {UserSetting} from "./entities/user_setting.entity.js";
   imports: [TypeOrmModule.forFeature([User, UserSetting])],
   controllers: [UserController],
   providers: [UserService],
-  exports: [],
+  exports: [UserService],
 })
 export class UserModule {}
 

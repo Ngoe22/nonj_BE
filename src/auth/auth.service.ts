@@ -6,75 +6,37 @@ import {Repository} from 'typeorm';
 import {RefreshToken} from '../refresh_token/entities/refresh_token.entity.js';
 import {JwtPayload} from "../_common/types/request.js";
 import  bcrypt  from  "bcrypt"
+import { RefreshTokenService } from '../refresh_token/refresh_token.service.js';
+import { UserService } from '../user/user.service.js';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private jwtService: JwtService,
-    @InjectRepository(User)
-    private userRepo: Repository<User>,
-    @InjectRepository(RefreshToken)
-    private refreshRepo: Repository<RefreshToken>,
+    private readonly tokenService: RefreshTokenService,
+    private readonly userService: UserService,
   ) {}
-
-
 
   // ============================ handle login ============================
 
-  async login( email: string, password: string ) {
-    const user = await this.userRepo.findOne({ where : { email: email } })
-    if (!user ||  !user.password || !await bcrypt.compare(password, user.password)   )
-      throw new UnauthorizedException({errorCode: 'invalid_credentials'});
+  async login(email: string, password: string) {
+    const user = await this.userService.get({ email }  );
+    if (
+      !user ||
+      !user.password ||
+      !(await bcrypt.compare(password, user.password))
+    )
+      throw new UnauthorizedException({ errorCode: 'invalid_credentials' });
 
-    const token = await this.generateTokens(user)
+    if ( user.status === "BANNED" ) throw new UnauthorizedException({ errorCode: 'banned_account' });
 
+    const token = await this.tokenService.generateTokens(user);
+    const setting = await this.userService.getSetting() ;
 
+    // return {
+    //   ...this.userService.filterReturnInfo({ info : user , setting :setting  },"me") ,
+    //   token
+    // };
   }
-
-
-
-  // ============================ handle token ============================
-
-  async generateTokens( user : User ) {
-
-    const payload = {
-      id : user.id,
-      user_name : user.user_name,
-      role : user.role,
-    }
-
-    const accessToken = await this.jwtService.signAsync(payload, {
-      secret: process.env.JWT_ACCESS_SECRET,
-      expiresIn: '15m',
-    });
-    const refreshToken = await this.jwtService.signAsync(payload, {
-      secret: process.env.JWT_REFRESH_SECRET,
-      expiresIn: '7d',
-    });
-
-    // await this.refreshRepo.save(  )
-
-    return { accessToken, refreshToken };
-  }
-
-
-  async validateToken(accessToken :string) : Promise<JwtPayload>  {
-      try {
-        return await this.jwtService.verifyAsync(accessToken, {
-          secret: process.env.JWT_ACCESS_SECRET,
-        }) ;
-      } catch(error) {
-        if (error instanceof TokenExpiredError) throw new UnauthorizedException({errorCode : 'token_expired'});
-        throw new UnauthorizedException({errorCode : 'token_invalid'});
-      }
-  }
-
-  async refreshToken(refreshToken : string )  {
-
-  }
-
-
-
 
   //
   // async validateUser(email: string, password: string) {

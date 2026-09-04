@@ -13,6 +13,7 @@ import {Repository} from "typeorm";
 import {User} from "./entities/user.entity.js";
 import { Transactional } from 'typeorm-transactional';
 import { UserSetting } from './entities/user_setting.entity.js';
+import { UpdateUserSettingDto } from './dto/update-setting.dto.js';
 
 @Injectable()
 export class UserService {
@@ -21,97 +22,125 @@ export class UserService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(UserSetting)
     private readonly userSettingRepository: Repository<UserSetting>,
-  ) {}
+  ) {
+    // const [userKeys, settingKeys] = [
+    //   this.userRepository,
+    //   this.userSettingRepository,
+    // ].map((repo) => repo.metadata.columns.map((col) => col.propertyName));
+    //
+    //
 
+    const creatSet = (array: string[]) => new Set<string>(array);
+
+    const userField = {
+      id: creatSet(['admin' , 'me' ]),
+      email: creatSet(['admin' , 'me' ]),
+      user_name: creatSet(['admin' , 'me' , 'other']),
+      nickname: creatSet(['admin' , 'me' , 'other']),
+      bio: creatSet(['admin' , 'me' , 'other']),
+      avatar_url: creatSet(['admin' , 'me' , 'other']),
+      status: creatSet(['admin' , 'me' , 'other']),
+    };
+
+
+    const settingField = ['who_can_see_my_template'];
+
+     // const who_request = {
+     //   admin :
+     // }
+  }
+
+
+  /// who_request : admin , me , other
+  // field
 
   // me
 
   @Transactional()
   async create(@Body() body: CreateUserDto) {
-
     const user = await this.userRepository.save(body);
     const setting = await this.userSettingRepository.save({
       user: { id: user.id },
       created_by: user.id,
     });
-
-    return {
-      id: user.id,
-      user_name: user.user_name,
-      nickname: user.nickname,
-      avatar_url: user.avatar_url,
-      bio: user.bio,
-      setting: {
-        who_can_see_my_template: setting.who_can_see_my_template,
-      },
-    };
+    // return this.filterReturnInfo();
   }
 
-  async update(@Body() body: UpdateUserDto) {
-
-
-    // getUserID form token auth user
-    // if pass
-    const id = '3457b0eb-1e7b-4bf5-9a26-bbe0a10b7951';  // fake data
-
+/// done
+  async updateInfo(@Body() body: UpdateUserDto) {
+    // getUserID form token auth user  -- if pass
+    const id = '3457b0eb-1e7b-4bf5-9a26-bbe0a10b7951'; // fake data
     const result = await this.userRepository
       .createQueryBuilder()
       .update(User)
       .set(body)
       .where('id = :id', { id })
       .execute();
-
-
-    console.log(result);
-      return body;
+    return body;
   }
 
-  async get(  ) {
-    // getUserID form token auth user
-    // if pass
+  async get(condition: object) {
+    return await this.userRepository.findOne({ where: condition });
+  }
+
+
+  async getWithSetting(condition: object) {
+    const user: any = await this.userRepository.findOne({
+      where: condition,
+      relations: { setting: true },
+    });
+    const { setting, ...info } = user;
+
+    // return this.filterReturnInfo({ info, setting }, 'other');
+  }
+
+  // share
+
+
+  private filterObjectFromArrayKeys(objectInput: {}, keyArray: string[]) {
+    const outPut: Record<string, any> = {};
+    keyArray.forEach((key) => {
+      const value = objectInput ? [key] : false;
+      if (value) outPut[key] = value;
+    });
+    return outPut;
+  }
+
+  // ========================= Setting =========================
+
+  async getSetting(
+    // id: string
+  ) {
     const id = '3457b0eb-1e7b-4bf5-9a26-bbe0a10b7951'; // fake data
-    const data = await this.userRepository
-      .createQueryBuilder('user')
-      .leftJoin('user.setting', 'setting')
-      .select([
-        'user.email' ,
-        'user.user_name',
-        'user.nickname',
-        'user.bio',
-        'user.avatar_url',
-        'user.status' ,
-        'setting.who_can_see_my_template',
-      ])
-      .where('user.id = :id', { id })
-      .getOne();
+    return await this.userSettingRepository.findOne({
+      where: { user: { id: id } },
+    });
 
-    if (data?.status === 'BANNED')  throw new ForbiddenException({ errorCode: 'refuse_login' });
-
-    return data;
 
   }
 
+  async updateSetting(
+    body: UpdateUserSettingDto ,
+    settingID :string
+  ) {
 
-  // other user
+    const userid = '3457b0eb-1e7b-4bf5-9a26-bbe0a10b7951'; // fake data
 
-  async getByUserName(user_name: string) {
-    const data = await this.userRepository
-      .createQueryBuilder('user')
-      .leftJoin('user.setting', 'setting')
-      .select([
-        'user.user_name',
-        'user.nickname',
-        'user.bio',
-        'user.avatar_url',
-        'setting.who_can_see_my_template',
-      ])
-      .where('user.user_name = :user_name', { user_name })
-      .getOne();
-    // console.log(data);
+    const result = await this.userSettingRepository.update(
+      { id: settingID, user: { id: userid } }, // WHERE id = X AND user_id = Y
+      body,
+    );
 
-    return data;
+    if (result.affected === 0) throw new ForbiddenException({ errorCode : "no_authorized" });
+    return result;
   }
 }
+
+
+
+
+
+
 
 
 

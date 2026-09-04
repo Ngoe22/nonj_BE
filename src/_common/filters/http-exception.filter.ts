@@ -78,6 +78,7 @@ function handleQueryException(exception: QueryFailedError) {
         errorCode: 'missing_field',
 
       };
+
     default:
       return handleUnknowException();
   }

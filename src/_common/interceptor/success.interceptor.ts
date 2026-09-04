@@ -14,16 +14,19 @@ interface ApiResponse<T> {
 @Injectable()
 export class TransformInterceptor<T> implements NestInterceptor<T, ApiResponse<T>> {
     intercept(context: ExecutionContext, next: CallHandler): Observable<ApiResponse<T>> {
-        const response = context.switchToHttp().getResponse();
-        const statusCode = response.statusCode;
+      const ctx = context.switchToHttp();
+      const request = ctx.getRequest();
+      const response = ctx.getResponse();
+      const statusCode = response.statusCode;
 
         return next.handle().pipe(
-            map((data) => ({
-                statusCode: statusCode,
-                message: 'Success',
-                data: data || null,
-                timestamp: new Date().toISOString(),
-            })),
+          map((data) => ({
+            path: request.path,
+            statusCode: statusCode,
+            message: 'Success',
+            data: data || null,
+            timestamp: new Date().toISOString(),
+          })),
         );
     }
 }

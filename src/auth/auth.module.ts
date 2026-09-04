@@ -1,20 +1,13 @@
 import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service.js';
 import { AuthController } from './auth.controller.js';
-import { JwtModule } from '@nestjs/jwt';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from '../user/entities/user.entity.js';
-import { RefreshToken } from '../refresh_token/entities/refresh_token.entity.js';
+import { RefreshTokenModule } from '../refresh_token/refresh_token.module.js';
+import { UserModule } from '../user/user.module.js';
 
 @Module({
-  imports: [
-    JwtModule.register({
-      secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '15m' }, // access token ngắn hạn
-    }),
-    TypeOrmModule.forFeature([User, RefreshToken]),
-  ],
+  imports: [RefreshTokenModule ,UserModule],
   controllers: [AuthController],
   providers: [AuthService],
+  exports: [],
 })
 export class AuthModule {}

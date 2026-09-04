@@ -1,11 +1,13 @@
 import {CanActivate, ExecutionContext, Injectable, UnauthorizedException} from "@nestjs/common";
 import {Request} from "express"
 import {AuthService} from "../../auth/auth.service.js";
+import { RefreshTokenService } from '../../refresh_token/refresh_token.service.js';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
     constructor(
-        private authService: AuthService
+        private readonly authService: AuthService ,
+        private readonly tokenService : RefreshTokenService
     ) {}
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -13,7 +15,7 @@ export class AuthGuard implements CanActivate {
         const accessToken = this.extractTokenFromHeader(request);
 
         if (!accessToken) throw new UnauthorizedException({ errorCode : 'token_not_found' });
-        request.user = await this.authService.validateToken(accessToken)
+        request.user = await this.tokenService.validateAccessToken(accessToken);
         return true;
     }
 

@@ -1,12 +1,10 @@
 import { Module } from '@nestjs/common';
-// import { createObserveModule } from '@nestjs/observe';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { UserModule } from './user/user.module.js';
 import { PostModule } from './post/post.module.js';
 import {ConfigModule} from "@nestjs/config";
 import {TypeOrmModule} from "@nestjs/typeorm";
-import {User} from "./user/entities/user.entity.js";
 import { RefreshTokenModule } from './refresh_token/refresh_token.module.js';
 import { UserNotifModule } from './user_notif/user_notif.module.js';
 import { ReportModule } from './report/report.module.js';
@@ -15,14 +13,23 @@ import { FriendshipModule } from './friendship/friendship.module.js';
 import { GroupModule } from './group/group.module.js';
 import { PostAnswerModule } from './post_answer/post_answer.module.js';
 import { UserExerciseTemplateModule } from './user_exercise_template/user_exercise_template.module.js';
-import { UserSetting } from './user/entities/user_setting.entity.js';
-import { UserExerciseTemplate } from './user_exercise_template/entities/user_exercise_template.entity.js';
 import { AuthModule } from './auth/auth.module.js';
+import { APP_GUARD } from '@nestjs/core';
+import {
+  TokenGuardModule,
+} from './_other_module/guards/token_guard.module.js';
+import { AccessTokenGuardService } from './_other_module/guards/access_token_guard.service.js';
 
+
+
+// ===========================================
 
 @Module({
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    { provide: APP_GUARD, useClass: AccessTokenGuardService },
+  ],
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
@@ -35,9 +42,8 @@ import { AuthModule } from './auth/auth.module.js';
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       // entities: [User, UserSetting, UserExerciseTemplate ],
-      autoLoadEntities: true ,
+      autoLoadEntities: true,
       synchronize: true,
-
     }),
     UserModule,
     PostModule,
@@ -50,6 +56,7 @@ import { AuthModule } from './auth/auth.module.js';
     PostAnswerModule,
     UserExerciseTemplateModule,
     AuthModule,
+    TokenGuardModule,
   ],
 })
 export class AppModule {}

@@ -12,7 +12,7 @@ import {
   initializeTransactionalContext,
 } from 'typeorm-transactional';
 import { DataSource } from 'typeorm';
-import { formatDtoException } from './_common/dto_exception_format/handler.js';
+import { formatDtoException } from './_common/filters/dto_exception_format.js';
 
 async function bootstrap() {
 
@@ -21,7 +21,6 @@ async function bootstrap() {
   initializeTransactionalContext();
   const dataSource = app.get(DataSource);
   addTransactionalDataSource(dataSource);
-
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

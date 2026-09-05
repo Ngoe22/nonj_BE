@@ -22,14 +22,20 @@ export class UserController {
   @Get('/setting')
   getSetting() {
     console.log(`meow`);
-    return this.userService.getSetting();
+    return this.userService.getSetting('');
   }
+
+  @Patch('/setting/update')
+  updateSetting(@Body() body: UpdateUserSettingDto) {
+    return this.userService.updateSetting(body);
+  }
+
+  // =======================================
 
   @Get('')
   get() {
-
-    // id = request.user.id
-    return this.userService.getWithSetting({ id: '' });
+    const id = '330aaf32-d978-4d74-9595-41a8c3cd3bb4';
+    return this.userService.getWithSetting({ id });
   }
 
   @Get('/:user_name')
@@ -49,13 +55,4 @@ export class UserController {
 
   // other
 
-  // ======================= Setting =======================
-
-  @Patch('/setting/update/:id')
-  updateSetting(
-    @Body() body: UpdateUserSettingDto,
-    @Param('id', new ParseUUIDPipe()) settingID: string,
-  ) {
-    return this.userService.updateSetting(body, settingID);
-  }
 }

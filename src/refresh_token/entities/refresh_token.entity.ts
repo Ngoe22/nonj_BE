@@ -21,9 +21,12 @@ export class RefreshToken extends BaseEntity {
   @JoinColumn({ name: 'user_id', referencedColumnName: 'id' })
   user: Relation<User>;
 
+  @Column({ unique: true })
+  jti: string;
+
   @Index()
   @Column({ type: 'varchar', length: 257 })
-  token_hash:string ;
+  token_hash: string;
 
   @Column({ type: 'timestamp' })
   expires_at: Date;
@@ -32,17 +35,28 @@ export class RefreshToken extends BaseEntity {
   revoked_at: Date | null;
 
   @Column({ type: 'text', nullable: true })
-  user_agent: string | null;
+  device: string | null;
 
   @Column({ type: 'text', nullable: true })
   ip_address: string | null;
 
-  @OneToOne(() => RefreshToken, (new_token) => new_token.old_token)
+  @OneToOne(() => RefreshToken, (new_token) => new_token.old_token, {
+    nullable: true,
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'replaced_by', referencedColumnName: 'id' })
-  new_token: RefreshToken;
+  new_token: RefreshToken | null;
 
   //
 
   @OneToOne(() => RefreshToken, (old_token) => old_token.new_token)
   old_token: RefreshToken;
 }
+
+
+// {
+//   user_id :  "" ,
+//     token_hash :  "" ,
+//   expires_at :  "" ,
+//   revoked_at :  "" ,
+// }

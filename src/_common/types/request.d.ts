@@ -12,6 +12,7 @@ export interface JwtPayload {
     id: string;
     user_name: string;
     role: string;
+    jti ?: uuid ;
 }
 
 declare global {

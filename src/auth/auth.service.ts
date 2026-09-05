@@ -1,13 +1,8 @@
 import {Injectable, UnauthorizedException} from '@nestjs/common';
-import {InjectRepository} from '@nestjs/typeorm';
-import {User} from '../user/entities/user.entity.js';
-import {JwtService, TokenExpiredError} from '@nestjs/jwt';
-import {Repository} from 'typeorm';
-import {RefreshToken} from '../refresh_token/entities/refresh_token.entity.js';
-import {JwtPayload} from "../_common/types/request.js";
-import  bcrypt  from  "bcrypt"
 import { RefreshTokenService } from '../refresh_token/refresh_token.service.js';
 import { UserService } from '../user/user.service.js';
+import { LoginDto } from './dto/login.dto.js';
+import { projectBcrypt } from '../_common/helper/customBcrypt.js';
 
 @Injectable()
 export class AuthService {
@@ -18,24 +13,24 @@ export class AuthService {
 
   // ============================ handle login ============================
 
-  async login(email: string, password: string) {
-    const user = await this.userService.get({ email }  );
+
+
+  async login( loginInfo: LoginDto ) {
+    const user = await this.userService.get({ email: loginInfo.email });
     if (
       !user ||
       !user.password ||
-      !(await bcrypt.compare(password, user.password))
+      !(await projectBcrypt.compare(loginInfo.password, user.password))
     )
       throw new UnauthorizedException({ errorCode: 'invalid_credentials' });
 
-    if ( user.status === "BANNED" ) throw new UnauthorizedException({ errorCode: 'banned_account' });
+    if (user.status === 'BANNED')
+      throw new UnauthorizedException({ errorCode: 'banned_account' });
 
     const token = await this.tokenService.generateTokens(user);
-    const setting = await this.userService.getSetting() ;
+    const setting = await this.userService.getSetting(user.id);
 
-    // return {
-    //   ...this.userService.filterReturnInfo({ info : user , setting :setting  },"me") ,
-    //   token
-    // };
+    return { info : user , setting , token };
   }
 
   //

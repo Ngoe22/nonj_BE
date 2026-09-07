@@ -17,7 +17,7 @@ export class AuthService {
   // ============================ handle login ============================
 
   async login(loginInfo: LoginDto) {
-    const user = await this.userService.get({ email: loginInfo.email });
+    const user = await this.userService.getAllInfo({ email: loginInfo.email });
     if (
       !user ||
       !user.password ||
@@ -55,7 +55,6 @@ export class AuthService {
 
   async resetPassword() {}
 
-  private getPayload(@Req() req: express.Request) {}
 }
 
 

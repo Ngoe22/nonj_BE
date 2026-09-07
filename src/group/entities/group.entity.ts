@@ -3,7 +3,7 @@ import {BaseEntity} from "../../_common/entities/base.entity.js";
 import {User} from "../../user/entities/user.entity.js";
 import {Matches} from "class-validator";
 
-import {Group_Join_Mode} from "../enum/group.enum.js";
+import { Group_Join_Mode, Group_View_Mode } from '../enum/group.enum.js';
 import {GroupMember} from "./group_member.entity.js";
 import {GroupJoinRequest} from "./group_join_request.entity.js";
 import {GroupCollection} from "./group_collection.entity.js";
@@ -48,9 +48,16 @@ export class Group extends BaseEntity {
   @Column({
     type: 'enum',
     enum: Group_Join_Mode,
-    default: Group_Join_Mode.PRIVATE,
+    default: Group_Join_Mode.BY_REQUEST,
   })
   join_mode: Group_Join_Mode;
+
+  @Column({
+    type: 'enum',
+    enum: Group_View_Mode,
+    default: Group_View_Mode.PRIVATE,
+  })
+  view_mode: Group_View_Mode;
 
   // ===============================
 

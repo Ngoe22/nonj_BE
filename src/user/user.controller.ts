@@ -1,47 +1,54 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  Headers,
-  BadRequestException,
-  ParseUUIDPipe,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Req } from '@nestjs/common';
 import { UserService } from './user.service.js';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
 import { UpdateUserSettingDto } from './dto/update-setting.dto.js';
+import request from 'supertest';
+import type { JwtPayload } from '../_common/types/request.js';
+import { RequestPayload } from '../_common/decorators/param/request_payload.decorator.js';
 
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
+
+
+
   @Get('/setting')
-  getSetting() {
-    console.log(`meow`);
-    return this.userService.getSetting('');
+  getSetting(
+    @RequestPayload() payload : JwtPayload
+  ) {
+    return this.userService.getSetting(payload.id);
   }
 
-  @Patch('/setting/update')
-  updateSetting(@Body() body: UpdateUserSettingDto) {
-    return this.userService.updateSetting(body);
+
+
+
+  @Patch('/setting')
+  updateSetting(
+    @Body() body: UpdateUserSettingDto ,
+    @RequestPayload() payload : JwtPayload
+) {
+    return this.userService.updateSetting(payload.id, body);
   }
 
   // =======================================
 
-  @Get('')
-  get() {
-    const id = '330aaf32-d978-4d74-9595-41a8c3cd3bb4';
-    return this.userService.getWithSetting({ id });
-  }
-
-  @Get('/:user_name')
+  @Get('search/:user_name')
   getByUserName(@Param('user_name') user_name: string) {
     return this.userService.getWithSetting({ user_name });
   }
+
+  // =======
+
+  @Get('/me') //get own
+  get(
+    @RequestPayload() payload : JwtPayload
+  ) {
+    const user_id = payload.id;
+    return this.userService.getWithSetting({ id : user_id });
+  }
+
 
   @Post('/create')
   create(body: CreateUserDto) {
@@ -49,10 +56,12 @@ export class UserController {
   }
 
   @Patch('/update')
-  update(@Body() body: UpdateUserDto) {
-    return this.userService.updateInfo(body);
+  update(
+    @Body() body: UpdateUserDto ,
+    @RequestPayload()  payload : JwtPayload
+  ) {
+    return this.userService.updateInfo(payload.id, body);
   }
 
   // other
-
 }

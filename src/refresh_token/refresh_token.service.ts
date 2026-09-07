@@ -1,13 +1,16 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { User } from '../user/entities/user.entity.js';
-import { JwtPayload } from '../_common/types/request.js';
+import type { JwtPayload } from '../_common/types/request.js';
 import { JwtService, TokenExpiredError } from '@nestjs/jwt';
 import { RefreshToken } from './entities/refresh_token.entity.js';
-import { Repository } from 'typeorm';
+import { FindOptionsWhere, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { projectBcrypt } from '../_common/helper/customBcrypt.js';
 import { Transactional } from 'typeorm-transactional';
 import { UUID } from 'node:crypto';
+
+
+// =====================================================================================
 
 
 
@@ -22,35 +25,6 @@ export class RefreshTokenService {
 
   // ============================ handle token ============================
 
-  // for login | thanh cong truyen user vao
-  @Transactional()
-  async generateTokens(user: User) {
-    const jti = crypto.randomUUID();
-    const payload = {
-      id: user.id,
-      user_name: user.user_name,
-      role: user.role,
-    };
-
-    const accessToken = await this.generateToken(payload, 'access');
-    const refreshToken = await this.generateToken(
-      { jti, ...payload },
-      'refresh',
-    );
-
-    await this.saveRefreshTokenToDB({ refreshToken, user_id: user.id, jti: jti });
-    return { accessToken, refreshToken };
-  }
-
-  async generateToken(payload: JwtPayload, tokenType: 'access' | 'refresh') {
-    const [secret, expiresIn]: [string | undefined, '15m' | '7d'] =
-      tokenType === 'access'
-        ? [process.env.JWT_ACCESS_SECRET, '15m']
-        : [process.env.JWT_REFRESH_SECRET, '7d'];
-    if (!secret) throw new Error(`Missing JWT secret for ${tokenType} token`);
-    return await this.jwtService.signAsync(payload, { secret, expiresIn });
-  }
-
   async validateToken(
     token: string,
     type: 'access' | 'refresh',
@@ -60,7 +34,10 @@ export class RefreshTokenService {
         ? process.env.JWT_ACCESS_SECRET
         : process.env.JWT_REFRESH_SECRET;
     try {
-      return await this.jwtService.verifyAsync(token, { secret });
+      const { iat, exp, ...output } = await this.jwtService.verifyAsync(token, {
+        secret,
+      });
+      return output;
     } catch (error) {
       const errorCode =
         error instanceof TokenExpiredError
@@ -70,67 +47,66 @@ export class RefreshTokenService {
     }
   }
 
+  //
   @Transactional()
-  async regetAccessToken(refreshToken: string) {
-    const oldPayload = await this.validateToken(refreshToken, 'refresh');
+  async generateTokens(payload: JwtPayload) {
+
+    const accessToken = await this.generateToken(payload, 'access');
+    const refreshToken = await this.generateToken(payload, 'refresh');
+
+    await this.saveRefreshTokenToDB({
+      refreshToken,
+      user_id: payload.id,
+      jti: payload.jti,
+    });
+
+    return { accessToken, refreshToken };
+  }
+
+
+
+  //
+  @Transactional()
+  async regetAccessToken(oldRefreshToken: string) {
+    const oldPayload = await this.validateToken(oldRefreshToken, 'refresh');
 
     await this.checkTokenInDB({
       user_id: oldPayload.id,
-      jti: oldPayload.jti ,
-      refreshToken,
-
+      jti: oldPayload.jti,
+      refreshToken: oldRefreshToken,
     });
 
     // delete old refresh
-    await this.refreshRepository.delete({
+    await this.deleteRefreshTokenFromDB({
       jti: oldPayload.jti,
-      user: { id: oldPayload.id },
+      user_id: oldPayload.id,
     });
 
-    const newPayload = {
-      id: oldPayload.id,
-      user_name: oldPayload.user_name,
-      role: oldPayload.role,
-    };
+    oldPayload.jti = crypto.randomUUID(); // update old payload
+    const { accessToken, refreshToken } = await this.generateTokens(oldPayload);
+    // saved new refresh generateTokens
 
-    const newJti = crypto.randomUUID();
-    const newAccessToken = await this.generateToken(newPayload, 'access');
-    const newRefreshToken = await this.generateToken(
-      { jti: newJti, ...newPayload },
-      'refresh',
-    );
+    return { accessToken, refreshToken };
+  }
 
-    // save new refresh
-    await this.saveRefreshTokenToDB({
-      refreshToken,
-      user_id: newPayload.id,
-      jti: newJti,
-    });
 
+
+  // ==== to  ===========================
+
+
+
+  getPayloadFromUer(user: User) {
     return {
-      accessToken: newAccessToken,
-      refreshToken: newRefreshToken,
+      id: user.id,
+      user_name: user.user_name,
+      role: user.role,
     };
   }
 
-  // ==== to DB ===========================
 
-  private async saveRefreshTokenToDB(data: {
-    refreshToken: string;
-    user_id: string;
-    jti: UUID;
-  }) {
-    const { user_id, jti, refreshToken } = data;
-    return await this.refreshRepository.save({
-      jti,
-      user: { id: user_id },
-      token_hash: await projectBcrypt.encode(refreshToken),
-      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    });
-  }
 
   private async checkTokenInDB(data: {
-    jti: UUID;
+    jti: string;
     user_id: string;
     refreshToken: string;
   }) {
@@ -154,5 +130,43 @@ export class RefreshTokenService {
       throw new UnauthorizedException({ errorCode: 'refresh_token_not_found' });
 
     return true;
+  }
+
+
+
+  private async generateToken(
+    payload: JwtPayload,
+    tokenType: 'access' | 'refresh',
+  ) {
+    const [secret, expiresIn]: [string | undefined, '45m' | '7d'] =
+      tokenType === 'access'
+        ? [process.env.JWT_ACCESS_SECRET, '45m']
+        : [process.env.JWT_REFRESH_SECRET, '7d'];
+    if (!secret) throw new Error(`Missing JWT secret for ${tokenType} token`);
+    return await this.jwtService.signAsync(payload, { secret, expiresIn });
+  }
+
+  // ==== to DB ===========================
+
+  private async saveRefreshTokenToDB(data: {
+    refreshToken: string;
+    user_id: string;
+    jti: string;
+  }) {
+    const { user_id, jti, refreshToken } = data;
+    return await this.refreshRepository.save({
+      jti,
+      user: { id: user_id },
+      token_hash: await projectBcrypt.encode(refreshToken),
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    });
+  }
+
+  async deleteRefreshTokenFromDB(input: { user_id: string; jti?: string }) {
+    const where: FindOptionsWhere<RefreshToken> = {
+      user: { id: input.user_id },
+    };
+    if (input.jti) where.jti = input.jti;
+    return await this.refreshRepository.delete(where);
   }
 }

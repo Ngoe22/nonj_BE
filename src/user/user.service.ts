@@ -23,21 +23,32 @@ export class UserService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(UserSetting)
     private readonly userSettingRepository: Repository<UserSetting>,
-  ) {}
+  ) {
 
-  private createSet(array: string[]): Set<string> {
-    return new Set<string>(array);
+
+  }
+
+  static roleAndData = {
+    id : [ 'other' , 'me' , 'admin' ] ,
+    user_name :  [ 'other' , 'me' , 'admin' ] ,
+    email :  [ 'me' , 'admin' ] ,
   }
 
 
 
+
+
+  // private querySelect () {
+  //
+  //
+  //   const fields = Object.entries(select)
+  //     .filter(([_, value]) => value)
+  //     .map(([key]) => `user.${key}`);
+  // }
+
+
   async searchUser(condition: object)  {
      const user = await this.userRepository.findOne({ where: condition });
-      if (user?.status === "BANNED")
-        throw new NotFoundException( {
-          errorCode: 'banned_account',
-        } );
-
   };
 
   async get(condition: object) {
@@ -47,19 +58,15 @@ export class UserService {
   async getWithSetting(condition: object) {
     const user: any = await this.userRepository.findOne({
       where: condition,
-      relations: { setting: true },
+      relations: { setting: true }
     });
-    const { setting, ...info } = user;
-
+    const { setting, ...info } = user ;
     return { info: user, setting };
-
   }
 
   @Transactional()
-  async create(@Body() body: CreateUserDto) {
-
+  async create( body: CreateUserDto) {
     body.password = await projectBcrypt.encode(body.password);
-
     const user = await this.userRepository.save(body);
     const setting = await this.userSettingRepository.save({
       user: { id: user.id },
@@ -68,31 +75,28 @@ export class UserService {
     return { info: user , setting };
   }
 
-  async updateInfo(@Body() body: UpdateUserDto) {
-    // getUserID form token auth user  -- if pass
-    const id = '3457b0eb-1e7b-4bf5-9a26-bbe0a10b7951'; // fake data
+  async updateInfo(
+    id :string ,
+    body: UpdateUserDto
+  ) {
     const result = await this.userRepository.update({ id }, body);
     if (result.affected === 0)
-      throw new ForbiddenException({ errorCode: 'no_authorized' });
+      throw new NotFoundException({ errorCode: 'user_not_found' });
     return body;
   }
-
-  // share
-
 
 
   // ========================= Setting =========================
 
-  async getSetting(id: string) {
+  async getSetting(user_id: string) {
     return await this.userSettingRepository.findOne({
-      where: { user: { id: id } },
+      where: { user: { id: user_id } },
     });
   }
 
-  async updateSetting(body: UpdateUserSettingDto) {
-    const userid = '3457b0eb-1e7b-4bf5-9a26-bbe0a10b7951'; // fake data
+  async updateSetting( user_id :string ,body: UpdateUserSettingDto) {
     const result = await this.userSettingRepository.update(
-      { user: { id: userid } },
+      { user: { id: user_id } },
       body,
     );
     if (result.affected === 0)

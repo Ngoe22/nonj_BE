@@ -1,19 +1,17 @@
-// declare module 'express' {
-//     interface Request {
-//         payload?: {
-//             id :string ,
-//             user_name :string ,
-//             role_name :string ,
-//         }
-//     }
-// }
+
+export interface RequestToken {
+  access_token?: string;
+  refresh_token?: string;
+}
 
 export interface JwtPayload {
     id: string;
     user_name: string;
     role: string;
-    jti ?: uuid ;
+    jti: string;
 }
+
+
 
 declare global {
     namespace Express {

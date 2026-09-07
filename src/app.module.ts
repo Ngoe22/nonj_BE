@@ -18,7 +18,7 @@ import { APP_GUARD } from '@nestjs/core';
 import {
   TokenGuardModule,
 } from './_other_module/guards/token_guard.module.js';
-import { AccessTokenGuardService } from './_other_module/guards/access_token_guard.service.js';
+import { AccessTokenGuard } from './_other_module/guards/access_token_guard.service.js';
 
 
 
@@ -28,7 +28,7 @@ import { AccessTokenGuardService } from './_other_module/guards/access_token_gua
   controllers: [AppController],
   providers: [
     AppService,
-    { provide: APP_GUARD, useClass: AccessTokenGuardService },
+    { provide: APP_GUARD, useClass: AccessTokenGuard },
   ],
   imports: [
     ConfigModule.forRoot({

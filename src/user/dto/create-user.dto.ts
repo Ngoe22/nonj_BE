@@ -9,6 +9,8 @@ import { Optional } from '@nestjs/common';
 import { Column } from 'typeorm';
 
 export class CreateUserDto {
+
+
   @IsString()
   @MinLength(1)
   @MaxLength(50)

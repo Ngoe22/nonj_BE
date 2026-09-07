@@ -21,6 +21,7 @@ export class RefreshToken extends BaseEntity {
   @JoinColumn({ name: 'user_id', referencedColumnName: 'id' })
   user: Relation<User>;
 
+  @Index()
   @Column({ unique: true })
   jti: string;
 

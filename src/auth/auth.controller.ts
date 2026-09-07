@@ -1,6 +1,15 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+  Req,
+} from '@nestjs/common';
 import { AuthService } from './auth.service.js';
 import { LoginDto } from './dto/login.dto.js';
+import express from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -11,13 +20,19 @@ export class AuthController {
     return await this.authService.login(body);
   }
 
-  @Post('refresh')
-  async refresh(@Body('refresh_token') token: string) {
-    // return this.authService.refresh(token);
+  @Post('logout/:range')
+  async logout(
+    @Req() req: express.Request,
+    @Param('range') range: 'one' | 'all',
+  ) {
+
+    if (!req.user)
+      throw new NotFoundException({ errorCode: 'access_token_not_found'});
+
+    return this.authService.logout(req.user, range);
   }
 
-
-
-
+  @Post('reset_password')
+  async resetPassword(@Req() req: express.Request) {}
 
 }

@@ -14,22 +14,36 @@ export class FilterDbField<T extends ObjectLiteral> {
     this.keyAndLabels = this.createSets(input); //object { key : set[ role1 ,role2 ] }
   }
 
-  private createSets(input: Input<T>): Record<string, Set<string>> {
-    const { keyAndLabels, dataBase, dataSource } = input;
-    const columns = new Set(
-      dataSource.getMetadata(dataBase).columns.map((col) => col.propertyName),
-    );
-    return Object.fromEntries(
-      Object.entries(keyAndLabels).map(([key, labels]) => {
-        if (!columns.has(key))
-          throw new Error(
-            'server : FilterDbField created fail -  input key not in database column.' +
-              key,
-          );
-        return [key, new Set<string>(labels)];
-      }),
-    );
+
+  static turnObjInfoToRelationObj ( object:Record<string, any > , relationFields : string[]) {
+
+
+    // input = {
+    //   title : 'abc'
+    //   date : "bla bla"
+    //   user : '@3123'
+    // }
+    // // relation array field = [ 'user ]
+    // output = {
+    //   title : 'abc'
+    //   date : "bla bla"
+    //   user : { id : '@3123' }
+    // }
+
+    const output = { } as Record<string, any>;
+    const sets = new Set( relationFields )
+
+     Object.entries(object).forEach(([key, value]) => {
+        output[key] =  sets.has(key) ?  { id :value } : value;
+    })
+
+    return output
+
   }
+
+
+
+
 
   // =====================================================
 
@@ -57,4 +71,33 @@ export class FilterDbField<T extends ObjectLiteral> {
 
     return output;
   }
+
+
+
+
+
+
+
+
+
+
+  // =====================================================
+
+  private createSets(input: Input<T>): Record<string, Set<string>> {
+    const { keyAndLabels, dataBase, dataSource } = input;
+    const columns = new Set(
+        dataSource.getMetadata(dataBase).columns.map((col) => col.propertyName),
+    );
+    return Object.fromEntries(
+        Object.entries(keyAndLabels).map(([key, labels]) => {
+          if (!columns.has(key))
+            throw new Error(
+                'server : FilterDbField created fail -  input key not in database column.' +
+                key,
+            );
+          return [key, new Set<string>(labels)];
+        }),
+    );
+  }
+
 }

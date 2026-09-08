@@ -1,7 +1,7 @@
 import {
     CreateDateColumn,
     UpdateDateColumn,
-    Column, ManyToOne, JoinColumn,
+    Column, ManyToOne, JoinColumn, DeleteDateColumn,
 } from "typeorm";
 import {User} from "../../user/entities/user.entity.js";
 
@@ -19,7 +19,7 @@ export abstract class BaseEntity {
     @Column({ type: "uuid", nullable: true })
     updated_by: string | null;
 
-    @Column({ type: "timestamp", nullable: true })
+    @DeleteDateColumn({ type: 'timestamp' })
     deleted_at: Date | null;
 
     @Column({ type: "uuid", nullable: true })

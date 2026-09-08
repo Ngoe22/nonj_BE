@@ -8,10 +8,10 @@ import {
   Delete,
   Req,
 } from '@nestjs/common';
-import { UserExerciseTemplateService } from './user_exercise_template.service.js';
-import { CreateExerciseTemplateDto } from './dto/create-user_exercise_template.dto.js';
-import type { JwtPayload } from '../_common/types/request.js';
-import { RequestPayload } from '../_common/decorators/param/request_payload.decorator.js';
+import { UserExerciseTemplateService } from '../user_exercise_template.service.js';
+import {CreateExerciseTemplateDto, UpdateExerciseTemplateDto} from '../dto/user_exercise_template.dto.js';
+import type { JwtPayload } from '../../_common/types/request.js';
+import { RequestPayload } from '../../_common/decorators/param/request_payload.decorator.js';
 
 @Controller('user_exercise_template')
 export class UserExerciseTemplateController {
@@ -32,14 +32,25 @@ export class UserExerciseTemplateController {
     @Body() body: CreateExerciseTemplateDto,
     @RequestPayload() payload: JwtPayload,
   ) {
+
     return this.exerciseTemplateService.create({
       ...body,
-      user: { id: payload.id },
+      user: payload.id,
     });
   }
 
-  @Patch()
-  edit() {}
+  @Patch(":exercise_template_id")
+  edit(
+      @Body() body: UpdateExerciseTemplateDto,
+      @RequestPayload() payload: JwtPayload ,
+      @Param("template_id") template_id: string
+  ) {
+    return this.exerciseTemplateService.update({
+      body  ,
+      user_id : payload.id ,
+      template_id
+    });
+  }
 
   @Delete()
   delete() {}

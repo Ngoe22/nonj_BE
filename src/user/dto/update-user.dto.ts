@@ -4,7 +4,6 @@ import { Optional } from '@nestjs/common';
 
 export class UpdateUserDto {
 
-
   @IsOptional()
   @IsString()
   @MinLength(6)

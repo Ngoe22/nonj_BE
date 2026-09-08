@@ -27,14 +27,15 @@ export class AccessTokenGuard implements CanActivate {
 
     console.log(`access guard `);
 
-    const request = context.switchToHttp().getRequest<Request>();
-    const accessToken = this.extractTokenFromHeader(request);
+    // const request = context.switchToHttp().getRequest<Request>();
+    // const accessToken = this.extractTokenFromHeader(request);
 
 
       // if (!accessToken) throw new UnauthorizedException({ errorCode : 'access_token_not_found' });
       // request.user = await this.tokenService.validateToken( accessToken , "access" );
 
-    if (accessToken) return true;
+    // if (accessToken) return true;
+    return true
   }
 
   private extractTokenFromHeader(request: Request): string | undefined {

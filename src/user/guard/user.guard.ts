@@ -21,7 +21,9 @@ export const UserGuard = (roles : string[]) => {
         });
       }
 
-      return roles.includes(reqUser.role);
+      if (!roles.includes(reqUser.role))  throw new UnauthorizedException({errorCode : "unauthorized"});
+
+        return true ;
     }
   }
 

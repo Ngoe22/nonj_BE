@@ -8,91 +8,142 @@ import {
 } from '@nestjs/common';
 import {CreateUserDto} from './dto/create-user.dto.js';
 import {UpdateUserDto} from './dto/update-user.dto.js';
-import {InjectRepository} from "@nestjs/typeorm";
-import { FindOptionsWhere, Repository } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, FindOptionsWhere, Repository } from 'typeorm';
 import {User} from "./entities/user.entity.js";
 import { Transactional } from 'typeorm-transactional';
 import { UserSetting } from './entities/user_setting.entity.js';
 import { UpdateUserSettingDto } from './dto/update-setting.dto.js';
 import { projectBcrypt } from '../_common/helper/customBcrypt.js';
-import { filterDbField } from '../_common/helper/filterQueryForRole.js';
+import { FilterDbField } from '../_common/helper/filterQueryForRole.js';
+
+// ==========================================
+
 
 @Injectable()
 export class UserService {
-  private userFilterControl: filterDbField;
-  private userSettingFilterControl: filterDbField;
+  private userFilterByRole: FilterDbField<User>;
+  private settingFilterByRole: FilterDbField<UserSetting>;
 
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     @InjectRepository(UserSetting)
     private readonly userSettingRepository: Repository<UserSetting>,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
   ) {
-    this.userFilterControl = new filterDbField({
-      id: ['admin', 'me', 'other'],
-      email: ['admin', 'me'],
-      user_name: ['admin', 'me', 'other'],
-      nickname: ['admin', 'me', 'other'],
-      bio: ['admin', 'me', 'other'],
-      avatar_url: ['admin', 'me', 'other'],
+    // ============================== Filter DB & QueryField
+
+    this.userFilterByRole = new FilterDbField({
+      keyAndLabels: {
+        id: ['admin', 'me', 'other'],
+        email: ['admin', 'me'],
+        user_name: ['admin', 'me', 'other'],
+        nickname: ['admin', 'me', 'other'],
+        bio: ['admin', 'me', 'other'],
+        avatar_url: ['admin', 'me', 'other'],
+        status: ['admin'],
+      },
+      dataBase: User,
+      dataSource,
     });
 
-    this.userSettingFilterControl = new filterDbField({
-      who_can_see_my_template: ['admin', 'me'],
+    this.settingFilterByRole = new FilterDbField({
+      keyAndLabels: {
+        who_can_see_my_template: ['admin', 'me'],
+      },
+      dataBase: UserSetting,
+      dataSource,
     });
+
+    // ==============================
   }
 
-  getAllowField() {}
-
-  async getAllInfo(condition: FindOptionsWhere<User>) {
+  async getFullInfoOfOne(condition: FindOptionsWhere<User>) {
     return await this.userRepository.findOne({ where: condition });
   }
 
-    async get(condition: FindOptionsWhere<User>) {
-      const selectField = this.userFilterControl.getQueryArray({
-        label: 'other',
-        tableName: 'user',
-      });
-      return this.userRepository
-        .createQueryBuilder('user')
-        .where(condition)
-        .select(selectField)
-        .getRawOne();
-    }
+  async getInfo(
+    condition: FindOptionsWhere<User>,
+    role: 'admin' | 'me' | 'other',
+  ) {
+    const alias = 'user';
+    const selectField = this.userFilterByRole.getQuerySelectArray({
+      label: role,
+      tableName: alias,
+    });
+    return await this.userRepository
+      .createQueryBuilder(alias)
+      .where(condition)
+      .select(selectField)
+      .getRawOne();
+  }
 
-  // async getWithSetting(condition: object) {
-  //   const user: any = await this.userRepository.findOne({
-  //     where: condition,
-  //     relations: { setting: true }
-  //   });
-  //   const { setting, ...info } = user ;
-  //   return { info: user, setting };
-  // }
+  async getInfoMany(
+    condition: FindOptionsWhere<User>,
+    role: 'admin' | 'me' | 'other',
+    page = 1,
+    limit = 20,
+  ) {
+    const alias = 'user';
+    const selectField = this.userFilterByRole.getQuerySelectArray({
+      label: role,
+      tableName: alias,
+    });
+    return await this.userRepository
+      .createQueryBuilder(alias)
+      .where(condition)
+      .select(selectField)
+      .orderBy('user.created_at', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getRawMany();
+  }
 
   @Transactional()
   async create(body: CreateUserDto) {
+    const label = 'me';
+
     body.password = await projectBcrypt.encode(body.password);
     const user = await this.userRepository.save(body);
     const setting = await this.userSettingRepository.save({
       user: { id: user.id },
       created_by: user.id,
     });
-    return { info: user, setting };
+
+    return {
+      info: this.userFilterByRole.filterDataOfQueryResult({
+        object: user,
+        label,
+      }),
+      setting: this.settingFilterByRole.filterDataOfQueryResult({
+        object: setting,
+        label,
+      }),
+    };
   }
 
-  async updateInfo(id: string, body: UpdateUserDto) {
-    const result = await this.userRepository.update({ id }, body);
+  async updateInfo(condition: FindOptionsWhere<User>, body: UpdateUserDto) {
+    const result = await this.userRepository.update(condition, body);
     if (result.affected === 0)
-      throw new NotFoundException({ errorCode: 'user_not_found' });
+      throw new NotFoundException({ errorCode: 'update_setting_failed' });
     return body;
   }
 
   // ========================= Setting =========================
 
-  async getSetting(user_name: string) {
-    return await this.userSettingRepository.findOne({
-      where: { user: { user_name } },
+  async getSetting(id: string, role: 'admin' | 'me' | 'other') {
+    const alias = 'user';
+    const selectField = this.userFilterByRole.getQuerySelectArray({
+      label: role,
+      tableName: alias,
     });
+    return await this.userRepository
+      .createQueryBuilder(alias)
+      .where({ user: { id } })
+      .select(selectField)
+      .getRawOne();
   }
 
   async updateSetting(user_id: string, body: UpdateUserSettingDto) {
@@ -101,7 +152,7 @@ export class UserService {
       body,
     );
     if (result.affected === 0)
-      throw new ForbiddenException({ errorCode: 'no_authorized' });
+      throw new NotFoundException({ errorCode: 'update_setting_failed' });
     return body;
   }
 }

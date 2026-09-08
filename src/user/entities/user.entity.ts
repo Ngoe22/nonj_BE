@@ -28,6 +28,8 @@ import {Post} from "../../post/entities/post.entity.js";
 import {PostAnswer} from "../../post_answer/entities/post_answer.entity.js";
 import { RefreshToken } from '../../refresh_token/entities/refresh_token.entity.js';
 
+
+@Index( ['created_at'] )
 @Entity('user')
 export class User extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -96,7 +98,7 @@ export class User extends BaseEntity {
   status_by_admin: Relation<User> | null;
 
   //=============================
-  // admin -> user
+  // controller -> user
 
   @OneToMany(() => User, (user) => user.status_by_admin)
   status_changed_users: User[];

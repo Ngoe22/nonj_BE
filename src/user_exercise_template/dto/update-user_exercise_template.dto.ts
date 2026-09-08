@@ -1,4 +1,9 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateUserExerciseTemplateDto } from './create-user_exercise_template.dto.js';
+import { IsString, MaxLength, MinLength } from 'class-validator';
 
-export class UpdateUserExerciseTemplateDto extends PartialType(CreateUserExerciseTemplateDto) {}
+
+export class UpdateUserExerciseTemplateDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(50)
+  name: string;
+}

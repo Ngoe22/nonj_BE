@@ -1,26 +1,39 @@
+import { DataSource, EntityTarget, ObjectLiteral } from 'typeorm';
 
+type Input<T extends ObjectLiteral> = {
+  keyAndLabels: Record<string, string[]>;
+  dataBase: EntityTarget<T>;
+  dataSource: DataSource;
+};
 
-type Input = Record<string, string[]>;
+export class FilterDbField<T extends ObjectLiteral> {
 
-export class filterDbField {
-  // private keyAndLabels: Record<string, Set<string>>;
   private readonly keyAndLabels: Record<string, Set<string>>;
 
-  constructor(keyAndLabels: Input) {
-    this.keyAndLabels = this.createSets(keyAndLabels);
-    // { id : new [ admin , me ,...  ] }
+  constructor(input: Input<T>) {
+    this.keyAndLabels = this.createSets(input); //object { key : set[ role1 ,role2 ] }
   }
 
-  private createSets(keyAndLabels: Input): Record<string, Set<string>> {
+  private createSets(input: Input<T>): Record<string, Set<string>> {
+    const { keyAndLabels, dataBase, dataSource } = input;
+    const columns = new Set(
+      dataSource.getMetadata(dataBase).columns.map((col) => col.propertyName),
+    );
     return Object.fromEntries(
-      Object.entries(keyAndLabels).map(([key, labels]) => [
-        key,
-        new Set<string>(labels),
-      ]),
+      Object.entries(keyAndLabels).map(([key, labels]) => {
+        if (!columns.has(key))
+          throw new Error(
+            'server : FilterDbField created fail -  input key not in database column.' +
+              key,
+          );
+        return [key, new Set<string>(labels)];
+      }),
     );
   }
 
-  getQueryArray(input: { label: string; tableName: string }) {
+  // =====================================================
+
+  getQuerySelectArray(input: { label: string; tableName: string }) {
     const array: string[] = [];
     const { label, tableName } = input;
 
@@ -29,5 +42,19 @@ export class filterDbField {
     });
 
     return array;
+  }
+
+  filterDataOfQueryResult(input: {
+    object: Record<string, any>;
+    label: string;
+  }) {
+    const { object, label } = input; // label === role
+    const output = {} as Record<string, any>;
+
+    Object.entries(object).forEach(([field, value]) => {
+      if (this.keyAndLabels[field]?.has(label)) output[field] = value;
+    });
+
+    return output;
   }
 }

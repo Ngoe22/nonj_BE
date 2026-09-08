@@ -1,34 +1,46 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Req,
+} from '@nestjs/common';
 import { UserExerciseTemplateService } from './user_exercise_template.service.js';
-import { CreateUserExerciseTemplateDto } from './dto/create-user_exercise_template.dto.js';
-import { UpdateUserExerciseTemplateDto } from './dto/update-user_exercise_template.dto.js';
+import { CreateExerciseTemplateDto } from './dto/create-user_exercise_template.dto.js';
+import type { JwtPayload } from '../_common/types/request.js';
+import { RequestPayload } from '../_common/decorators/param/request_payload.decorator.js';
 
-@Controller('user-exercise-template')
+@Controller('user_exercise_template')
 export class UserExerciseTemplateController {
-  constructor(private readonly userExerciseTemplateService: UserExerciseTemplateService) {}
+  constructor(
+    private readonly exerciseTemplateService: UserExerciseTemplateService,
+  ) {}
+
+  @Get("/:exercise_template_id")
+  get(
+    @RequestPayload() req: JwtPayload ,
+    @Param("exercise_template_id") exerciseTemplateId: string
+  ) {
+    return this.exerciseTemplateService.findOne(exerciseTemplateId);
+  }
 
   @Post()
-  create(@Body() createUserExerciseTemplateDto: CreateUserExerciseTemplateDto) {
-    return this.userExerciseTemplateService.create(createUserExerciseTemplateDto);
+  create(
+    @Body() body: CreateExerciseTemplateDto,
+    @RequestPayload() payload: JwtPayload,
+  ) {
+    return this.exerciseTemplateService.create({
+      ...body,
+      user: { id: payload.id },
+    });
   }
 
-  @Get()
-  findAll() {
-    return this.userExerciseTemplateService.findAll();
-  }
+  @Patch()
+  edit() {}
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.userExerciseTemplateService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserExerciseTemplateDto: UpdateUserExerciseTemplateDto) {
-    return this.userExerciseTemplateService.update(+id, updateUserExerciseTemplateDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.userExerciseTemplateService.remove(+id);
-  }
+  @Delete()
+  delete() {}
 }

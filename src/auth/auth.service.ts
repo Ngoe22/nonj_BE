@@ -17,7 +17,8 @@ export class AuthService {
   // ============================ handle login ============================
 
   async login(loginInfo: LoginDto) {
-    const user = await this.userService.getAllInfo({ email: loginInfo.email });
+    const user = await this.userService.getFullInfoOfOne({ email: loginInfo.email, });
+
     if (
       !user ||
       !user.password ||
@@ -32,7 +33,7 @@ export class AuthService {
       ...this.tokenService.getPayloadFromUer(user),
       jti: crypto.randomUUID(),
     });
-    const setting = await this.userService.getSetting(user.id);
+    const setting = await this.userService.getSetting(user.id , "me");
 
     return { info: user, setting, token };
   }

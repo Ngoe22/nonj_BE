@@ -3,7 +3,7 @@ services:
     image: postgres:16
     container_name: nonj-postgres
     environment:
-      POSTGRES_USER : admin
+      POSTGRES_USER : controller
       POSTGRES_PASSWORD : admin123
       POSTGRES_DB : nonj_db
     ports :

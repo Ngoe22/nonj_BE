@@ -152,9 +152,6 @@ export class User extends BaseEntity {
   )
   friend_request_receiver: FriendRequest;
 
-  @OneToMany(() => FriendRequest, (friend_update_by) => friend_update_by.user)
-  friend_update_by: FriendRequest;
-
   @OneToMany(() => Friendship, (friend_user) => friend_user.user)
   friend_user: Friendship;
 

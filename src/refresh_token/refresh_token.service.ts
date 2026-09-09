@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { User } from '../user/entities/user.entity.js';
-import type { JwtPayload } from '../_common/types/request.js';
+import type { RequesterInfo } from '../_common/types/request.js';
 import { JwtService, TokenExpiredError } from '@nestjs/jwt';
 import { RefreshToken } from './entities/refresh_token.entity.js';
 import { FindOptionsWhere, Repository } from 'typeorm';
@@ -28,7 +28,7 @@ export class RefreshTokenService {
   async validateToken(
     token: string,
     type: 'access' | 'refresh',
-  ): Promise<JwtPayload> {
+  ): Promise<RequesterInfo> {
     const secret =
       type === 'access'
         ? process.env.JWT_ACCESS_SECRET
@@ -49,7 +49,7 @@ export class RefreshTokenService {
 
   //
   @Transactional()
-  async generateTokens(payload: JwtPayload) {
+  async generateTokens(payload: RequesterInfo) {
 
     const accessToken = await this.generateToken(payload, 'access');
     const refreshToken = await this.generateToken(payload, 'refresh');
@@ -96,10 +96,11 @@ export class RefreshTokenService {
 
 
   getPayloadFromUer(user: User) {
+
     return {
       id: user.id,
       user_name: user.user_name,
-      role: user.role,
+      role: user.role   ,
     };
   }
 
@@ -135,7 +136,7 @@ export class RefreshTokenService {
 
 
   private async generateToken(
-    payload: JwtPayload,
+    payload: RequesterInfo,
     tokenType: 'access' | 'refresh',
   ) {
     const [secret, expiresIn]: [string | undefined, '45m' | '7d'] =

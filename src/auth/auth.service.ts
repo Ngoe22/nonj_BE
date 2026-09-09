@@ -4,7 +4,7 @@ import { UserService } from '../user/user.service.js';
 import { LoginDto } from './dto/login.dto.js';
 import express from 'express';
 import { projectBcrypt } from '../_common/helper/customBcrypt.js';
-import type { JwtPayload } from '../_common/types/request.js';
+import type { RequesterInfo } from '../_common/types/request.js';
 import { CreateUserDto } from '../user/dto/create-user.dto.js';
 
 @Injectable()
@@ -39,7 +39,7 @@ export class AuthService {
   }
 
 
-  async logout(tokenPayload :JwtPayload , range: 'one' | 'all') {
+  async logout(tokenPayload :RequesterInfo , range: 'one' | 'all') {
     const deleteTarget = {
       user_id: tokenPayload.id,
       jti: '',

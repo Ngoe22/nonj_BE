@@ -13,7 +13,7 @@ export const UserGuard = (roles : string[]) => {
     canActivate(context: ExecutionContext): boolean {
       const request = context.switchToHttp().getRequest<Request>();
 
-      const reqUser = request.user;
+      const reqUser = request.requester;
 
       if (!reqUser) {
         throw new UnauthorizedException({

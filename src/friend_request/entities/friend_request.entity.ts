@@ -33,9 +33,6 @@ export class FriendRequest extends BaseEntity {
   @JoinColumn({ name: 'receiver_id', referencedColumnName: 'id' })
   friend_request_receiver: Relation<User>;
 
-  @ManyToOne(() => User, (user) => user.friend_update_by, { nullable: true })
-  @JoinColumn({ name: 'status_update_by', referencedColumnName: 'id' })
-  user: Relation<User> | null;
 
   @Column({
     type: 'enum',
@@ -43,8 +40,6 @@ export class FriendRequest extends BaseEntity {
     default: Friend_Request_Status.PENDING,
   })
   status: Friend_Request_Status;
-
-
 
   // ==============================
 

@@ -3,9 +3,9 @@ import { UserService } from '../user.service.js';
 import { CreateUserDto } from '../dto/create-user.dto.js';
 import { UpdateUserDto } from '../dto/update-user.dto.js';
 import { UpdateUserSettingDto } from '../dto/update-setting.dto.js';
-import type { JwtPayload } from '../../_common/types/request.js';
-import { RequestPayload } from '../../_common/decorators/param/request_payload.decorator.js';
-import { Public } from '../../_common/decorators/public.decorator.js';
+import type { RequesterInfo } from '../../_common/types/request.js';
+import { Public } from '../../_common/decorators/method/public.decorator.js';
+import { GetRequesterInfo } from '../../_common/decorators/param/request_payload.decorator.js';
 
 @Controller('user')
 export class UserController {
@@ -27,29 +27,29 @@ export class UserController {
   // ==================== Current user (me) ====================
 
   @Get('me')
-  getProfile(@RequestPayload() payload: JwtPayload) {
-    return this.userService.getInfo({ id: payload.id }, 'me');
+  getProfile(@GetRequesterInfo() requester: RequesterInfo) {
+    return this.userService.getInfo({ id: requester.id }, 'me');
   }
 
   @Patch('me')
   updateProfile(
     @Body() body: UpdateUserDto,
-    @RequestPayload() payload: JwtPayload,
+    @GetRequesterInfo() requester: RequesterInfo,
   ) {
-    return this.userService.updateInfo({ id: payload.id }, body);
+    return this.userService.updateInfo({ id: requester.id }, body);
   }
 
   @Get('me/setting')
-  getMySetting(@RequestPayload() payload: JwtPayload) {
-    return this.userService.getSetting(payload.id, 'me');
+  getMySetting(@GetRequesterInfo() requester: RequesterInfo) {
+    return this.userService.getSetting(requester.id, 'me');
   }
 
   @Patch('me/setting')
   updateMySetting(
     @Body() body: UpdateUserSettingDto,
-    @RequestPayload() payload: JwtPayload,
+    @GetRequesterInfo() requester: RequesterInfo,
   ) {
-    return this.userService.updateSetting(payload.id, body);
+    return this.userService.updateSetting(requester.id, body);
   }
 }
 

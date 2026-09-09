@@ -22,7 +22,7 @@ import { FilterDbField } from '../_common/helper/filterQueryForRole.js';
 
 @Injectable()
 export class UserService {
-  private userFilterByRole: FilterDbField<User>;
+  userFilterByRole: FilterDbField<User>;
   private settingFilterByRole: FilterDbField<UserSetting>;
 
   constructor(
@@ -69,7 +69,7 @@ export class UserService {
     role: 'admin' | 'me' | 'other',
   ) {
     const alias = 'user';
-    const selectField = this.userFilterByRole.getQuerySelectArray({
+    const selectField = this.userFilterByRole.buildQuerySelectArray({
       label: role,
       tableName: alias,
     });
@@ -87,7 +87,7 @@ export class UserService {
     limit = 20,
   ) {
     const alias = 'user';
-    const selectField = this.userFilterByRole.getQuerySelectArray({
+    const selectField = this.userFilterByRole.buildQuerySelectArray({
       label: role,
       tableName: alias,
     });
@@ -135,7 +135,7 @@ export class UserService {
 
   async getSetting(id: string, role: 'admin' | 'me' | 'other') {
     const alias = 'user';
-    const selectField = this.userFilterByRole.getQuerySelectArray({
+    const selectField = this.userFilterByRole.buildQuerySelectArray({
       label: role,
       tableName: alias,
     });

@@ -26,10 +26,10 @@ export class AuthController {
     @Param('range') range: 'one' | 'all',
   ) {
 
-    if (!req.user)
+    if (!req.requester)
       throw new NotFoundException({ errorCode: 'access_token_not_found'});
 
-    return this.authService.logout(req.user, range);
+    return this.authService.logout(req.requester, range);
   }
 
   @Post('reset_password')

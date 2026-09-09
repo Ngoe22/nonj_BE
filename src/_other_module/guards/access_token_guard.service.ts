@@ -2,7 +2,7 @@ import {CanActivate, ExecutionContext, Injectable, UnauthorizedException} from "
 import {Request} from "express"
 import { RefreshTokenService } from '../../refresh_token/refresh_token.service.js';
 import { Reflector } from '@nestjs/core';
-import { IS_PUBLIC_KEY } from '../../_common/decorators/public.decorator.js';
+import { IS_PUBLIC_KEY } from '../../_common/decorators/method/public.decorator.js';
 
 @Injectable()
 export class AccessTokenGuard implements CanActivate {

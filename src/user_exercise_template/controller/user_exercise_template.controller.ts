@@ -6,12 +6,11 @@ import {
   Patch,
   Param,
   Delete,
-  Req,
 } from '@nestjs/common';
 import { UserExerciseTemplateService } from '../user_exercise_template.service.js';
 import {CreateExerciseTemplateDto, UpdateExerciseTemplateDto} from '../dto/user_exercise_template.dto.js';
-import type { JwtPayload } from '../../_common/types/request.js';
-import { RequestPayload } from '../../_common/decorators/param/request_payload.decorator.js';
+import type { RequesterInfo } from '../../_common/types/request.js';
+import { GetRequesterInfo } from '../../_common/decorators/param/request_payload.decorator.js';
 
 @Controller('user_exercise_template')
 export class UserExerciseTemplateController {
@@ -19,39 +18,54 @@ export class UserExerciseTemplateController {
     private readonly exerciseTemplateService: UserExerciseTemplateService,
   ) {}
 
-  @Get("/:exercise_template_id")
-  get(
-    @RequestPayload() req: JwtPayload ,
-    @Param("exercise_template_id") exerciseTemplateId: string
-  ) {
-    return this.exerciseTemplateService.findOne(exerciseTemplateId);
+  // ================== EXERCISE TEMPLATE ==================
+
+  @Get('/:id')
+  get(@GetRequesterInfo() requester: RequesterInfo, @Param('id') id: string) {
+    // friend service check relationship
+    // setting service check xem co allow xem khong
+
+    return this.exerciseTemplateService.findOne({
+      template_id: id,
+      user_id: requester.id,
+      reqRole: requester.role,
+    });
   }
 
   @Post()
   create(
     @Body() body: CreateExerciseTemplateDto,
-    @RequestPayload() payload: JwtPayload,
+    @GetRequesterInfo() requester: RequesterInfo,
   ) {
-
     return this.exerciseTemplateService.create({
       ...body,
-      user: payload.id,
+      user: requester.id,
     });
   }
 
-  @Patch(":exercise_template_id")
+  @Patch(':exercise_template_id')
   edit(
-      @Body() body: UpdateExerciseTemplateDto,
-      @RequestPayload() payload: JwtPayload ,
-      @Param("template_id") template_id: string
+    @Body() body: UpdateExerciseTemplateDto,
+    @GetRequesterInfo() requester: RequesterInfo,
+    @Param('template_id') template_id: string,
   ) {
     return this.exerciseTemplateService.update({
-      body  ,
-      user_id : payload.id ,
-      template_id
+      body,
+      user_id: requester.id,
+      template_id,
     });
   }
 
   @Delete()
-  delete() {}
+  delete(
+    @GetRequesterInfo() requester: RequesterInfo,
+    @Param('template_id') template_id: string,
+  ) {
+    return this.exerciseTemplateService.softDelete({
+      user_id: requester.id,
+      template_id,
+    });
+  }
+
+  // ================== COLLECTION ==================
 }

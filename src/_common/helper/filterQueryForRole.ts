@@ -7,17 +7,16 @@ type Input<T extends ObjectLiteral> = {
 };
 
 export class FilterDbField<T extends ObjectLiteral> {
-
   private readonly keyAndLabels: Record<string, Set<string>>;
 
   constructor(input: Input<T>) {
-    this.keyAndLabels = this.createSets(input); //object { key : set[ role1 ,role2 ] }
+    this.keyAndLabels = this.createSetsOfKeyAndLabels(input); //object { key : set[ role1 ,role2 ] }
   }
 
-
-  static turnObjInfoToRelationObj ( object:Record<string, any > , relationFields : string[]) {
-
-
+  static turnObjInfoToRelationObj(
+    object: Record<string, any>,
+    relationFields: string[],
+  ) {
     // input = {
     //   title : 'abc'
     //   date : "bla bla"
@@ -30,24 +29,19 @@ export class FilterDbField<T extends ObjectLiteral> {
     //   user : { id : '@3123' }
     // }
 
-    const output = { } as Record<string, any>;
-    const sets = new Set( relationFields )
+    const output = {} as Record<string, any>;
+    const sets = new Set(relationFields);
 
-     Object.entries(object).forEach(([key, value]) => {
-        output[key] =  sets.has(key) ?  { id :value } : value;
-    })
+    Object.entries(object).forEach(([key, value]) => {
+      output[key] = sets.has(key) ? { id: value } : value;
+    });
 
-    return output
-
+    return output;
   }
-
-
-
-
 
   // =====================================================
 
-  getQuerySelectArray(input: { label: string; tableName: string }) {
+  buildQuerySelectArray(input: { label: string; tableName: string }) {
     const array: string[] = [];
     const { label, tableName } = input;
 
@@ -56,6 +50,17 @@ export class FilterDbField<T extends ObjectLiteral> {
     });
 
     return array;
+  }
+
+  buildQuerySelectObject(input: { label: string }) {
+    const object: Record<string, boolean> = {};
+    const { label } = input;
+
+    Object.entries(this.keyAndLabels).forEach(([field, labels]) => {
+      if (labels.has(label)) object[field] = true;
+    });
+
+    return object;
   }
 
   filterDataOfQueryResult(input: {
@@ -72,32 +77,23 @@ export class FilterDbField<T extends ObjectLiteral> {
     return output;
   }
 
-
-
-
-
-
-
-
-
-
   // =====================================================
 
-  private createSets(input: Input<T>): Record<string, Set<string>> {
+  private createSetsOfKeyAndLabels(
+    input: Input<T>,
+  ): Record<string, Set<string>> {
     const { keyAndLabels, dataBase, dataSource } = input;
     const columns = new Set(
-        dataSource.getMetadata(dataBase).columns.map((col) => col.propertyName),
+      dataSource.getMetadata(dataBase).columns.map((col) => col.propertyName),
     );
     return Object.fromEntries(
-        Object.entries(keyAndLabels).map(([key, labels]) => {
-          if (!columns.has(key))
-            throw new Error(
-                'server : FilterDbField created fail -  input key not in database column.' +
-                key,
-            );
-          return [key, new Set<string>(labels)];
-        }),
+      Object.entries(keyAndLabels).map(([key, labels]) => {
+        if (!columns.has(key))
+          throw new Error(
+            `server : FilterDbField created fail -  input key ( ${key} ) not in database column.`,
+          );
+        return [key, new Set<string>(labels)];
+      }),
     );
   }
-
 }

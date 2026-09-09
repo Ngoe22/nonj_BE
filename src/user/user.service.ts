@@ -23,7 +23,7 @@ import { FilterDbField } from '../_common/helper/filterQueryForRole.js';
 @Injectable()
 export class UserService {
   userFilterByRole: FilterDbField<User>;
-  private settingFilterByRole: FilterDbField<UserSetting>;
+  settingFilterByRole: FilterDbField<UserSetting>;
 
   constructor(
     @InjectRepository(User)
@@ -65,46 +65,37 @@ export class UserService {
   }
 
   async getInfo(
-    condition: FindOptionsWhere<User>,
-    role: 'admin' | 'me' | 'other',
+      condition: FindOptionsWhere<User>,
+      role: 'admin' | 'me' | 'other',
   ) {
-    const alias = 'user';
-    const selectField = this.userFilterByRole.buildQuerySelectArray({
-      label: role,
-      tableName: alias,
+    const selectField = this.userFilterByRole.buildQuerySelectObject({ label: role });
+
+    return await this.userRepository.findOne({
+      where: condition,
+      select: selectField,
     });
-    return await this.userRepository
-      .createQueryBuilder(alias)
-      .where(condition)
-      .select(selectField)
-      .getRawOne();
   }
 
   async getInfoMany(
-    condition: FindOptionsWhere<User>,
-    role: 'admin' | 'me' | 'other',
-    page = 1,
-    limit = 20,
+      condition: FindOptionsWhere<User>,
+      role: 'admin' | 'me' | 'other',
+      page = 1,
+      limit = 20,
   ) {
-    const alias = 'user';
-    const selectField = this.userFilterByRole.buildQuerySelectArray({
-      label: role,
-      tableName: alias,
+    const selectField = this.userFilterByRole.buildQuerySelectObject({ label: role });
+
+    return await this.userRepository.find({
+      where: condition,
+      select: selectField,
+      order: { created_at: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
-    return await this.userRepository
-      .createQueryBuilder(alias)
-      .where(condition)
-      .select(selectField)
-      .orderBy('user.created_at', 'DESC')
-      .skip((page - 1) * limit)
-      .take(limit)
-      .getRawMany();
   }
 
   @Transactional()
   async create(body: CreateUserDto) {
     const label = 'me';
-
     body.password = await projectBcrypt.encode(body.password);
     const user = await this.userRepository.save(body);
     const setting = await this.userSettingRepository.save({
@@ -125,6 +116,7 @@ export class UserService {
   }
 
   async updateInfo(condition: FindOptionsWhere<User>, body: UpdateUserDto) {
+    if ( body.password ) body.password = await projectBcrypt.encode(body.password);
     const result = await this.userRepository.update(condition, body);
     if (result.affected === 0)
       throw new NotFoundException({ errorCode: 'update_setting_failed' });
@@ -134,16 +126,13 @@ export class UserService {
   // ========================= Setting =========================
 
   async getSetting(id: string, role: 'admin' | 'me' | 'other') {
-    const alias = 'user';
-    const selectField = this.userFilterByRole.buildQuerySelectArray({
+    const selectField = this.userFilterByRole.buildQuerySelectObject({
       label: role,
-      tableName: alias,
     });
-    return await this.userRepository
-      .createQueryBuilder(alias)
-      .where({ user: { id } })
-      .select(selectField)
-      .getRawOne();
+    return await this.userSettingRepository.findOne({
+      where: { user: { id }} ,
+      select : selectField
+    })
   }
 
   async updateSetting(user_id: string, body: UpdateUserSettingDto) {
@@ -152,7 +141,7 @@ export class UserService {
       body,
     );
     if (result.affected === 0)
-      throw new NotFoundException({ errorCode: 'update_setting_failed' });
+      throw new NotFoundException({ errorCode: 'update_setting_no_affected' });
     return body;
   }
 }

@@ -43,7 +43,7 @@ export class FriendRequest extends BaseEntity {
 
   // ==============================
 
-  @OneToOne(() => Friendship, (friendship) => friendship.request)
+  @OneToOne(() => Friendship, (friendship) => friendship.source_request_id)
   friendship: Relation<Friendship>;
 }
 

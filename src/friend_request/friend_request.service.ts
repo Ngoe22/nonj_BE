@@ -14,7 +14,7 @@ import { UserService } from '../user/user.service.js';
 
 @Injectable()
 export class FriendRequestService {
-  private dataFilterByRole: FilterDbField<FriendRequest>;
+  private friendReqFilterByRole: FilterDbField<FriendRequest>;
 
   constructor(
     @InjectRepository(FriendRequest)
@@ -23,7 +23,7 @@ export class FriendRequestService {
     private readonly dataSource: DataSource,
     private readonly userService: UserService,
   ) {
-    this.dataFilterByRole = new FilterDbField({
+    this.friendReqFilterByRole = new FilterDbField({
       keyAndLabels: {
         id: ['admin', 'me'],
         friend_request_sender: ['admin', 'me'],
@@ -37,27 +37,30 @@ export class FriendRequestService {
     });
   }
 
-  async get_many_sending_request(input: {
+  async get_many_request(input: {
     user_id: string;
     page: number;
     limit: number;
     role: string;
-  }) {
+    type : "waiting for friend response" | "waiting for my response"
+  } ) {
 
+    const { user_id, page, limit, role , type } = input;
 
-    const { user_id, page, limit, role } = input;
+    const where = type === "waiting for friend response" ?
+        { friend_request_sender: { id: user_id } } :
+        { friend_request_receiver: { id: user_id } };
 
-    const friendReqQueryObject = this.dataFilterByRole.buildQuerySelectObject({
-      label: role
-    });
+    const friendReqQueryObject =
+        this.friendReqFilterByRole.buildQuerySelectObject({label: role});
+
     const userQueryObject =
       this.userService.userFilterByRole.buildQuerySelectObject({
         label: "other",
       });
 
-
-    const result = await this.requestRepo.find({
-      where: { friend_request_sender: { id: user_id } },
+    return  await this.requestRepo.find({
+      where,
       relations: { friend_request_receiver: true },
       select: {
         ...friendReqQueryObject,
@@ -66,23 +69,8 @@ export class FriendRequestService {
       skip: (page - 1) * limit,
       take: limit,
     });
-
-
-    //
-    // return this.requestRepo
-    //   .createQueryBuilder(tableAlias)
-    //   .select(queryArray)
-    //   .where({ friend_request_sender: { id: user_id } })
-    //   .skip((page - 1) * limit)
-    //   .take(limit)
-    //   .getMany();
   }
 
-  async get_many_pending_request(input: {
-    user_id: string;
-    page: number;
-    limit: number;
-  }) {}
 
   async add_request(body: any) {
     const { friend_request_sender, friend_request_receiver } = body;

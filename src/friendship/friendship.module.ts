@@ -8,5 +8,6 @@ import {Friendship} from "./entities/friendship.entity.js";
   imports: [TypeOrmModule.forFeature([Friendship])] ,
   controllers: [FriendshipController],
   providers: [FriendshipService],
+  exports: [FriendshipService],
 })
 export class FriendshipModule {}

@@ -14,7 +14,6 @@ import { FriendRequestService } from './friend_request.service.js';
 import {
   CreateFriendRequestDto,
   UpdateRequestFromReceiverDto,
-  UpdateRequestFromSenderDto,
 } from './dto/friend_request.dto.js';
 import { GetRequesterInfo } from '../_common/decorators/param/request_payload.decorator.js';
 import type { RequesterInfo } from '../_common/types/request.js';
@@ -35,38 +34,34 @@ export class FriendRequestController {
     });
   }
 
-  // @Patch('sender/:requester_id')
-  // senderUpdate(
-  //   @Body() body: UpdateRequestFromSenderDto,
-  //   @GetRequesterInfo() requester: RequesterInfo,
-  //   @Param('requester_id') requester_id: string,
-  // ) {}
-
   @Get("sending")
   sending_request(
     @GetRequesterInfo() user: RequesterInfo,
     @Query('limit', new DefaultValuePipe(20), ParseLimitPipe) limit: number,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
   ) {
-    return this.friendRequestService.get_many_sending_request({
+    return this.friendRequestService.get_many_request({
       user_id: user.id,
       limit,
       page,
-      role : 'me'
-    });
+      role : 'me' ,
+      type :"waiting for friend response"
+    }  );
   }
 
-  @Get("/pending")
+  @Get("pending")
   pending_request(
     @GetRequesterInfo() user: RequesterInfo,
     @Query('limit', new DefaultValuePipe(20), ParseLimitPipe) limit: number,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
   ) {
-    return this.friendRequestService.get_many_pending_request({
+    return this.friendRequestService.get_many_request({
       user_id: user.id,
       limit,
       page,
-    });
+      role : 'me' ,
+      type :"waiting for my response"
+    } );
   }
 
   @Patch(':request_id')

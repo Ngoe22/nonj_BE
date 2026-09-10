@@ -21,7 +21,7 @@ import {UserExerciseTemplateService} from "../../service/user_exercise_template.
 
 @Controller('admin/user_exercise_template')
 @UseGuards(UserGuard([User_Role.SYSTEM_ADMIN]))
-export class UserExerciseTemplateController {
+export class AdminUserExerciseTemplateController {
     constructor(
         private readonly exerciseTemplateService: UserExerciseTemplateService
     ) {

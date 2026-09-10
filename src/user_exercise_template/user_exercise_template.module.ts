@@ -7,9 +7,16 @@ import {UserExerciseTemplateCollection} from "./entities/user_exercise_template_
 import {UserModule} from "../user/user.module.js";
 import {FriendshipModule} from "../friendship/friendship.module.js";
 import {UserExerciseTemplateCollectionService} from "./service/user_exercise_template_collection.service.js";
+import {
+    AdminUserExerciseTemplateCollectionController
+} from "./controller/collection/admin-user_exercise_template.controller.js";
+import {
+    UserExerciseTemplateCollectionController
+} from "./controller/collection/user_exercise_template_collection.controller.js";
+import {AdminUserExerciseTemplateController} from "./controller/template/admin-user_exercise_template.controller.js";
 
 @Module({
-  controllers: [UserExerciseTemplateController],
+  controllers: [UserExerciseTemplateController ,AdminUserExerciseTemplateController, AdminUserExerciseTemplateCollectionController , UserExerciseTemplateCollectionController],
   providers: [UserExerciseTemplateService , UserExerciseTemplateCollectionService],
  imports: [TypeOrmModule.forFeature([UserExerciseTemplate, UserExerciseTemplateCollection]) , UserModule , FriendshipModule  ],
 })

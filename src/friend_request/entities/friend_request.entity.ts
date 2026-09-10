@@ -3,7 +3,7 @@ import {
   Entity,
   Index,
   JoinColumn,
-  ManyToOne,
+  ManyToOne, OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
   type Relation,
@@ -14,7 +14,7 @@ import {BaseEntity} from "../../_common/entities/base.entity.js";
 import { Friend_Request_Status } from '../enum/friend_request.enum.js';
 
 
-
+@Index(['sender', 'receiver'])
 @Entity('friend_request')
 export class FriendRequest extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -23,7 +23,7 @@ export class FriendRequest extends BaseEntity {
   @Index()
   @ManyToOne(() => User, (user_sender) => user_sender.friend_request_sender)
   @JoinColumn({ name: 'sender_id', referencedColumnName: 'id' })
-  friend_request_sender: Relation<User>;
+  sender: Relation<User>;
 
   @Index()
   @ManyToOne(
@@ -31,7 +31,7 @@ export class FriendRequest extends BaseEntity {
     (user_receiver) => user_receiver.friend_request_receiver,
   )
   @JoinColumn({ name: 'receiver_id', referencedColumnName: 'id' })
-  friend_request_receiver: Relation<User>;
+  receiver: Relation<User>;
 
 
   @Column({
@@ -43,7 +43,7 @@ export class FriendRequest extends BaseEntity {
 
   // ==============================
 
-  @OneToOne(() => Friendship, (friendship) => friendship.source_request_id)
+  @OneToMany(() => Friendship, (friendship) => friendship.source_request)
   friendship: Relation<Friendship>;
 }
 

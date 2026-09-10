@@ -16,10 +16,18 @@ export class CreateExerciseTemplateDto {
 }
 
 export class UpdateExerciseTemplateDto {
+
+
+  @IsUUID()
+  collection: string //id
+
   @IsString()
   @MinLength(1)
   @MaxLength(50)
-  name: string
+  title: string
+
+  @IsObject()
+  exercise_content :object ;
 
 }
 

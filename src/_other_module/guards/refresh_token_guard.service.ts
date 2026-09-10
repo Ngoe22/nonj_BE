@@ -18,7 +18,6 @@ export class RefreshTokenGuard implements CanActivate {
       if (!refreshToken) throw new UnauthorizedException( { errorCode : 'refresh_token_not_found' } );
       request.requester = await this.tokenService.validateToken( refreshToken , "refresh");
 
-
     if (refreshToken) return true;
   }
 

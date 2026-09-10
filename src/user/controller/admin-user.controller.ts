@@ -10,10 +10,10 @@ import {
 import { UserService } from '../user.service.js';
 import { UpdateUserDto } from '../dto/update-user.dto.js';
 import { UpdateUserSettingDto } from '../dto/update-setting.dto.js';
-import { UserGuard } from '../guard/user.guard.js';
+import { UserGuard } from '../../_other_module/guards/user.guard.js';
 import { User_Role } from '../enums/user.enum.js';
 
-@Controller('controller/users')
+@Controller('admin/users')
 @UseGuards(UserGuard([User_Role.SYSTEM_ADMIN]))
 export class AdminUserController {
   constructor(private readonly userService: UserService) {}

@@ -6,9 +6,22 @@ export class CreateFriendshipDto {
     user_id : string
 
     @IsUUID()
-    user_friend_id : string
+    friend_id : string
 
     @IsUUID()
-    source_request_id  : string
+    source_request  : string
+
+}
+
+export class AdminUpdateFriendshipDto {
+
+    @IsUUID()
+    user_id : string
+
+    @IsUUID()
+    friend_id : string
+
+    @IsUUID()
+    source_request  ?: string
 
 }

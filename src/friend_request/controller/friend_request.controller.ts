@@ -10,14 +10,15 @@ import {
   DefaultValuePipe,
   ParseIntPipe,
 } from '@nestjs/common';
-import { FriendRequestService } from './friend_request.service.js';
+import { FriendRequestService } from '../friend_request.service.js';
 import {
   CreateFriendRequestDto,
   UpdateRequestFromReceiverDto,
-} from './dto/friend_request.dto.js';
-import { GetRequesterInfo } from '../_common/decorators/param/request_payload.decorator.js';
-import type { RequesterInfo } from '../_common/types/request.js';
-import { ParseLimitPipe } from '../_common/pipe/ParseLimitPipe.js';
+} from '../dto/friend_request.dto.js';
+import { GetRequesterInfo } from '../../_common/decorators/param/request_payload.decorator.js';
+import type { RequesterInfo } from '../../_common/types/request.js';
+import { ParseLimitPipe } from '../../_common/pipe/ParseLimitPipe.js';
+
 
 @Controller('friend_request')
 export class FriendRequestController {
@@ -30,11 +31,11 @@ export class FriendRequestController {
   ) {
     return this.friendRequestService.add_request({
       ...body,
-      friend_request_sender: user.id,
+      sender: user.id,
     });
   }
 
-  @Get("sending")
+  @Get("outgoing_requests")
   sending_request(
     @GetRequesterInfo() user: RequesterInfo,
     @Query('limit', new DefaultValuePipe(20), ParseLimitPipe) limit: number,
@@ -44,12 +45,12 @@ export class FriendRequestController {
       user_id: user.id,
       limit,
       page,
-      role : 'me' ,
-      type :"waiting for friend response"
+      data_for_role : 'me' ,
+      type :"outgoing_requests"
     }  );
   }
 
-  @Get("pending")
+  @Get("ingoing_requests")
   pending_request(
     @GetRequesterInfo() user: RequesterInfo,
     @Query('limit', new DefaultValuePipe(20), ParseLimitPipe) limit: number,
@@ -59,8 +60,8 @@ export class FriendRequestController {
       user_id: user.id,
       limit,
       page,
-      role : 'me' ,
-      type :"waiting for my response"
+      data_for_role : 'me' ,
+      type :"ingoing_requests"
     } );
   }
 
@@ -70,7 +71,7 @@ export class FriendRequestController {
     @GetRequesterInfo() user: RequesterInfo,
     @Param('request_id') request_id: string,
   ) {
-    return this.friendRequestService.sender_update(request_id, user.id, body);
+    return this.friendRequestService.receiver_update(request_id, user.id, body);
   }
 
   @Delete(':request_id')

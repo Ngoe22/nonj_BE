@@ -29,5 +29,5 @@ export class Friendship extends BaseEntity {
 
   @ManyToOne(() => FriendRequest, (request) => request.friendship)
   @JoinColumn({ name: 'source_request_id', referencedColumnName: 'id' })
-  source_request_id: Relation<FriendRequest>;
+  source_request: Relation<FriendRequest>;
 }

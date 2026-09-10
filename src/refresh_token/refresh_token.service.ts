@@ -96,7 +96,6 @@ export class RefreshTokenService {
 
 
   getPayloadFromUer(user: User) {
-
     return {
       id: user.id,
       user_name: user.user_name,

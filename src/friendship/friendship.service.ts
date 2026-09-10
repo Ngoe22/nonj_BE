@@ -1,10 +1,10 @@
-import {Injectable, NotFoundException} from '@nestjs/common';
+import {ConflictException, Injectable, NotFoundException} from '@nestjs/common';
 import {InjectDataSource, InjectRepository} from "@nestjs/typeorm";
-import {FriendRequest} from "../friend_request/entities/friend_request.entity.js";
 import {DataSource, Repository} from "typeorm";
 import {Friendship} from "./entities/friendship.entity.js";
 import {FilterDbField} from "../_common/helper/filterQueryForRole.js";
 import {Transactional} from "typeorm-transactional";
+import {UserService} from "../user/user.service.js";
 
 
 // ======================================================================
@@ -19,6 +19,7 @@ export class FriendshipService {
         private readonly friendshipRepo: Repository<Friendship>,
         @InjectDataSource()
         private readonly dataSource: DataSource,
+        private readonly userService: UserService,
     ) {
 
       this.friendShipFilterByRole = new FilterDbField({
@@ -26,8 +27,7 @@ export class FriendshipService {
           id: ['admin', 'me'],
           user: ['admin', 'me'],
           user_friend: ['admin', 'me'],
-          request : ['admin', ],
-          created_at: ['admin', ],
+            created_at: ['admin', ],
           updated_at: ['admin', ],
           deleted_at: ['admin'],
         },
@@ -37,29 +37,71 @@ export class FriendshipService {
 
     }
 
+    // ===============================
+
+    async getMany(input: {
+        user_id: string;
+        page: number;
+        limit: number;
+    }) {
+        const { user_id, page, limit } = input;
+
+        const user_select_obj =
+            this.userService.userFilterByRole.buildQuerySelectObject({ label:'other' })
+
+        return this.friendshipRepo.find({
+            where: {user: { id: user_id },},
+            relations: {user_friend: true},
+            select: {
+                id: true,
+                created_at: true,
+                user_friend: user_select_obj,
+            },
+            order: {created_at: 'DESC'},
+            skip: (page - 1) * limit,
+            take: limit,
+        });
+    }
+
+
+    async add_friend ( body :{
+        user_id : string ,
+        friend_id : string ,
+        source_request  : string ,
+    }) {
+
+        const isFriend =
+            await this.isFriend({user_id: body.user_id, friend_id: body.friend_id})
+
+        if ( isFriend === 'never' ) return this.create_friendship(body)
+        if ( isFriend === 'was' ) return this.readd_friend(body)
+        throw new ConflictException({ errorCode: 'already_friends' });
+    }
+
+
     @Transactional()
-   async create ( body :{
+    private async create_friendship ( body :{
      user_id : string ,
-     user_friend_id : string ,
-     source_request_id  : string ,
+     friend_id : string ,
+     source_request  : string ,
    }) {
 
       const saveInfo1 = FilterDbField.turnObjInfoToRelationObj(
           {
             user: body.user_id,
-            user_friend: body.user_friend_id,
-            source_request_id: body.source_request_id,
+            user_friend: body.friend_id,
+            source_request: body.source_request,
           },
-          ['user', 'user_friend', 'source_request_id'],
+          ['user', 'user_friend', 'source_request'],
       );
 
       const saveInfo2 = FilterDbField.turnObjInfoToRelationObj(
           {
-            user: body.user_friend_id,
+            user: body.friend_id,
             user_friend: body.user_id,
-            source_request_id: body.source_request_id,
+            source_request: body.source_request,
           },
-          ['user', 'user_friend', 'source_request_id'],
+          ['user', 'user_friend', 'source_request'],
       );
 
       await this.friendshipRepo.save(saveInfo1);
@@ -68,24 +110,31 @@ export class FriendshipService {
       return true;
    }
 
-   async delete ( input : { user_id: string , id: string  } ) {
-      const { user_id , id  } = input;
-      const result = await  this.friendshipRepo.update(
-          { id , user : { id : user_id } } ,
-          { deleted_at: new Date() ,deleted_by : user_id },
-      )
-     if ( result.affected === 0 ) {
-       throw new NotFoundException({ errorCode : 'delete_info_not_found' });
-     }
-     return true;
+    private async readd_friend ( input : {user_id  :string , friend_id :string , source_request :string}  ) {
+        const { user_id, friend_id , source_request } = input;
+
+        return this.update_2side(
+            { user_id, friend_id } ,
+           { deleted_at: null, deleted_by: null , source_request : {id : source_request} },
+           "add_friend_info_not_found" )
    }
 
+   //=====================================
+
+    async delete(input: { user_id: string; friend_id: string }) {
+        const { user_id, friend_id } = input;
+        return this.update_2side(
+            input , { deleted_at: new Date(), deleted_by: user_id }, "delete_info_not_found" )
+    }
+
+    // ===================================
 
   async isFriend(input: { user_id: string; friend_id: string }): Promise<'never' | 'was' | 'is'> {
     const { user_id, friend_id } = input;
 
     const result = await this.friendshipRepo.findOne({
-      where: { user: { id: user_id }, user_friend: { id: friend_id } },
+      where: { user: { id: user_id }, user_friend: { id: friend_id } ,},
+      select: { deleted_at :true } ,
       withDeleted: true,
     });
 
@@ -97,5 +146,27 @@ export class FriendshipService {
 
   // ======= private ======
 
+    @Transactional()
+     private async update_2side (id : {user_id: string, friend_id: string} , body :any , errorCode:string) {
+        const {user_id  , friend_id} = id;
+
+        const result1 = await this.friendshipRepo.update(
+            { user: { id: user_id }, user_friend: { id: friend_id } },
+            body,
+        );
+        if (result1.affected === 0) {
+            throw new NotFoundException({ errorCode });
+        }
+
+        const result2 =   await this.friendshipRepo.update(
+            { user: { id: friend_id }, user_friend: { id: user_id } },
+            body,
+        );
+        if (result2.affected === 0) {
+            throw new NotFoundException({ errorCode});
+        }
+
+        return true;
+    }
 
 }

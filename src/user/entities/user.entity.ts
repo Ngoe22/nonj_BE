@@ -142,13 +142,13 @@ export class User extends BaseEntity {
 
   @OneToMany(
     () => FriendRequest,
-    (user_sender) => user_sender.friend_request_sender,
+    (user_sender) => user_sender.sender,
   )
   friend_request_sender: FriendRequest;
 
   @OneToMany(
     () => FriendRequest,
-    (user_receiver) => user_receiver.friend_request_receiver,
+    (user_receiver) => user_receiver.receiver,
   )
   friend_request_receiver: FriendRequest;
 

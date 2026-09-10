@@ -51,7 +51,7 @@ export class UserService {
 
     this.settingFilterByRole = new FilterDbField({
       keyAndLabels: {
-        who_can_see_my_template: ['admin', 'me'],
+        who_can_see_my_template: ['admin', 'me' ,'other'],
       },
       dataBase: UserSetting,
       dataSource,

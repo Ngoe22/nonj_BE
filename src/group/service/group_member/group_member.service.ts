@@ -35,13 +35,17 @@ export class GroupMemberService {
   async getRole(input: {
     group_id: string;
     user_id: string;
-  }): Promise<Group_Member_Role | null> {
+  }): Promise<Group_Member_Role> {
     const { group_id, user_id } = input;
     const member = await this.groupMemberRepo.findOne({
       where: { group: { id: group_id }, user: { id: user_id } },
       select: { role: true },
     });
-    return member?.role ?? null;
+
+    if (!member)
+      throw new NotFoundException({ errorCode: 'user_not_found_in_group' });
+
+    return member.role;
   }
 
   async isMember(input: {
@@ -57,6 +61,48 @@ export class GroupMemberService {
     if (!member) return 'never';
     if (member.deleted_at) return 'was';
     return 'is';
+  }
+
+  // ==================== Helper  ====================
+
+  getMemberRole(input: { group_id: string; user_id: string }) {}
+
+  private async checkBothSideRoleBeforeAction(input: {
+    group_id: string;
+    actor_id: string;
+    actor_allow_roles: string[];
+    target_id: string;
+    target_allow_roles: string[];
+  }) {
+    const {
+      group_id,
+      actor_id,
+      actor_allow_roles,
+      target_id,
+      target_allow_roles,
+    } = input;
+
+    const actor_role = await this.getRole({
+      group_id,
+      user_id: actor_id,
+    });
+
+    if (!actor_allow_roles.includes(actor_role))
+      throw new NotFoundException({
+        errorCode: 'actor_role_not_allowed_in_group',
+      });
+
+    const target_role = await this.getRole({
+      group_id,
+      user_id: target_id,
+    });
+
+    if (!target_allow_roles.includes(target_role))
+      throw new NotFoundException({
+        errorCode: 'target_role_not_allowed_in_group',
+      });
+
+    return true;
   }
 
   // ==================== Join / Rejoin — gọi từ JoinRequestService khi accept ====================
@@ -120,38 +166,40 @@ export class GroupMemberService {
     });
   }
 
-  // ==================== Promote / Demote — chỉ founder ====================
+  // ==================== Promote / Demote —  FOUNDER ONLY ====================
 
   async promoteToAdmin(input: {
     group_id: string;
-    founder_id: string;
-    target_user_id: string;
+    actor_id: string;
+    target_id: string;
   }) {
-    await this.assertTargetRole({
+    await this.checkBothSideRoleBeforeAction({
       ...input,
-      requiredCallerRole: Group_Member_Role.FOUNDER,
-      requiredTargetRole: Group_Member_Role.MEMBER,
+      actor_allow_roles: [Group_Member_Role.FOUNDER],
+      target_allow_roles: [Group_Member_Role.MEMBER],
     });
+
     return this.setRole({
       group_id: input.group_id,
-      user_id: input.target_user_id,
+      user_id: input.target_id,
       role: Group_Member_Role.ADMIN,
     });
   }
 
   async demoteToMember(input: {
     group_id: string;
-    founder_id: string;
-    target_user_id: string;
+    actor_id: string;
+    target_id: string;
   }) {
-    await this.assertTargetRole({
+    await this.checkBothSideRoleBeforeAction({
       ...input,
-      requiredCallerRole: Group_Member_Role.FOUNDER,
-      requiredTargetRole: Group_Member_Role.ADMIN,
+      actor_allow_roles: [Group_Member_Role.FOUNDER],
+      target_allow_roles: [Group_Member_Role.ADMIN],
     });
+
     return this.setRole({
       group_id: input.group_id,
-      user_id: input.target_user_id,
+      user_id: input.target_id,
       role: Group_Member_Role.MEMBER,
     });
   }
@@ -170,59 +218,67 @@ export class GroupMemberService {
     return true;
   }
 
-  // ==================== Remove (kick) ====================
+  // ==================== Remove  ====================
 
-  // Admin hoặc founder kick 1 member thường
+  //selfLeft
+
   async kickMember(input: {
     group_id: string;
-    requester_id: string;
-    target_user_id: string;
+    actor_id: string;
+    target_id: string;
   }) {
-    const { group_id, requester_id, target_user_id } = input;
-
-    const requesterRole = await this.getRole({
-      group_id,
-      user_id: requester_id,
-    });
-    if (
-      requesterRole !== Group_Member_Role.ADMIN &&
-      requesterRole !== Group_Member_Role.FOUNDER
-    ) {
-      throw new ForbiddenException({ errorCode: 'not_allowed' });
-    }
-
-    await this.assertTargetRole({
-      group_id,
-      founder_id: requester_id,
-      target_user_id,
-      requiredCallerRole: requesterRole,
-      requiredTargetRole: Group_Member_Role.MEMBER,
-      skipCallerCheck: true,
+    const { group_id, actor_id, target_id } = input;
+    await this.checkBothSideRoleBeforeAction({
+      ...input,
+      actor_allow_roles: [Group_Member_Role.FOUNDER, Group_Member_Role.ADMIN],
+      target_allow_roles: [Group_Member_Role.MEMBER],
     });
 
     return this.softRemove({
       group_id,
-      user_id: target_user_id,
-      removed_by: requester_id,
+      user_id: target_id,
+      removed_by: actor_id,
     });
   }
 
-  // Chỉ founder được loại admin ra khỏi group hẳn (khác demote — đây là kick, không giữ lại làm member)
   async founderRemoveAdmin(input: {
     group_id: string;
-    founder_id: string;
-    target_user_id: string;
+    actor_id: string;
+    target_id: string;
   }) {
-    await this.assertTargetRole({
+    const { group_id, actor_id, target_id } = input;
+    await this.checkBothSideRoleBeforeAction({
       ...input,
-      requiredCallerRole: Group_Member_Role.FOUNDER,
-      requiredTargetRole: Group_Member_Role.ADMIN,
+      actor_allow_roles: [Group_Member_Role.FOUNDER],
+      target_allow_roles: [Group_Member_Role.ADMIN],
     });
     return this.softRemove({
-      group_id: input.group_id,
-      user_id: input.target_user_id,
-      removed_by: input.founder_id,
+      group_id,
+      user_id: target_id,
+      removed_by: actor_id,
     });
+  }
+
+  async leaveGroup(input: { group_id: string; user_id: string }) {
+    const { group_id, user_id } = input;
+
+    const role = await this.getRole({ group_id, user_id });
+    if (!role) throw new NotFoundException({ errorCode: 'not_a_member' });
+
+    if (role === Group_Member_Role.FOUNDER) {
+      throw new ConflictException({
+        errorCode: 'founder_cannot_leave_must_transfer_ownership',
+      });
+    }
+
+    const result = await this.groupMemberRepo.update(
+      { group: { id: group_id }, user: { id: user_id } },
+      { deleted_at: new Date(), deleted_by: user_id },
+    );
+
+    if (result.affected === 0)
+      throw new NotFoundException({ errorCode: 'not_a_member' });
+    return true;
   }
 
   private async softRemove(input: {
@@ -232,51 +288,67 @@ export class GroupMemberService {
   }) {
     const result = await this.groupMemberRepo.update(
       { group: { id: input.group_id }, user: { id: input.user_id } },
-      { deleted_at: new Date(), deleted_by: input.removed_by },
+      {
+        deleted_at: new Date(),
+        deleted_by: input.removed_by,
+        role: Group_Member_Role.MEMBER, // anyone got kick will be reset to member
+      },
     );
     if (result.affected === 0)
       throw new NotFoundException({ errorCode: 'member_not_found' });
     return true;
   }
 
-  // ==================== Helper dùng chung ====================
+  // ==================== Admin (SYSTEM_ADMIN) ====================
 
-  private async assertTargetRole(input: {
-    group_id: string;
-    founder_id: string;
-    target_user_id: string;
-    requiredCallerRole: Group_Member_Role;
-    requiredTargetRole: Group_Member_Role;
-    skipCallerCheck?: boolean;
-  }) {
-    const {
-      group_id,
-      founder_id,
-      target_user_id,
-      requiredCallerRole,
-      requiredTargetRole,
-      skipCallerCheck,
-    } = input;
+  async adminGetMany(input: { group_id: string; page: number; limit: number }) {
+    const { group_id, page, limit } = input;
 
-    if (founder_id === target_user_id) {
-      throw new ConflictException({ errorCode: 'cannot_target_yourself' });
-    }
-
-    if (!skipCallerCheck) {
-      const callerRole = await this.getRole({ group_id, user_id: founder_id });
-      if (callerRole !== requiredCallerRole) {
-        throw new ForbiddenException({ errorCode: 'not_allowed' });
-      }
-    }
-
-    const targetRole = await this.getRole({
-      group_id,
-      user_id: target_user_id,
+    const select = this.filterByRoles.buildQuerySelectObject({
+      label: 'founder',
     });
-    if (!targetRole)
-      throw new NotFoundException({ errorCode: 'target_not_member' });
-    if (targetRole !== requiredTargetRole) {
-      throw new ConflictException({ errorCode: 'target_role_mismatch' });
-    }
+
+    return this.groupMemberRepo.find({
+      where: { group: { id: group_id } },
+      select,
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { created_at: 'ASC' },
+    });
+  }
+
+  async adminSetRole(input: {
+    group_id: string;
+    user_id: string;
+    role: Group_Member_Role;
+  }) {
+    const { group_id, user_id, role } = input;
+
+    const result = await this.groupMemberRepo.update(
+      { group: { id: group_id }, user: { id: user_id } },
+      { role },
+    );
+
+    if (result.affected === 0)
+      throw new NotFoundException({ errorCode: 'member_not_found' });
+    return true;
+  }
+
+  async adminRemoveMember(input: {
+    group_id: string;
+    user_id: string;
+    admin_id: string;
+  }) {
+    const { group_id, user_id, admin_id } = input;
+
+    // soft delete
+    const result = await this.groupMemberRepo.update(
+      { group: { id: group_id }, user: { id: user_id } },
+      { deleted_at: new Date(), deleted_by: admin_id },
+    );
+
+    if (result.affected === 0)
+      throw new NotFoundException({ errorCode: 'member_not_found' });
+    return true;
   }
 }

@@ -22,7 +22,7 @@ import { ParseLimitPipe } from '../../../_common/pipe/ParseLimitPipe.js';
 
 
 
-@Controller('group_member') // sửa lại — bản gốc bạn đang copy nhầm path 'group_join_request'
+@Controller('group_member')
 export class GroupMemberController {
   constructor(private readonly groupMemberService: GroupMemberService) {}
 
@@ -41,35 +41,38 @@ export class GroupMemberController {
     });
   }
 
-  @Patch(':group_id/:user_id')
+  @Patch('founder/:group_id/:target_id')
   update(
     @Param('group_id') group_id: string,
-    @Param('user_id') user_id: string,
+    @Param('target_id') target_id: string,
     @Body() body: UpdateGroupMemberDto,
     @GetRequesterInfo() requester: RequesterInfo,
   ) {
-    const founder_id = requester.id;
+    const actor_id = requester.id;
     switch (body.action) {
       case GroupMemberUpdateAction.PROMOTE:
         return this.groupMemberService.promoteToAdmin({
           group_id,
-          founder_id,
-          target_user_id: user_id,
+          actor_id,
+          target_id,
         });
       case GroupMemberUpdateAction.DEMOTE:
         return this.groupMemberService.demoteToMember({
           group_id,
-          founder_id,
-          target_user_id: user_id,
+          actor_id,
+          target_id,
         });
       case GroupMemberUpdateAction.REMOVE_ADMIN:
         return this.groupMemberService.founderRemoveAdmin({
           group_id,
-          founder_id,
-          target_user_id: user_id,
+          actor_id,
+          target_id,
         });
     }
   }
+
+  // @Delete('me/:group_id')     // route cụ thể — khai TRƯỚC
+  // leave(...) { ... }
 
   @Delete(':group_id/:user_id')
   delete(
@@ -79,8 +82,8 @@ export class GroupMemberController {
   ) {
     return this.groupMemberService.kickMember({
       group_id,
-      requester_id: requester.id,
-      target_user_id: user_id,
+      actor_id: requester.id,
+      target_id: user_id,
     });
   }
 }

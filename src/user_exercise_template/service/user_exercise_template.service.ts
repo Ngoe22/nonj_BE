@@ -1,15 +1,12 @@
-import {ForbiddenException, Injectable, NotFoundException, UnauthorizedException} from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException} from '@nestjs/common';
 import {
   CreateExerciseTemplateDto,
-  DeleteExerciseTemplateDto,
-  UpdateExerciseTemplateDto
 } from '../dto/user_exercise_template.dto.js';
-import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import {DataSource, DeepPartial, QueryDeepPartialEntity, Repository} from 'typeorm';
+import {  InjectRepository } from '@nestjs/typeorm';
+import { Repository} from 'typeorm';
 import { FilterDbField } from '../../_common/helper/filterQueryForRole.js';
 import { UserExerciseTemplate } from '../entities/user_exercise_template.entity.js';
-import { UserExerciseTemplateCollection } from '../entities/user_exercise_template_collection.entity.js';
-import {User_Role, User_Setting_Who_can_see_template} from '../../user/enums/user.enum.js';
+import { User_Setting_Who_can_see_template} from '../../user/enums/user.enum.js';
 import {UserExerciseTemplateCollectionService} from "./user_exercise_template_collection.service.js";
 import {UserService} from "../../user/user.service.js";
 import {FriendshipService} from "../../friendship/friendship.service.js";
@@ -28,17 +25,17 @@ type CreateExerciseTemplateInput = CreateExerciseTemplateDto & {
 export class UserExerciseTemplateService {
   private exerciseFilterByRole: FilterDbField<UserExerciseTemplate>;
 
+  // ================== EXERCISE TEMPLATE ==================
+
   constructor(
     @InjectRepository(UserExerciseTemplate)
     private readonly templateRepo: Repository<UserExerciseTemplate>,
-    @InjectDataSource()
-    private readonly dataSource: DataSource,
     //
     private readonly  collectionService :UserExerciseTemplateCollectionService ,
     private readonly userService : UserService ,
     private readonly friendshipService : FriendshipService
 
-) {
+  ) {
     // ============================== Filter DB & QueryField
 
     this.exerciseFilterByRole = new FilterDbField({
@@ -51,12 +48,9 @@ export class UserExerciseTemplateService {
         deleted_at : ['system_admin', 'me', 'other'],
       },
       dataBase: UserExerciseTemplate,
-      dataSource,
     });
 
   }
-
-  // ================== EXERCISE TEMPLATE ==================
 
 
   async create(input: CreateExerciseTemplateInput) {

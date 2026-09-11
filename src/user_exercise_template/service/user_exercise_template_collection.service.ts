@@ -21,12 +21,9 @@ export class UserExerciseTemplateCollectionService {
     collectionFilterByRole: FilterDbField<UserExerciseTemplateCollection>;
 
     constructor(
-        @InjectRepository(UserExerciseTemplate)
-        private readonly templateRepo: Repository<UserExerciseTemplate>,
         @InjectRepository(UserExerciseTemplateCollection)
         private readonly collectionRepo: Repository<UserExerciseTemplateCollection>,
-        @InjectDataSource()
-        private readonly dataSource: DataSource,
+        //
         private readonly userService: UserService,
         private readonly friendshipService: FriendshipService,
     ) {
@@ -36,7 +33,6 @@ export class UserExerciseTemplateCollectionService {
                 title: ['admin', 'me', 'other'],
             },
             dataBase: UserExerciseTemplateCollection,
-            dataSource,
         });
     }
 
@@ -50,7 +46,7 @@ export class UserExerciseTemplateCollectionService {
         });
     }
 
-    // ==================== Read - One ====================
+    // ==================== Get - One ====================
 
     private async findOne(input: { condition: object; data_for: string }) {
         const { condition, data_for } = input;
@@ -96,7 +92,7 @@ export class UserExerciseTemplateCollectionService {
         });
     }
 
-    // ==================== Read - Many ====================
+    // ==================== Get - Many ====================
 
     private async findMany(input: {
         condition: object;
@@ -158,10 +154,9 @@ export class UserExerciseTemplateCollectionService {
             { id: collection_id, user: { id: user_id } },
             body,
         );
-
-        if (result.affected === 0) {
+        if (result.affected === 0)
             throw new NotFoundException({ errorCode: 'collection_or_owner_not_found' });
-        }
+
         return true;
     }
 
@@ -170,9 +165,9 @@ export class UserExerciseTemplateCollectionService {
 
         const result = await this.collectionRepo.update({ id: collection_id }, body);
 
-        if (result.affected === 0) {
+        if (result.affected === 0)
             throw new NotFoundException({ errorCode: 'collection_not_found' });
-        }
+
         return true;
     }
 
@@ -206,7 +201,7 @@ export class UserExerciseTemplateCollectionService {
         return true;
     }
 
-    // ==================== Helper — dùng nội bộ + cho module khác (template) ====================
+    // ==================== Check ====================
 
     async isCollectionBelongToUser(input: { collection_id: string; user_id: string }): Promise<boolean> {
         const { collection_id, user_id } = input;
@@ -215,7 +210,7 @@ export class UserExerciseTemplateCollectionService {
         });
     }
 
-    // ==================== Permission check (tái sử dụng cùng logic với template) ====================
+    // ==================== Permission check ====================
 
     private async checkViewPermission(input: { owner_id: string; requester_id: string }) {
         const { owner_id, requester_id } = input;

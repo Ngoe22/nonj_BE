@@ -1,34 +1,41 @@
 import { DataSource, EntityTarget, ObjectLiteral } from 'typeorm';
+import { InjectDataSource } from '@nestjs/typeorm';
 
 type Input<T extends ObjectLiteral> = {
   keyAndLabels: Record<string, string[]>;
   dataBase: EntityTarget<T>;
-  dataSource: DataSource;
+  // dataSource: DataSource;
 };
 
 export class FilterDbField<T extends ObjectLiteral> {
   private readonly keyAndLabels: Record<string, Set<string>>;
-
+  @InjectDataSource()
+  private readonly dataSource: DataSource;
   constructor(input: Input<T>) {
     this.keyAndLabels = this.createSetsOfKeyAndLabels(input); //object { key : set[ role1 ,role2 ] }
   }
 
+  /*
+  =================================================
+  par 1 : object . par2 : array contain relation key
+
+    input = {
+    title : 'abc'
+    date : "bla bla"
+    user : '@3123'
+  }
+  // relation array field = [ 'user ]
+  output = {
+    title : 'abc'
+    date : "bla bla"
+    user : { id : '@3123' }
+  }
+
+   */
   static turnObjInfoToRelationObj(
     object: Record<string, any>,
     relationFields: string[],
   ) {
-    // input = {
-    //   title : 'abc'
-    //   date : "bla bla"
-    //   user : '@3123'
-    // }
-    // // relation array field = [ 'user ]
-    // output = {
-    //   title : 'abc'
-    //   date : "bla bla"
-    //   user : { id : '@3123' }
-    // }
-
     const output = {} as Record<string, any>;
     const sets = new Set(relationFields);
 
@@ -41,6 +48,9 @@ export class FilterDbField<T extends ObjectLiteral> {
 
   // =====================================================
 
+  /*
+  building a select list for select of typeorm querybuilder
+   */
   buildQuerySelectArray(input: { label: string; tableName: string }) {
     const array: string[] = [];
     const { label, tableName } = input;
@@ -52,6 +62,10 @@ export class FilterDbField<T extends ObjectLiteral> {
     return array;
   }
 
+  /*
+  --------------------------------------------------------------
+  building a select list for select of typeorm manager
+  */
   buildQuerySelectObject(input: { label: string }) {
     const object: Record<string, boolean> = {};
     const { label } = input;
@@ -63,6 +77,9 @@ export class FilterDbField<T extends ObjectLiteral> {
     return object;
   }
 
+  /*
+  when u got all the entity( obj of data ) from database and wanna filter it before return to client
+  */
   filterDataOfQueryResult(input: {
     object: Record<string, any>;
     label: string;
@@ -79,12 +96,18 @@ export class FilterDbField<T extends ObjectLiteral> {
 
   // =====================================================
 
+  /*
+  initialize func = create a obj contain key and labels ( represent for roles or whatever u want  )
+   */
+
   private createSetsOfKeyAndLabels(
     input: Input<T>,
   ): Record<string, Set<string>> {
-    const { keyAndLabels, dataBase, dataSource } = input;
+    const { keyAndLabels, dataBase } = input;
     const columns = new Set(
-      dataSource.getMetadata(dataBase).columns.map((col) => col.propertyName),
+      this.dataSource
+        .getMetadata(dataBase)
+        .columns.map((col) => col.propertyName),
     );
     return Object.fromEntries(
       Object.entries(keyAndLabels).map(([key, labels]) => {

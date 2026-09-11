@@ -120,7 +120,7 @@ export class User extends BaseEntity {
   exercise_template_collection: UserExerciseTemplateCollection;
 
   // group
-  @OneToMany(() => Group, (group) => group.user)
+  @OneToMany(() => Group, (group) => group.founder)
   group: Group;
 
   @OneToMany(() => GroupMember, (group_member) => group_member.user)

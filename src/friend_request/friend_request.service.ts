@@ -3,12 +3,11 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, QueryDeepPartialEntity, Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import {  Repository } from 'typeorm';
 import { FriendRequest } from './entities/friend_request.entity.js';
 import { FilterDbField } from '../_common/helper/filterQueryForRole.js';
 import {Friend_Request_Status, UpdateRequestFromReceiverEnum} from './enum/friend_request.enum.js';
-import { UpdateRequestFromReceiverDto } from './dto/friend_request.dto.js';
 import { Transactional } from 'typeorm-transactional';
 import { UserService } from '../user/user.service.js';
 import {FriendshipService} from "../friendship/friendship.service.js";
@@ -20,8 +19,6 @@ export class FriendRequestService {
   constructor(
     @InjectRepository(FriendRequest)
     private readonly requestRepo: Repository<FriendRequest>,
-    @InjectDataSource()
-    private readonly dataSource: DataSource,
     private readonly userService: UserService,
     private readonly friendshipService: FriendshipService,
   ) {
@@ -35,47 +32,54 @@ export class FriendRequestService {
         updated_at: ['admin', 'me'],
       },
       dataBase: FriendRequest,
-      dataSource,
     });
   }
+
+  // =========== Get Many =================
 
   async get_many_request(input: {
     user_id: string;
     page: number;
     limit: number;
     data_for_role: string;
-    type : "outgoing_requests" | "ingoing_requests"
-  } ) {
-
-    const { user_id, page, limit, data_for_role , type } = input;
+    type: 'outgoing_requests' | 'ingoing_requests';
+  }) {
+    const { user_id, page, limit, data_for_role, type } = input;
 
     const friendReqQueryObject =
-        this.friendReqFilterByRole.buildQuerySelectObject({label: data_for_role});
+      this.friendReqFilterByRole.buildQuerySelectObject({
+        label: data_for_role,
+      });
     const userQueryObject =
-        this.userService.userFilterByRole.buildQuerySelectObject({
-          label: "other",
-        });
+      this.userService.userFilterByRole.buildQuerySelectObject({
+        label: 'other',
+      });
 
-    const where = type === "outgoing_requests" ?
-        { sender: { id: user_id } } :
-        { receiver: { id: user_id } };
+    const where =
+      type === 'outgoing_requests'
+        ? { sender: { id: user_id } }
+        : { receiver: { id: user_id } };
 
-    const relations = type === "outgoing_requests" ?
-        { receiver: true } :  { sender: true }
+    const relations =
+      type === 'outgoing_requests' ? { receiver: true } : { sender: true };
 
-    const select  = type === "outgoing_requests" ?
-        {...friendReqQueryObject, receiver: userQueryObject} :
-        {...friendReqQueryObject, sender: userQueryObject}
+    const select =
+      type === 'outgoing_requests'
+        ? { ...friendReqQueryObject, receiver: userQueryObject }
+        : { ...friendReqQueryObject, sender: userQueryObject };
 
-    return  await this.requestRepo.find({
-      where, relations, select,
+    return await this.requestRepo.find({
+      where,
+      relations,
+      select,
       skip: (page - 1) * limit,
       take: limit,
     });
   }
 
-  async add_request(body: any) {
+  // =========== Create =================
 
+  async add_request(body: any) {
     const { sender, receiver } = body;
 
     // isPending
@@ -89,40 +93,47 @@ export class FriendRequestService {
 
     // is already friend
     const is_friend = await this.friendshipService.isFriend({
-      user_id : sender , friend_id : receiver
-    })
-    if( is_friend === 'is' )    throw new ConflictException({ errorCode: 'already_friends' });
+      user_id: sender,
+      friend_id: receiver,
+    });
+    if (is_friend === 'is')
+      throw new ConflictException({ errorCode: 'already_friends' });
 
     // create request
-     await this.requestRepo.save(
-        FilterDbField.turnObjInfoToRelationObj(body, ['sender', 'receiver']));
+    await this.requestRepo.save(
+      FilterDbField.turnObjInfoToRelationObj(body, ['sender', 'receiver']),
+    );
 
-     return true
+    return true;
   }
+
+  // =========== Update =================
 
   @Transactional()
   async receiver_update(request_id: string, receiver_id: string, body: any) {
-
     // check is request is existed and pending
     const request = await this.requestRepo.findOne({
       where: {
         id: request_id,
         receiver: { id: receiver_id },
         status: Friend_Request_Status.PENDING,
-      }, select :  {  sender : true }
+      },
+      select: { sender: true },
     });
     if (!request) {
-      throw new NotFoundException({ errorCode: 'request_not_found_or_not_owned' });
+      throw new NotFoundException({
+        errorCode: 'request_not_found_or_not_owned',
+      });
     }
 
     // update status accept or refuse
     await this.requestRepo.update(
-        { id: request_id },
-        {...body, updated_by: receiver_id },
+      { id: request_id },
+      { ...body, updated_by: receiver_id },
     );
 
     // if accept run add friend from friendship service
-    if ( body.status === UpdateRequestFromReceiverEnum.ACCEPTED ) {
+    if (body.status === UpdateRequestFromReceiverEnum.ACCEPTED) {
       await this.friendshipService.add_friend({
         user_id: request.sender.id,
         friend_id: receiver_id,
@@ -132,6 +143,7 @@ export class FriendRequestService {
     return true;
   }
 
+  // =========== Delete =================
 
   async soft_delete(request_id: string, user_id: string) {
     const result = await this.requestRepo.update(
@@ -149,10 +161,9 @@ export class FriendRequestService {
 
   async admin_soft_delete(request_id: string) {
     const result = await this.requestRepo.update(
-        { id: request_id },
-        { deleted_at: new Date() },
+      { id: request_id },
+      { deleted_at: new Date() },
     );
-
     if (result.affected === 0) {
       throw new NotFoundException({ errorCode: 'request_not_found' });
     }
@@ -168,7 +179,7 @@ export class FriendRequestService {
         receiver: { id: receiverId },
         sender: { id: requestId },
         status: Friend_Request_Status.PENDING,
-      }
+      },
     });
   }
 }

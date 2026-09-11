@@ -21,7 +21,7 @@ export class Group extends BaseEntity {
     name: 'founder_id',
     referencedColumnName: 'id',
   })
-  user: Relation<User>;
+  founder: Relation<User>;
 
   @Index()
   @Matches(/^[a-z0-9]+$/)

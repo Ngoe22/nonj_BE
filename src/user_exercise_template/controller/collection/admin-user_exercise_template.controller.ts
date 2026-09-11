@@ -16,16 +16,12 @@ export class AdminUserExerciseTemplateCollectionController {
     getManyByUser(
         @Param('user_id') user_id: string,
     ) {
-        // admin không cần check quyền xem — gọi trực tiếp qua findManyFromUser với owner === requester giả định admin luôn pass
-        // để tránh chạy checkViewPermission, nên thêm nhánh admin riêng trong service nếu cần "xem full không giới hạn"
         return this.collectionService.findManyMine({ user_id, page: 1, limit: 100 });
-        // Lưu ý: xem thêm phần "Cần bổ sung" bên dưới
     }
 
     @Get(':collection_id')
     get(@Param('collection_id') collection_id: string) {
         return this.collectionService.findMine({ collection_id, user_id: undefined as any });
-        // Xem phần "Cần bổ sung" — cần method riêng cho admin, không dùng findMine
     }
 
     @Patch(':collection_id')

@@ -30,8 +30,7 @@ export class UserService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(UserSetting)
     private readonly userSettingRepository: Repository<UserSetting>,
-    @InjectDataSource()
-    private readonly dataSource: DataSource,
+
   ) {
     // ============================== Filter DB & QueryField
 
@@ -45,16 +44,14 @@ export class UserService {
         avatar_url: ['admin', 'me', 'other'],
         status: ['admin'],
       },
-      dataBase: User,
-      dataSource,
+      dataBase: User
     });
 
     this.settingFilterByRole = new FilterDbField({
       keyAndLabels: {
         who_can_see_my_template: ['admin', 'me' ,'other'],
       },
-      dataBase: UserSetting,
-      dataSource,
+      dataBase: UserSetting
     });
 
     // ==============================

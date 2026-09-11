@@ -11,7 +11,7 @@ export class GroupCollection extends BaseEntity {
   id: string;
 
   @Column({ type: 'varchar', length: 50 })
-  name: string;
+  title: string;
 
   @Index()
   @ManyToOne(() => Group, (group) => group.collection)

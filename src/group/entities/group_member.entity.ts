@@ -16,7 +16,7 @@ import { Group_Member_Role} from "../enum/group.enum.js";
 import {Group} from "./group.entity.js";
 import type { Relation } from 'typeorm';
 
-@Index(['user', 'group'])
+@Index(['user', 'group'], { unique: true })
 @Entity('group_member')
 export class GroupMember extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -39,9 +39,12 @@ export class GroupMember extends BaseEntity {
   @Column({
     type: 'enum',
     enum: Group_Member_Role,
-    default: Group_Member_Role.USER,
+    default: Group_Member_Role.MEMBER,
   })
   role: Group_Member_Role;
+
+  @Column({ type: 'timestamp', nullable: true })
+  rejoin_at: Date;
 
   //
 }

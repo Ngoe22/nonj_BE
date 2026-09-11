@@ -1,4 +1,3 @@
-// collection.controller.ts
 import {
     Body, Controller, DefaultValuePipe, Delete, Get, Param,
     ParseIntPipe, Patch, Post, Query,
@@ -10,6 +9,8 @@ import type {RequesterInfo} from "../../../_common/types/request.js";
 import {ParseLimitPipe} from "../../../_common/pipe/ParseLimitPipe.js";
 
 
+// ===========================================
+
 @Controller('exercise_template_collection')
 export class UserExerciseTemplateCollectionController {
     constructor(private readonly collectionService: UserExerciseTemplateCollectionService) {}
@@ -19,7 +20,7 @@ export class UserExerciseTemplateCollectionController {
         return this.collectionService.create({ user_id: requester.id, body });
     }
 
-    // ---- Danh sách: route cụ thể (me) khai TRƯỚC route động (:user_id) ----
+    // ----
 
     @Get('me')
     getManyMine(

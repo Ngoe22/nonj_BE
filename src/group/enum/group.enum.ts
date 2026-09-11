@@ -10,13 +10,16 @@ export enum Group_View_Mode {
 
 
 export enum Group_Member_Role {
-    ADMIN = "ADMIN",
-    USER = "USER",
-    FOUNDER = "FOUNDER",
+  ADMIN = 'ADMIN',
+  MEMBER = 'MEMBER',
+  FOUNDER = 'FOUNDER',
 }
 
 export enum Group_Join_Request_Status {
-    PENDING = "PENDING",
-    REJECTED = "REJECTED",
-    CANCELLED = "CANCELLED",
+  PENDING = 'PENDING',
+  REJECTED = 'REJECTED',
+  APPROVED = 'APPROVED',
 }
+
+ // ========
+

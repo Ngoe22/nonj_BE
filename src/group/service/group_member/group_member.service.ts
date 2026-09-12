@@ -39,15 +39,16 @@ export class GroupMemberService {
   async getRole(input: {
     group_id: string;
     user_id: string;
+    error_msg?: string;
   }): Promise<Group_Member_Role> {
-    const { group_id, user_id } = input;
+    const { group_id, user_id , error_msg } = input;
     const member = await this.groupMemberRepo.findOne({
       where: { group: { id: group_id }, user: { id: user_id } ,deleted_at : IsNull() },
       select: { role: true },
     });
 
     if (!member)
-      throw new NotFoundException({ errorCode: 'user_or_group_not_found' });
+      throw new NotFoundException({ errorCode:  error_msg ?? 'user_or_group_not_found' });
 
     return member.role;
   }
@@ -84,6 +85,7 @@ export class GroupMemberService {
     const actor_role = await this.getRole({
       group_id,
       user_id: actor_id,
+      error_msg : 'actor_not_found_in_group',
     });
 
     if (!actor_allow_roles.includes(actor_role))
@@ -91,7 +93,7 @@ export class GroupMemberService {
         errorCode: 'actor_not_allowed_to_do_action',
       });
 
-    return true
+    return actor_role
   }
 
   private async checkBothSideRoleBeforeAction(input: {
@@ -132,7 +134,7 @@ export class GroupMemberService {
     return true;
   }
 
-  // ==================== Join / Rejoin — gọi từ JoinRequestService khi accept ====================
+  // ==================== Join / Rejoin —  ====================
 
   async addMember(input: { group_id: string; user_id: string }) {
     const { group_id, user_id } = input;
@@ -145,12 +147,13 @@ export class GroupMemberService {
   }
 
   private async join(input: { group_id: string; user_id: string }) {
-    return this.groupMemberRepo.save({
+    const result =  this.groupMemberRepo.save({
       group: { id: input.group_id },
       user: { id: input.user_id },
       role: Group_Member_Role.MEMBER,
       rejoin_at: new Date(),
     });
+    return "joined";
   }
 
   private async rejoin(input: { group_id: string; user_id: string }) {
@@ -160,7 +163,7 @@ export class GroupMemberService {
     );
     if (result.affected === 0)
       throw new NotFoundException({ errorCode: 'member_record_not_found' });
-    return true;
+    return "joined";
   }
 
   // ==================== Get many ====================
@@ -189,7 +192,7 @@ export class GroupMemberService {
       select,
       skip: (page - 1) * limit,
       take: limit,
-      order: { created_at: 'ASC' },
+      order: { created_at: 'DESC' },
     });
   }
 

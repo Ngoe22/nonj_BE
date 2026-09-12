@@ -9,10 +9,9 @@ import {
 } from '../../dto/group_collection.dto.js';
 import { FilterDbField } from '../../../_common/helper/filterQueryForRole.js';
 import { GroupCollection } from '../../entities/group_collection.entity.js';
-import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import {  InjectRepository } from '@nestjs/typeorm';
+import {  Repository } from 'typeorm';
 import { GroupMemberService } from '../group_member/group_member.service.js';
-import { Group } from '../../entities/group.entity.js';
 import { Group_Member_Role, Group_View_Mode } from '../../enum/group.enum.js';
 import { GroupService } from '../group/group.service.js';
 
@@ -28,15 +27,23 @@ export class GroupCollectionService {
     private readonly groupService: GroupService,
   ) {
 
-
+    //
 
     this.filterByRoles = new FilterDbField({
       keyAndLabels: {
-        id: ['member', 'other', 'admin' , 'founder'],
-        title: ['member', 'other', 'admin' , 'founder'],
-        group: ['member', 'other', 'admin' , 'founder'],
+        id: ['member', 'unjoin', 'admin' , 'founder'],
+        title: ['member', 'unjoin', 'admin' , 'founder'],
+        group: ['member', 'unjoin', 'admin' , 'founder'],
       },
       dataBase: GroupCollection,
+    });
+  }
+
+  // ==================== Check ====================
+
+  async isCollectionBelongToGroup(input: { collection_id: string; group_id: string }): Promise<boolean> {
+    return this.collectionRepo.exists({
+      where: { id: input.collection_id, group: { id: input.group_id } },
     });
   }
 
@@ -49,7 +56,7 @@ export class GroupCollectionService {
   }) {
     const { group_id, requester_id, body } = input;
 
-    await this.groupMemberService.checkActorRoleBeforeAction({
+    const role =  await this.groupMemberService.checkActorRoleBeforeAction({
       actor_id: requester_id,
       group_id,
       actor_allow_roles: [Group_Member_Role.FOUNDER, Group_Member_Role.ADMIN],
@@ -63,11 +70,9 @@ export class GroupCollectionService {
 
     return this.filterByRoles.filterDataOfQueryResult({
       object: collection,
-      label: 'admin',
+      label: role.toLowerCase(),
     });
   }
-
-
 
   // ==================== Read - Many ====================
 
@@ -85,10 +90,11 @@ export class GroupCollectionService {
         group_id,
         user_id: requester_id,
       });
-      label = requesterRole.toLowerCase()
+      label = requesterRole.toLowerCase() // MEMBER -> member
     } catch (error) {
+      // error mean not found in group
       const groupSetting = await this.groupService.getSetting(group_id);
-      if ( groupSetting.view_mode ) label = 'other';
+      if ( groupSetting.view_mode ) label = 'unjoin';
       else return new UnauthorizedException({errorCode : 'unauthorized_to_access'});
     }
 
@@ -137,9 +143,6 @@ export class GroupCollectionService {
   }) {
     const { collection_id, requester_id, group_id } = input;
 
-    // const group_id = await this.getOwnerGroupId(collection_id);
-    // await this.assertCanModify({ group_id, requester_id });
-
     await this.groupMemberService.checkActorRoleBeforeAction({
       actor_id: requester_id,
       group_id,
@@ -149,16 +152,6 @@ export class GroupCollectionService {
     const result = await this.collectionRepo.update(
       { id: collection_id },
       { deleted_at: new Date(), deleted_by: requester_id },
-    );
-    if (result.affected === 0)
-      throw new NotFoundException({ errorCode: 'collection_not_found' });
-    return true;
-  }
-
-  async adminSoftDelete(input: { collection_id: string; admin_id: string }) {
-    const result = await this.collectionRepo.update(
-      { id: input.collection_id },
-      { deleted_at: new Date(), deleted_by: input.admin_id },
     );
     if (result.affected === 0)
       throw new NotFoundException({ errorCode: 'collection_not_found' });
@@ -178,24 +171,6 @@ export class GroupCollectionService {
     return base.group.id;
   }
 
-  private async resolveReadLabel(input: {
-    group_id: string;
-    view_mode: Group_View_Mode;
-    requester_id: string;
-  }): Promise<'member' | 'other'> {
-    const { group_id, view_mode, requester_id } = input;
-
-    const role = await this.groupMemberService.getRole({
-      group_id,
-      user_id: requester_id,
-    });
-    if (role) return 'member';
-
-    if (view_mode === Group_View_Mode.PUBLIC) return 'other';
-
-    throw new ForbiddenException({ errorCode: 'group_is_private' });
-  }
-
   // ==========================================================================
   //                                 ADMIN
   // ==========================================================================
@@ -213,18 +188,6 @@ export class GroupCollectionService {
     return collection;
   }
 
-  async adminUpdate(input: {
-    collection_id: string;
-    body: UpdateGroupCollectionDto;
-  }) {
-    const result = await this.collectionRepo.update(
-      { id: input.collection_id },
-      input.body,
-    );
-    if (result.affected === 0)
-      throw new NotFoundException({ errorCode: 'collection_not_found' });
-    return true;
-  }
 
   async adminFindMany(input: {
     group_id: string;
@@ -244,6 +207,33 @@ export class GroupCollectionService {
       order: { created_at: 'DESC' },
     });
   }
+
+
+  async adminUpdate(input: {
+    collection_id: string;
+    body: UpdateGroupCollectionDto;
+  }) {
+    const result = await this.collectionRepo.update(
+      { id: input.collection_id },
+      input.body,
+    );
+    if (result.affected === 0)
+      throw new NotFoundException({ errorCode: 'collection_not_found' });
+    return true;
+  }
+
+
+  async adminSoftDelete(input: { collection_id: string; admin_id: string }) {
+    const result = await this.collectionRepo.update(
+        { id: input.collection_id },
+        { deleted_at: new Date(), deleted_by: input.admin_id },
+    );
+    if (result.affected === 0)
+      throw new NotFoundException({ errorCode: 'collection_not_found' });
+    return true;
+  }
+
+
 }
 
 

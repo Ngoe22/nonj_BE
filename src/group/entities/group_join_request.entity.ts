@@ -5,7 +5,7 @@ import {User} from "../../user/entities/user.entity.js";
 import {Group_Join_Request_Status, Group_Member_Role} from "../enum/group.enum.js";
 import {Group} from "./group.entity.js";
 
-
+@Index(['sender', 'group', 'created_at'])
 @Index(['group', 'sender', 'created_at'])
 @Entity('group_join_request')
 export class GroupJoinRequest extends BaseEntity {

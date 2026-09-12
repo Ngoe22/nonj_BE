@@ -17,41 +17,55 @@ import { ParseLimitPipe } from '../../../_common/pipe/ParseLimitPipe.js';
 export class GroupJoinRequestController {
   constructor(private readonly joinRequestService: GroupJoinRequestService) {}
 
-  @Get(':group_id')
-  get(
+  @Get('group/:group_id')
+  getManyForGroup(
     @Param('group_id') group_id: string,
-    @Query('limit', new DefaultValuePipe(20), ParseLimitPipe) limit: number,
+    @Query('limit', new DefaultValuePipe(10), ParseLimitPipe) limit: number,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @GetRequesterInfo() requester: RequesterInfo,
   ) {
-    return this.joinRequestService.getMany({
+    return this.joinRequestService.getManyForGroup({
       group_id,
-      group_admin_id : requester.id,
+      requester_id : requester.id,
       limit , page
     });
   }
 
-  @Post()
-  create(
-    @Body() body: CreateGroupJoinRequest,
-    @GetRequesterInfo() requester: RequesterInfo,
+  @Get('user/me')
+  getManyForUser(
+      @Query('limit', new DefaultValuePipe(10), ParseLimitPipe) limit: number,
+      @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+      @GetRequesterInfo() requester: RequesterInfo,
   ) {
-    return this.joinRequestService.create({
-      ...body,
-      sender: requester.id,
+    return this.joinRequestService.getManyForUser({
+      user_id : requester.id,
+      limit , page
     });
   }
 
-  @Patch(':user_id/:join_request_id')
+  @Post(':group_id')
+  create(
+      @Param('group_id') group_id: string,
+      @GetRequesterInfo() requester: RequesterInfo,
+  ) {
+    return this.joinRequestService.create({
+      requester_id : requester.id,
+       group_id
+    });
+  }
+
+  @Patch(':group_id/:user_id/:join_request_id')
   update(
     @Body() body: UpdateGroupJoinRequest,
     @Param('join_request_id') join_request_id: string,
     @Param('user_id') user_id: string,
+    @Param('group_id') group_id: string,
     @GetRequesterInfo() requester: RequesterInfo,
   ) {
     return this.joinRequestService.update({
       body,
       user_id,
+      group_id,
       join_request_id,
       group_admin_id: requester.id,
     });

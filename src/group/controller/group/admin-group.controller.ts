@@ -6,7 +6,7 @@ import { GetRequesterInfo } from '../../../_common/decorators/param/request_payl
 import type { RequesterInfo } from '../../../_common/types/request.js';
 
 @Controller('admin/group')
-export class GroupController {
+export class AdminGroupController {
   constructor(private readonly groupService: GroupService) {}
 
   @Get(':group_id')

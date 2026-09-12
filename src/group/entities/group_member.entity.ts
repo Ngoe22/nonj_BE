@@ -16,7 +16,7 @@ import { Group_Member_Role} from "../enum/group.enum.js";
 import {Group} from "./group.entity.js";
 import type { Relation } from 'typeorm';
 
-@Index(['user', 'group'], { unique: true })
+@Index(['group' ,'user'], { unique: true })
 @Entity('group_member')
 export class GroupMember extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')

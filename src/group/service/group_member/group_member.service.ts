@@ -3,12 +3,16 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { FilterDbField } from '../../../_common/helper/filterQueryForRole.js';
 import { GroupMember } from '../../entities/group_member.entity.js';
 import { Group_Member_Role } from '../../enum/group.enum.js';
+
+
+// ===========================================================================
 
 @Injectable()
 export class GroupMemberService {
@@ -38,12 +42,12 @@ export class GroupMemberService {
   }): Promise<Group_Member_Role> {
     const { group_id, user_id } = input;
     const member = await this.groupMemberRepo.findOne({
-      where: { group: { id: group_id }, user: { id: user_id } },
+      where: { group: { id: group_id }, user: { id: user_id } ,deleted_at : IsNull() },
       select: { role: true },
     });
 
     if (!member)
-      throw new NotFoundException({ errorCode: 'user_not_found_in_group' });
+      throw new NotFoundException({ errorCode: 'user_or_group_not_found' });
 
     return member.role;
   }
@@ -65,7 +69,30 @@ export class GroupMemberService {
 
   // ==================== Helper  ====================
 
-  getMemberRole(input: { group_id: string; user_id: string }) {}
+  async checkActorRoleBeforeAction(input: {
+    actor_id: string;
+    group_id: string;
+    actor_allow_roles: string[];
+  }) {
+
+    const {
+      group_id,
+      actor_id,
+      actor_allow_roles,
+    } = input;
+
+    const actor_role = await this.getRole({
+      group_id,
+      user_id: actor_id,
+    });
+
+    if (!actor_allow_roles.includes(actor_role))
+      throw new UnauthorizedException({
+        errorCode: 'actor_not_allowed_to_do_action',
+      });
+
+    return true
+  }
 
   private async checkBothSideRoleBeforeAction(input: {
     group_id: string;
@@ -300,6 +327,14 @@ export class GroupMemberService {
   }
 
   // ==================== Admin (SYSTEM_ADMIN) ====================
+
+  async addFounder(input: { group_id: string; user_id: string }) {
+    return this.groupMemberRepo.save({
+      group: { id: input.group_id },
+      user: { id: input.user_id },
+      role: Group_Member_Role.FOUNDER,
+    });
+  }
 
   async adminGetMany(input: { group_id: string; page: number; limit: number }) {
     const { group_id, page, limit } = input;

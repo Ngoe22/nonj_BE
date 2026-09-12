@@ -119,4 +119,8 @@ export class FilterDbField<T extends ObjectLiteral> {
       }),
     );
   }
+
+  getQuerySelectArray(param: {label: string; tableName: string}) {
+
+  }
 }

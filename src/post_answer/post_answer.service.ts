@@ -79,7 +79,7 @@ export class PostAnswerService {
       answer_content: body.answer_content,
       status: isAutoGraded ? Post_Answer_Status.COMPLETED : Post_Answer_Status.PENDING,
       graded_at: isAutoGraded ? new Date() : null,
-      graded_by: null,   // multiple choice tự chấm, không có người chấm
+      graded_by: null,
     });
 
     return this.filterByRoles.filterDataOfQueryResult({ object: answer, label: 'me' });
@@ -153,7 +153,7 @@ export class PostAnswerService {
     return answer;
   }
 
-  // ==================== Read - Many (theo post) ====================
+  // ==================== Read - Many ====================
 
   async findMany(input: {
     group_id: string;
@@ -225,41 +225,87 @@ export class PostAnswerService {
           graded_at: new Date(),
         },
     );
-
     if (result.affected === 0) throw new NotFoundException({ errorCode: 'answer_not_found' });
     return true;
   }
 
-  // ==========================================================================
-  //                                 ADMIN
-  // ==========================================================================
+  async softDelete(input: {
+    group_id: string;
+    collection_id: string;
+    post_id: string;
+    answer_id: string;
+    requester_id: string;
+  }) {
+    const { group_id, collection_id, post_id, answer_id, requester_id } = input;
 
-  async adminGrade(input: { post_id: string; answer_id: string; admin_id: string; body: GradePostAnswerDto }) {
-    const { post_id, answer_id, admin_id, body } = input;
-
-    const post = await this.dataSource.getRepository(Post).findOne({
-      where: { id: post_id },
-      select: { id: true, question_type: true },
+    const answer = await this.answerRepo.findOne({
+      where: {
+        id: answer_id,
+        post: { id: post_id, group: { id: group_id }, group_collection: { id: collection_id } },
+      },
+      relations: { user: true },
+      select: { id: true, user: { id: true } },
     });
-    if (!post) throw new NotFoundException({ errorCode: 'post_not_found' });
 
-    if (post.question_type === Exercise_Type.MULTIPLE_CHOICE) {
-      throw new ConflictException({ errorCode: 'multiple_choice_auto_graded_cannot_manual_grade' });
+    if (!answer) throw new NotFoundException({ errorCode: 'answer_not_found' });
+
+    const isOwner = answer.user.id === requester_id;
+
+    if (!isOwner) {
+      await this.groupMemberService.checkActorRoleBeforeAction({
+        actor_id: requester_id,
+        group_id,
+        actor_allow_roles: [Group_Member_Role.ADMIN, Group_Member_Role.FOUNDER],
+      });
     }
 
     const result = await this.answerRepo.update(
         { id: answer_id },
         {
-          status: Post_Answer_Status.COMPLETED,
-          review_content: body.review_content,
-          graded_by: { id: admin_id },
-          graded_at: new Date(),
+          deleted_by: requester_id,
+          deleted_at: new Date(),
         },
     );
+    if (result.affected === 0) throw new NotFoundException( {errorCode: 'answer_not_found' });
+    return true
 
-    if (result.affected === 0) throw new NotFoundException({ errorCode: 'answer_not_found' });
-    return true;
   }
+
+
+
+
+
+
+  // ==========================================================================
+  //                                 ADMIN
+  // ==========================================================================
+
+  // async adminGrade(input: { post_id: string; answer_id: string; admin_id: string; body: GradePostAnswerDto }) {
+  //   const { post_id, answer_id, admin_id, body } = input;
+  //
+  //   const post = await this.dataSource.getRepository(Post).findOne({
+  //     where: { id: post_id },
+  //     select: { id: true, question_type: true },
+  //   });
+  //   if (!post) throw new NotFoundException({ errorCode: 'post_not_found' });
+  //
+  //   if (post.question_type === Exercise_Type.MULTIPLE_CHOICE) {
+  //     throw new ConflictException({ errorCode: 'multiple_choice_auto_graded_cannot_manual_grade' });
+  //   }
+  //
+  //   const result = await this.answerRepo.update(
+  //       { id: answer_id },
+  //       {
+  //         status: Post_Answer_Status.COMPLETED,
+  //         review_content: body.review_content,
+  //         graded_by: { id: admin_id },
+  //         graded_at: new Date(),
+  //       },
+  //   );
+  //
+  //   if (result.affected === 0) throw new NotFoundException({ errorCode: 'answer_not_found' });
+  //   return true;
+  // }
 
   async adminFindOne(input: { answer_id: string }) {
     const selects = this.filterByRoles.buildQuerySelectObject({ label: 'admin' });
@@ -281,18 +327,29 @@ export class PostAnswerService {
     });
   }
 
+
+  async adminSoftDeleteOne ( input : { answer_id: string , admin_id: string } ) {
+
+    const { admin_id , answer_id } = input;
+
+    const result = await this.answerRepo.update(
+        { id: answer_id },
+        {
+          deleted_by: admin_id,
+          deleted_at: new Date(),
+        },
+    );
+    if (result.affected === 0) throw new NotFoundException( {errorCode: 'answer_not_found' });
+    return true
+  }
+
   // ==================== Helpers ====================
 
   private async isPostExist(input: {
     post_id: string;
     group_id: string;
     collection_id: string;
-  }): Promise<{
-    post_type: Post_Type;
-    question_type: Exercise_Type;
-    deadline_at: Date | null;
-    view_each_other_answer: View_Each_Other_Answer;
-  }> {
+  }) {
     const { post_id, group_id, collection_id } = input;
 
     const post = await this.dataSource.getRepository(Post).findOne({

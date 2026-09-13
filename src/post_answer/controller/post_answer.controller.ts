@@ -1,4 +1,4 @@
-import {Body, Controller, DefaultValuePipe, Get, Param, ParseIntPipe, Patch, Post, Query} from "@nestjs/common";
+import {Body, Controller, DefaultValuePipe, Delete, Get, Param, ParseIntPipe, Patch, Post, Query} from "@nestjs/common";
 import {PostAnswerService} from "../post_answer.service.js";
 import {CreatePostAnswerDto, GradePostAnswerDto} from "../dto/post_answer.dto.js";
 import {GetRequesterInfo} from "../../_common/decorators/param/request_payload.decorator.js";
@@ -66,6 +66,15 @@ export class PostAnswerController {
     return this.answerService.grade({ group_id, collection_id, post_id, answer_id, grader_id: requester.id, body });
   }
 
-
+  @Delete(':answer_id')
+  delete(
+      @Param('group_id') group_id: string,
+      @Param('collection_id') collection_id: string,
+      @Param('post_id') post_id: string,
+      @Param('answer_id') answer_id: string,
+      @GetRequesterInfo() requester: RequesterInfo,
+  ) {
+    return this.answerService.softDelete({ group_id, collection_id, post_id, answer_id, requester_id: requester.id });
+  }
 
 }

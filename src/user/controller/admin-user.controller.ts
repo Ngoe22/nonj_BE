@@ -18,24 +18,33 @@ import { User_Role } from '../enums/user.enum.js';
 export class AdminUserController {
   constructor(private readonly userService: UserService) {}
 
+
+
+
   @Get()
   findAll(@Query('page') page: number = 1, @Query('limit') limit: number = 20) {
-    return this.userService.getInfoMany({}, 'admin', page, limit);
+    return this.userService.adminGetInfoMany( page, limit);
   }
 
-  @Get(':user_id')
-  findOne(@Param('user_id') user_id: string) {
-    return this.userService.getInfo({ id: user_id }, 'admin');
+  @Get("/:user_id")
+  adminGetOne(
+      @Param('user_id') user_id: string
+  ) {
+    return this.userService.adminGetOne(user_id );
   }
+
+
 
   @Patch(':user_id')
   update(@Body() body: UpdateUserDto, @Param('user_id') user_id: string) {
-    return this.userService.updateInfo({ id: user_id }, body);
+    return this.userService.adminUpdateInfo({ user_id: user_id , body });
   }
+
+  // =================== Setting ===================
 
   @Get(':user_id/setting')
   getSetting(@Param('user_id') user_id: string) {
-    return this.userService.getSetting(user_id, 'admin');
+    return this.userService.adminGetSetting(user_id);
   }
 
   @Patch(':user_id/setting')
@@ -43,6 +52,6 @@ export class AdminUserController {
     @Body() body: UpdateUserSettingDto,
     @Param('user_id') user_id: string,
   ) {
-    return this.userService.updateSetting(user_id, body);
+    return this.userService.adminUpdateSetting(user_id, body);
   }
 }

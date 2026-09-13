@@ -17,7 +17,7 @@ export class AuthService {
   // ============================ handle login ============================
 
   async login(loginInfo: LoginDto) {
-    const user = await this.userService.getFullInfoOfOne({ email: loginInfo.email, });
+    const user = await this.userService.getFullInfoForEmailLogin(loginInfo.email);
 
     if (
       !user ||

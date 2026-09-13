@@ -53,116 +53,7 @@ export class UserExerciseTemplateService {
   }
 
 
-  async create(input: CreateExerciseTemplateInput) {
-
-    await this.collectionService.isCollectionBelongToUser({
-      collection_id: input.collection,
-      user_id: input.user,
-    });
-
-    const saveInfo =
-        FilterDbField.turnObjInfoToRelationObj (input, ['user', 'collection']) ;
-    return this.templateRepo.save(saveInfo);
-  }
-
-
-  async update(input: {
-    user_id: string;
-    template_id: string;
-    body: any // UpdateExerciseTemplateDto | DeleteExerciseTemplateDto;
-  }) {
-
-    let { user_id, template_id, body } = input;
-    if ( body.collection ) {
-
-      const check = await this.collectionService.isCollectionBelongToUser({
-        collection_id : body.collection , user_id
-      })
-      if ( !check ) throw new UnauthorizedException({ errorCode : 'collectio_dont_belong_to_user' } )
-      body = FilterDbField.turnObjInfoToRelationObj(body, ['collection']) ;
-    }
-    const result = await this.templateRepo.update
-      ({ user: { id: user_id }, id: template_id }, body );
-    if (result.affected === 0) {
-      throw new NotFoundException({ errorCode: 'template_or_owner_not_found' });
-    }
-    return true;
-  }
-
-  async softDelete(input: { user_id: string; template_id: string }) {
-    const { user_id, template_id } = input;
-
-    const result = await this.templateRepo.update(
-        { user: { id: user_id }, id: template_id },
-        { deleted_at: new Date() , deleted_by : user_id  } );
-    if (result.affected === 0) {
-      throw new NotFoundException({ errorCode: 'template_or_owner_not_found' });
-    }
-    return true;
-
-  }
-  async adminSoftDelete(input: { template_id: string , admin_id : string }) {
-    const { template_id , admin_id} = input;
-    const result = await this.templateRepo.update(
-        {  id: template_id },
-        { deleted_at: new Date() , deleted_by : admin_id  } );
-    if (result.affected === 0) {
-      throw new NotFoundException({ errorCode: 'template_or_owner_not_found' });
-    }
-    return true;
-  }
-
-  // ===========================================
-
-
-
-   async findOne ( input : { condition: object , data_for : string } ) {
-
-     const { condition ,data_for } = input;
-
-     const selects =  this.exerciseFilterByRole.buildQuerySelectObject({ label : data_for })
-     const collection_selects = this.collectionService.collectionFilterByRole.buildQuerySelectObject({ label : data_for })
-
-     const template = await this.templateRepo.findOne({
-       where: condition,
-       relations: {collection: true},
-       select: {
-         ...selects ,
-         collection: collection_selects,
-       },
-     });
-
-     if (!template)
-       throw new NotFoundException({ errorCode: 'template_not_found' });
-     return template;
-   }
-
-  async findFromUser(input: {
-    template_id: string;
-    owner_id: string;
-    requester_id: string;
-  }) {
-    const { template_id, owner_id, requester_id } = input;
-
-    if (owner_id === requester_id)
-      return this.findMine({template_id, user_id: requester_id})
-
-    await this.checkViewPermission({owner_id: owner_id, requester_id: requester_id,});
-
-    return this.findOne( {
-      condition : { id : template_id },
-      data_for : 'other'} )
-  }
-
-  async findMine(input: {
-    template_id: string;
-    user_id: string;
-  }) {
-    const { template_id , user_id } = input
-    return this.findOne( {
-      condition : { id : template_id , user : {  id : user_id } },
-      data_for : 'me'} )
-  }
+  // ---------------  Check Permission ---------------
 
   private async checkViewPermission(input :  {
     owner_id: string ,
@@ -170,7 +61,7 @@ export class UserExerciseTemplateService {
   }) {
     const { owner_id, requester_id } = input;
 
-    const setting =  await  this.userService.getSetting(owner_id , 'other');
+    const setting =  await  this.userService.getSetting(owner_id , 'system_admin');
     if (!setting) {
       throw new NotFoundException({ errorCode: 'owner_not_found' });
     }
@@ -188,10 +79,91 @@ export class UserExerciseTemplateService {
   }
 
 
+  // ===========================================
+
+
+
+   private async findOne ( input : { template_id: string , data_for : string , user_id ?: string } ) {
+
+     const { template_id ,data_for , user_id } = input;
+     const where
+          =  user_id ?  {  id : template_id  } :{  id : template_id , user : {id : user_id} }
+
+     const selects =  this.exerciseFilterByRole.buildQuerySelectObject({ label : data_for })
+     const collection_selects = this.collectionService.collectionFilterByRole.buildQuerySelectObject({ label : data_for })
+
+     const template = await this.templateRepo.findOne({
+       where,
+       relations: {collection: true},
+       select: {
+         ...selects ,
+         collection: collection_selects,
+       },
+     });
+     if (!template)
+       throw new NotFoundException({ errorCode: 'template_not_found' });
+     return template;
+   }
+
+   private  async findMany(input: {
+     user_id: string;
+     data_for: string;
+     page: number;
+     limit: number;
+   }) {
+     const { user_id, data_for, page, limit } = input;
+
+     const selects = this.exerciseFilterByRole.buildQuerySelectObject({ label: data_for });
+     const collection_selects = this.collectionService.collectionFilterByRole.buildQuerySelectObject({ label: data_for });
+
+     return this.templateRepo.find({
+       where: { user : { id : user_id} },
+       relations: { collection: true },
+       select: { ...selects, collection: collection_selects },
+       skip: (page - 1) * limit,
+       take: limit,
+       order: { created_at: 'DESC' },
+     });
+   }
+
+   //===============================================
+
+  async findFromOtherUser(input: {
+    template_id: string;
+    owner_id: string;
+    requester_id: string;
+  }) {
+    const { template_id, owner_id, requester_id } = input;
+
+    if (owner_id === requester_id)
+      return this.findMine({template_id, user_id: requester_id})
+
+    await this.checkViewPermission({owner_id: owner_id, requester_id: requester_id,});
+
+    return this.findOne( {
+      template_id ,
+      data_for : 'other'} )
+  }
+
+  async findMine(input: {
+    template_id: string;
+    user_id: string;
+  }) {
+    const { template_id , user_id } = input
+
+    return this.findOne( {
+      user_id,
+      template_id,
+      data_for : 'me'} )
+  }
+
+  // -------------------- get many --------------------------------
+
+
   async findManyMine(input: { user_id: string; page: number; limit: number }) {
     const { user_id, page, limit } = input;
     return this.findMany({
-      condition: { user: { id: user_id } },
+      user_id ,
       data_for: 'me',
       page,
       limit,
@@ -213,34 +185,104 @@ export class UserExerciseTemplateService {
     await this.checkViewPermission({ owner_id, requester_id });
 
     return this.findMany({
-      condition: { user: { id: owner_id } },
+      user_id : owner_id,
       data_for: 'other',
       page,
       limit,
     });
   }
 
-   async findMany(input: {
-    condition: object;
-    data_for: string;
-    page: number;
-    limit: number;
-  }) {
-    const { condition, data_for, page, limit } = input;
 
-    const selects = this.exerciseFilterByRole.buildQuerySelectObject({ label: data_for });
-    const collection_selects = this.collectionService.collectionFilterByRole.buildQuerySelectObject({ label: data_for });
 
-    return this.templateRepo.find({
-      where: condition,
-      relations: { collection: true },
-      select: { ...selects, collection: collection_selects },
-      skip: (page - 1) * limit,
-      take: limit,
-      order: { created_at: 'DESC' },
+  // ----------------- Create -----------------
+
+  async create(input: CreateExerciseTemplateInput) {
+
+    await this.collectionService.isCollectionBelongToUser({
+      collection_id: input.collection,
+      user_id: input.user,
     });
+
+    const saveInfo =
+        FilterDbField.turnObjInfoToRelationObj (input, ['user', 'collection']) ;
+    return this.templateRepo.save(saveInfo);
   }
 
+
+  // ----------------- Update -----------------
+
+
+  async update(input: {
+    user_id: string;
+    template_id: string;
+    body: any // UpdateExerciseTemplateDto | DeleteExerciseTemplateDto;
+  }) {
+
+    let { user_id, template_id, body } = input;
+    if ( body.collection ) {
+
+      const check = await this.collectionService.isCollectionBelongToUser({
+        collection_id : body.collection , user_id
+      })
+      if ( !check ) throw new UnauthorizedException({ errorCode : 'collectio_dont_belong_to_user' } )
+      body = FilterDbField.turnObjInfoToRelationObj(body, ['collection']) ;
+    }
+    const result = await this.templateRepo.update
+    ({ user: { id: user_id }, id: template_id }, body );
+    if (result.affected === 0) {
+      throw new NotFoundException({ errorCode: 'template_or_owner_not_found' });
+    }
+    return body;
+  }
+
+  // ----------------- Delete -----------------
+
+  async softDelete(input: { user_id: string; template_id: string }) {
+    const { user_id, template_id } = input;
+
+    const result = await this.templateRepo.update(
+        { user: { id: user_id }, id: template_id },
+        { deleted_at: new Date() , deleted_by : user_id  } );
+    if (result.affected === 0) {
+      throw new NotFoundException({ errorCode: 'template_or_owner_not_found' });
+    }
+    return true;
+
+  }
+
+
+
+  // ==================================================================
+  //                             ADMIN
+  // ==================================================================
+
+
+  async adminGetOne( input : { template_id: string  }   ) {
+    const { template_id } = input;
+    return this.findOne( {
+      template_id,
+      data_for : 'system_admin'} )
+  }
+
+  async adminGetMany( input : { user_id: string , page: number, limit : number  }   ) {
+
+  }
+
+
+
+  // update share with user
+
+
+  async adminSoftDelete(input: { template_id: string , admin_id : string }) {
+    const { template_id , admin_id} = input;
+    const result = await this.templateRepo.update(
+        {  id: template_id },
+        { deleted_at: new Date() , deleted_by : admin_id  } );
+    if (result.affected === 0) {
+      throw new NotFoundException({ errorCode: 'template_or_owner_not_found' });
+    }
+    return true;
+  }
 
 
 }

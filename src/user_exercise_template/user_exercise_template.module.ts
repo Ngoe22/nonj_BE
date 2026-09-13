@@ -9,7 +9,7 @@ import {FriendshipModule} from "../friendship/friendship.module.js";
 import {UserExerciseTemplateCollectionService} from "./service/user_exercise_template_collection.service.js";
 import {
     AdminUserExerciseTemplateCollectionController
-} from "./controller/collection/admin-user_exercise_template.controller.js";
+} from "./controller/collection/admin-user_exercise_template_collection.controller.js";
 import {
     UserExerciseTemplateCollectionController
 } from "./controller/collection/user_exercise_template_collection.controller.js";

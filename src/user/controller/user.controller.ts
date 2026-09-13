@@ -18,17 +18,20 @@ export class UserController {
   //   return this.userService.create(body);
   // }
 
-  @Get(':user_name')
-  findByUsername(@Param('user_name') user_name: string) {
+  @Get('user_name/:user_name')
+  findByUsername(
+      @GetRequesterInfo() requester: RequesterInfo,
+      @Param('user_name') user_name: string
+  ) {
     console.log('here');
-    return this.userService.getInfo({ user_name }, 'other');
+    return this.userService.getOtherInfoByUserName({ requester_id : requester.id ,  search_target_username : user_name });
   }
 
   // ==================== Current user (me) ====================
 
   @Get('me')
   getProfile(@GetRequesterInfo() requester: RequesterInfo) {
-    return this.userService.getInfo({ id: requester.id }, 'me');
+    return this.userService.getMyInfo(requester.id );
   }
 
   @Patch('me')
@@ -36,7 +39,7 @@ export class UserController {
     @Body() body: UpdateUserDto,
     @GetRequesterInfo() requester: RequesterInfo,
   ) {
-    return this.userService.updateInfo({ id: requester.id }, body);
+    return this.userService.updateInfo({ user_id: requester.id , body });
   }
 
   @Get('me/setting')

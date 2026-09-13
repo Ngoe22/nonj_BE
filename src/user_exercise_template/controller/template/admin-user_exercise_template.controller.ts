@@ -32,23 +32,20 @@ export class AdminUserExerciseTemplateController {
     // ================== EXERCISE TEMPLATE ==================
 
     @Get('/:template_id')
-    get(
+    adminGetOne(
         @Param('template_id') template_id: string,
     ) {
-        return this.exerciseTemplateService.findOne( {
-            condition : {id : template_id} , data_for : "admin"
-        } );
+        return this.exerciseTemplateService.adminGetOne( {template_id} );
     }
 
-    @Get('user/:user_id')
-    getMany(
+    @Get('users/:user_id')
+    adminGetMany(
         @Param('user_id') user_id: string,
         @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
         @Query('limit', new DefaultValuePipe(20), ParseLimitPipe) limit: number,
     ) {
-        return this.exerciseTemplateService.findMany( {
-            condition : {  user : { id :  user_id } } ,
-            data_for : "admin" ,
+        return this.exerciseTemplateService.adminGetMany( {
+            user_id,
             page,
             limit,
         } );

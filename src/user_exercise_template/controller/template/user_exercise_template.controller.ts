@@ -67,7 +67,7 @@ export class UserExerciseTemplateController {
       @Param('user_id') user_id: string,
       @Param('template_id') template_id: string,
   ) {
-    return this.exerciseTemplateService.findFromUser({
+    return this.exerciseTemplateService.findFromOtherUser({
       template_id,
       owner_id: user_id,
       requester_id: requester.id,

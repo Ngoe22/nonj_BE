@@ -5,7 +5,7 @@ import {UserExerciseTemplate} from "../../user_exercise_template/entities/user_e
 import {GroupCollection} from "../../group/entities/group_collection.entity.js";
 import {Group} from "../../group/entities/group.entity.js";
 import {PostAnswer} from "../../post_answer/entities/post_answer.entity.js";
-
+import {Exercise_Type, Post_Type, View_Each_Other_Answer} from "../enum/post.enum.js";
 
 
 @Index(['group_collection', 'created_at'])
@@ -14,9 +14,8 @@ export class Post extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => User, (user) => user.post)
-  @JoinColumn({ name: 'user_id', referencedColumnName: 'id' })
-  user: Relation<User>;
+  @Column({ type: 'enum', enum: Post_Type })
+  post_type: Post_Type;
 
   @Column({ type: 'varchar', length: 50 })
   title: string;
@@ -24,35 +23,34 @@ export class Post extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   description: string | null;
 
+  @Column({ type: 'enum', enum: Exercise_Type })
+  question_type: Exercise_Type;
+
   @Column({ type: 'jsonb' })
-  exercise_content: object;
+  question_content: object;
 
   @Column({ type: 'timestamp', nullable: true })
   deadline_at: Date | null;
 
-  @Column({ type: 'bool', default: false })
-  is_retake: boolean;
+  @Column({ type: 'bool' })
+  retake: boolean;
 
-  @Column({ type: 'bool', default: false })
-  view_each_other_score: boolean;
+  @Column({ type: 'enum', enum: View_Each_Other_Answer, default: View_Each_Other_Answer.NEVER })
+  view_each_other_answer: View_Each_Other_Answer;
 
-  @ManyToOne(
-    () => UserExerciseTemplate,
-    (source_template) => source_template.post,
-  )
-  @JoinColumn({ name: 'source_template_id', referencedColumnName: 'id' })
-  source_template_id: Relation<UserExerciseTemplate>;
+  @ManyToOne(() => User, (user) => user.post)
+  @JoinColumn({ name: 'user_id', referencedColumnName: 'id' })
+  user: Relation<User>;
 
-  @ManyToOne(() => Group, (group) => group.post)
+
+  @ManyToOne(() => Group)
   @JoinColumn({ name: 'group_id', referencedColumnName: 'id' })
   group: Relation<Group>;
 
-  @ManyToOne(() => GroupCollection, (group_collection) => group_collection.post)
+  @ManyToOne(() => GroupCollection, (c) => c.post)
   @JoinColumn({ name: 'group_collection_id', referencedColumnName: 'id' })
   group_collection: Relation<GroupCollection>;
 
-  // ===================
-
-  @OneToMany(() => PostAnswer, (post_answer) => post_answer.post)
+  @OneToMany(() => PostAnswer, (a) => a.post)
   post_answer: PostAnswer;
 }

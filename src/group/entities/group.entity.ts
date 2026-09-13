@@ -8,6 +8,7 @@ import {GroupMember} from "./group_member.entity.js";
 import {GroupJoinRequest} from "./group_join_request.entity.js";
 import {GroupCollection} from "./group_collection.entity.js";
 import {Post} from "../../post/entities/post.entity.js";
+import {PostAnswer} from "../../post_answer/entities/post_answer.entity.js";
 
 
 @Entity('group')
@@ -75,6 +76,10 @@ export class Group extends BaseEntity {
 
   @OneToMany(() => Post, (post) => post.group)
   post: Relation<Post>;
+
+  @OneToMany(() => PostAnswer, (post_answer) => post_answer.group)
+  post_answer: Relation<PostAnswer>;
+
 }
 
 // ZLMT-QZNR

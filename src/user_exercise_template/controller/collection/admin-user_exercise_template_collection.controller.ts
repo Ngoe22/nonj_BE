@@ -12,12 +12,22 @@ import type {RequesterInfo} from "../../../_common/types/request.js";
 export class AdminUserExerciseTemplateCollectionController {
     constructor(private readonly collectionService: UserExerciseTemplateCollectionService) {}
 
+    @Get(':collection_id')
+    adminFindOne(
+        @Param('collection_id') collection_id: string,
+    ) {
+        return this.collectionService.adminFindOne({ collection_id});
+    }
+
+
+
     @Get('user/:user_id')
-    getManyByUser(
+    adminFindMany(
         @Param('user_id') user_id: string,
     ) {
-        return this.collectionService.findManyMine({ user_id, page: 1, limit: 100 });
+        return this.collectionService.adminFindMany({ user_id, page: 1, limit: 100 });
     }
+
 
     @Get(':collection_id')
     get(@Param('collection_id') collection_id: string) {

@@ -10,6 +10,7 @@ import {
 import {User} from "../../user/entities/user.entity.js";
 import {Post} from "../../post/entities/post.entity.js";
 import {Post_Answer_Status} from "../enum/post_answer.enum.js";
+import {Group} from "../../group/entities/group.entity.js";
 
 
 
@@ -27,8 +28,12 @@ export class PostAnswer extends BaseEntity {
   @JoinColumn({ name: 'post_id', referencedColumnName: 'id' })
   post: Relation<Post>;
 
+  @ManyToOne(() => Group, (group) => group.post_answer)
+  @JoinColumn({ name: 'group_id', referencedColumnName: 'id' })
+  group: Relation<Group>;
+
   @Column({ type: 'jsonb' })
-  content: object;
+  answer_content: any ;
 
   @ManyToOne(() => User, (user_graded) => user_graded.post_answer_graded, {
     nullable: true,
@@ -39,8 +44,8 @@ export class PostAnswer extends BaseEntity {
   @Column({ type: 'timestamp', nullable: true })
   graded_at: Date | null;
 
-  @Column({ type: 'text' })
-  reviewer_comment: string;
+  @Column({ type: 'jsonb' })
+  review_content: any ;
 
   @Column({
     type: 'enum',

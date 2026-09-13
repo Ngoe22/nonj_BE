@@ -54,6 +54,5 @@ export class UserExerciseTemplate extends BaseEntity {
 
   // ==============================================
 
-  @OneToMany(() => Post, (post) => post.source_template_id , {onDelete:"SET NULL"})
-  post: Post;
+
 }

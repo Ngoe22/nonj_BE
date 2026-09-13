@@ -36,17 +36,45 @@ export class UserExerciseTemplateCollectionService {
         });
     }
 
-    // ==================== Create ====================
 
-    async create(input: { user_id: string; body: CreateCollectionDto }) {
-        const { user_id, body } = input;
-        return this.collectionRepo.save({
-            title: body.title,
-            user: { id: user_id },
+
+
+    // ==================== Check ====================
+
+    async isCollectionBelongToUser(input: { collection_id: string; user_id: string }): Promise<boolean> {
+        const { collection_id, user_id } = input;
+        return this.collectionRepo.exists({
+            where: { id: collection_id, user: { id: user_id } },
         });
     }
 
-    // ==================== Get - One ====================
+    // ==================== Permission check ====================
+
+    private async checkViewPermission(input: { owner_id: string; requester_id: string }) {
+        const { owner_id, requester_id } = input;
+
+        const setting = await this.userService.getSetting(owner_id, 'system_admin');
+        if (!setting) throw new NotFoundException({ errorCode: 'owner_not_found' });
+
+        switch (setting.who_can_see_my_template) {
+            case User_Setting_Who_can_see_template.EVERYONE:
+                return true;
+
+            case User_Setting_Who_can_see_template.FRIEND: {
+                const isFriend = await this.friendshipService.isFriend({
+                    user_id: requester_id,
+                    friend_id: owner_id,
+                });
+                if (isFriend !== 'is') throw new UnauthorizedException({ errorCode: 'unauthorized' });
+                return true;
+            }
+
+            default:
+                throw new ForbiddenException({ errorCode: 'unauthorized' });
+        }
+    }
+
+    // ================= private  =================
 
     private async findOne(input: { condition: object; data_for: string }) {
         const { condition, data_for } = input;
@@ -64,6 +92,30 @@ export class UserExerciseTemplateCollectionService {
 
         return collection;
     }
+
+    private async findMany(input: {
+        condition: object;
+        data_for: string;
+        page: number;
+        limit: number;
+    }) {
+        const { condition, data_for, page, limit } = input;
+
+        const selects = this.collectionFilterByRole.buildQuerySelectObject({ label: data_for });
+
+        return this.collectionRepo.find({
+            where: condition,
+            select: selects,
+            skip: (page - 1) * limit,
+            take: limit,
+            order: { created_at: 'DESC' },
+        });
+    }
+
+
+
+    // ==================== Get - One ====================
+
 
     async findMine(input: { collection_id: string; user_id: string }) {
         const { collection_id, user_id } = input;
@@ -94,24 +146,6 @@ export class UserExerciseTemplateCollectionService {
 
     // ==================== Get - Many ====================
 
-    private async findMany(input: {
-        condition: object;
-        data_for: string;
-        page: number;
-        limit: number;
-    }) {
-        const { condition, data_for, page, limit } = input;
-
-        const selects = this.collectionFilterByRole.buildQuerySelectObject({ label: data_for });
-
-        return this.collectionRepo.find({
-            where: condition,
-            select: selects,
-            skip: (page - 1) * limit,
-            take: limit,
-            order: { created_at: 'DESC' },
-        });
-    }
 
     async findManyMine(input: { user_id: string; page: number; limit: number }) {
         const { user_id, page, limit } = input;
@@ -145,6 +179,16 @@ export class UserExerciseTemplateCollectionService {
         });
     }
 
+    // ==================== Create ====================
+
+    async create(input: { user_id: string; body: CreateCollectionDto }) {
+        const { user_id, body } = input;
+        return this.collectionRepo.save({
+            title: body.title,
+            user: { id: user_id },
+        });
+    }
+
     // ==================== Update ====================
 
     async update(input: { user_id: string; collection_id: string; body: UpdateCollectionDto }) {
@@ -160,16 +204,7 @@ export class UserExerciseTemplateCollectionService {
         return true;
     }
 
-    async adminUpdate(input: { collection_id: string; body: UpdateCollectionDto }) {
-        const { collection_id, body } = input;
 
-        const result = await this.collectionRepo.update({ id: collection_id }, body);
-
-        if (result.affected === 0)
-            throw new NotFoundException({ errorCode: 'collection_not_found' });
-
-        return true;
-    }
 
     // ==================== Delete ====================
 
@@ -187,6 +222,47 @@ export class UserExerciseTemplateCollectionService {
         return true;
     }
 
+
+
+
+
+
+    // ==============================================================
+    //                             ADMIN
+    // ==============================================================
+
+
+    async adminFindOne(input: { collection_id: string }) {
+        const { collection_id } = input;
+        return this.findOne({
+            condition: { id: collection_id },
+            data_for: 'system_admin',
+        });
+    }
+
+
+    async adminFindMany(input: { user_id: string; page: number; limit: number }) {
+        const { user_id, page, limit } = input;
+        return this.findMany({
+            condition: { user: { id: user_id } },
+            data_for: 'system_admin',
+            page,
+            limit,
+        });
+    }
+
+    async adminUpdate(input: { collection_id: string; body: UpdateCollectionDto }) {
+        const { collection_id, body } = input;
+
+        const result = await this.collectionRepo.update({ id: collection_id }, body);
+
+        if (result.affected === 0)
+            throw new NotFoundException({ errorCode: 'collection_not_found' });
+
+        return true;
+    }
+
+
     async adminSoftDelete(input: { collection_id: string; admin_id: string }) {
         const { collection_id, admin_id } = input;
 
@@ -201,38 +277,4 @@ export class UserExerciseTemplateCollectionService {
         return true;
     }
 
-    // ==================== Check ====================
-
-    async isCollectionBelongToUser(input: { collection_id: string; user_id: string }): Promise<boolean> {
-        const { collection_id, user_id } = input;
-        return this.collectionRepo.exists({
-            where: { id: collection_id, user: { id: user_id } },
-        });
-    }
-
-    // ==================== Permission check ====================
-
-    private async checkViewPermission(input: { owner_id: string; requester_id: string }) {
-        const { owner_id, requester_id } = input;
-
-        const setting = await this.userService.getSetting(owner_id, 'other');
-        if (!setting) throw new NotFoundException({ errorCode: 'owner_not_found' });
-
-        switch (setting.who_can_see_my_template) {
-            case User_Setting_Who_can_see_template.EVERYONE:
-                return true;
-
-            case User_Setting_Who_can_see_template.FRIEND: {
-                const isFriend = await this.friendshipService.isFriend({
-                    user_id: requester_id,
-                    friend_id: owner_id,
-                });
-                if (isFriend !== 'is') throw new UnauthorizedException({ errorCode: 'unauthorized' });
-                return true;
-            }
-
-            default:
-                throw new ForbiddenException({ errorCode: 'unauthorized' });
-        }
-    }
 }

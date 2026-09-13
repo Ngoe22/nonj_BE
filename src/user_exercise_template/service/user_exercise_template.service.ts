@@ -83,17 +83,18 @@ export class UserExerciseTemplateService {
 
 
 
-   private async findOne ( input : { template_id: string , data_for : string , user_id ?: string } ) {
+   private async findOne ( input : { condition: any , data_for : string  } ) {
 
-     const { template_id ,data_for , user_id } = input;
-     const where
-          =  user_id ?  {  id : template_id  } :{  id : template_id , user : {id : user_id} }
+
+     const { condition ,data_for ,  } = input;
+     // const where
+     //      =  user_id ?  {  id : template_id  } :{  id : template_id , user : {id : user_id} }
 
      const selects =  this.exerciseFilterByRole.buildQuerySelectObject({ label : data_for })
      const collection_selects = this.collectionService.collectionFilterByRole.buildQuerySelectObject({ label : data_for })
 
      const template = await this.templateRepo.findOne({
-       where,
+       where : condition,
        relations: {collection: true},
        select: {
          ...selects ,
@@ -141,7 +142,7 @@ export class UserExerciseTemplateService {
     await this.checkViewPermission({owner_id: owner_id, requester_id: requester_id,});
 
     return this.findOne( {
-      template_id ,
+      condition : { id : template_id } ,
       data_for : 'other'} )
   }
 
@@ -152,8 +153,7 @@ export class UserExerciseTemplateService {
     const { template_id , user_id } = input
 
     return this.findOne( {
-      user_id,
-      template_id,
+      condition : { id : template_id , user: user_id },
       data_for : 'me'} )
   }
 
@@ -260,15 +260,14 @@ export class UserExerciseTemplateService {
   async adminGetOne( input : { template_id: string  }   ) {
     const { template_id } = input;
     return this.findOne( {
-      template_id,
+      condition : { template_id  },
       data_for : 'system_admin'} )
   }
 
   async adminGetMany( input : { user_id: string , page: number, limit : number  }   ) {
-
+    const { user_id , page , limit} = input;
+    return this.findMany( { user_id ,data_for : "system_admin" , limit , page } )
   }
-
-
 
   // update share with user
 

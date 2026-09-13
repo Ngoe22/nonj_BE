@@ -1,6 +1,5 @@
 import {Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, type Relation } from "typeorm";
 import {User} from "../../user/entities/user.entity.js";
-import {User_Notif_Type} from "../../user_notif/enum/user_notif.enum.js";
 import {Report_Action, Report_Reason, Report_Status, Target_Type} from "../enum/report.enum.js";
 import {BaseEntity} from "../../_common/entities/base.entity.js";
 
@@ -28,21 +27,23 @@ export class Report extends BaseEntity {
   @Column({ type: 'text' })
   description: string;
 
-  @Column({ type: 'enum', enum: Report_Status })
+  @Column({ type: 'enum', enum: Report_Status, default: Report_Status.PENDING })
   status: Report_Status;
 
-  @Column({ type: 'enum', enum: Report_Action })
-  action_taken: Report_Action;
+  //
 
-  @ManyToOne(() => User, (review_by) => review_by.report_reviewer)
+  @Column({ type: 'enum', enum: Report_Action, nullable: true })
+  action_taken: Report_Action | null;
+
+  @ManyToOne(() => User, (review_by) => review_by.report_reviewer, { nullable: true })
   @JoinColumn({ name: 'reviewed_by', referencedColumnName: 'id' })
-  review_by: Relation<User>;
+  review_by: Relation<User> | null;
 
   @Column({ type: 'timestamp', nullable: true })
   reviewed_at: Date | null;
 
-  @Column({ type: 'text' })
-  review_note: string;
+  @Column({ type: 'text', nullable: true })
+  review_note: string | null;
 
   //
 }

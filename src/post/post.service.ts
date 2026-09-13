@@ -6,7 +6,8 @@ import {Repository} from "typeorm";
 import {GroupCollectionService} from "../group/service/group_collection/group_collection.service.js";
 import {GroupMemberService} from "../group/service/group_member/group_member.service.js";
 import {Group_Member_Role, Group_View_Mode} from "../group/enum/group.enum.js";
-import {UpdatePostDto} from "./dto/post.dto.js";
+import {CreateExamPostDto, CreateExercisePostDto, UpdatePostDto} from "./dto/post.dto.js";
+import {Post_Type, View_Each_Other_Answer} from "./enum/post.enum.js";
 
 class CreatePostDto {
 }
@@ -24,17 +25,19 @@ export class PostService {
   ) {
     this.filterByRoles = new FilterDbField({
       keyAndLabels: {
-        id: ['member', 'unjoin', 'admin' , 'founder'],
-        user: ['member', 'unjoin', 'admin' , 'founder'],
-        title: ['member', 'unjoin', 'admin' , 'founder'],
-        description: ['member', 'unjoin', 'admin' , 'founder'],
-        exercise_content: ['member', 'unjoin', 'admin' , 'founder'],
-        deadline_at: ['member', 'unjoin', 'admin' , 'founder'],
-        is_retake: ['member', 'unjoin', 'admin' , 'founder'],
-        view_each_unjoin_score: ['member', 'unjoin', 'admin' , 'founder'],
-        group: ['member', 'unjoin', 'admin' , 'founder'],
-        group_collection: ['member', 'unjoin', 'admin' , 'founder'],
-        source_template_id: ['member',  'founder'],
+        id: ['founder', 'member', 'admin' ],
+        post_type: ['founder', 'member', 'admin'],
+        title: ['founder', 'member', 'admin'],
+        description: ['founder', 'member', 'admin'],
+        question_type: ['founder', 'member', 'admin'],
+        question_content: ['founder', 'member', 'admin'],
+        deadline_at: ['founder', 'member', 'admin'],
+        retake: ['founder', 'member', 'admin'],
+        view_each_member_answer: ['founder', 'member', 'admin'],
+        user: ['founder', 'member', 'admin'],
+        group: ['founder', 'member', 'admin'],
+        group_collection: ['founder', 'member', 'admin'],
+        source_template: ['founder', 'member', 'admin'],
       },
       dataBase: Post,
     });
@@ -42,35 +45,87 @@ export class PostService {
 
   // ==================== Private ====================
 
+  private buildRelationFields(
+      body: any,
+      requester_id: string,
+      group_id: string,
+      collection_id: string,
+  ) {
+    return {
+      user: { id: requester_id },
+      group: { id: group_id },
+      group_collection: { id: collection_id },
+    };
+  }
+
 
   // ==================== Create ====================
 
-  async create(input: {
+  async createExercise(input: {
     group_id: string;
     collection_id: string;
     requester_id: string;
-    body: CreatePostDto;
+    body: CreateExercisePostDto;
   }) {
     const { group_id, collection_id, requester_id, body } = input;
 
-    const belongs = await this.collectionService.isCollectionBelongToGroup({ collection_id, group_id });
-    if (!belongs) {
-      throw new NotFoundException({ errorCode: 'collection_not_found_in_group' });
-    }
+    const poster_role = await this.checkBeforeCreate({ group_id, collection_id, requester_id });
 
-    const role =  await this.groupMemberService.checkActorRoleBeforeAction({
+    // EXERCISE = no deadline + never view Other answer + always allow to retake
+
+    const post = await this.postRepo.save({
+      ...this.buildRelationFields(body, requester_id, group_id, collection_id),
+      post_type: Post_Type.EXERCISE,
+      ...body ,
+      deadline_at: null,
+      retake: true,
+      view_each_other_answer: View_Each_Other_Answer.NEVER,
+    });
+
+    return this.filterByRoles.filterDataOfQueryResult({ object: post, label: poster_role.toLowerCase() });
+  }
+
+  async createExam(input: {
+    group_id: string;
+    collection_id: string;
+    requester_id: string;
+    body: CreateExamPostDto;
+  }) {
+    const { group_id, collection_id, requester_id, body } = input;
+
+    const poster_role = await this.checkBeforeCreate({ group_id, collection_id, requester_id });
+
+    // EXERCISE =  deadline + view Other answer depend on setting + not allow to retake
+
+    const post = await this.postRepo.save({
+      ...this.buildRelationFields(body, requester_id, group_id, collection_id),
+      post_type: Post_Type.EXAM,
+      ...body ,
+      deadline_at: new Date(body.deadline_at),
+      retake: false,
+      view_each_other_answer: body.view_each_other_answer,
+    });
+
+    return this.filterByRoles.filterDataOfQueryResult({ object: post, label: poster_role.toLowerCase() });
+  }
+
+  // ==================== Check ====================
+
+  private async checkBeforeCreate(input: { group_id: string; collection_id: string; requester_id: string }) {
+    const { group_id, collection_id, requester_id } = input;
+
+    const poster_role =   await this.groupMemberService.checkActorRoleBeforeAction({
       actor_id: requester_id,
       group_id,
       actor_allow_roles: [Group_Member_Role.ADMIN, Group_Member_Role.FOUNDER],
     });
 
-    const saveData =
-        FilterDbField.turnObjInfoToRelationObj(body ,[ 'group_collection' , 'source_template_id' , 'user' ])
+    const belongs = await this.collectionService.isCollectionBelongToGroup({ collection_id, group_id });
+    if (!belongs) throw new NotFoundException({ errorCode: 'collection_not_found_in_group' });
 
-    const post = await this.postRepo.save(saveData);
-
-    return this.filterByRoles.filterDataOfQueryResult({ object: post, label: role });
+    return poster_role
   }
+
 
   // ==================== Read - One ====================
 
@@ -155,7 +210,7 @@ export class PostService {
     );
 
     if (result.affected === 0) throw new NotFoundException({ errorCode: 'post_not_found' });
-    return true;
+    return body;
   }
 
   // ==================== Delete ====================
@@ -182,8 +237,6 @@ export class PostService {
     if (result.affected === 0) throw new NotFoundException({ errorCode: 'post_not_found' });
     return true;
   }
-
-
 
 
   // ==========================================================================

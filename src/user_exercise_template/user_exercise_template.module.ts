@@ -16,8 +16,8 @@ import {
 import {AdminUserExerciseTemplateController} from "./controller/template/admin-user_exercise_template.controller.js";
 
 @Module({
-  controllers: [UserExerciseTemplateController ,AdminUserExerciseTemplateController, AdminUserExerciseTemplateCollectionController , UserExerciseTemplateCollectionController],
+  controllers: [UserExerciseTemplateController ,AdminUserExerciseTemplateController , UserExerciseTemplateCollectionController ,AdminUserExerciseTemplateCollectionController],
   providers: [UserExerciseTemplateService , UserExerciseTemplateCollectionService],
- imports: [TypeOrmModule.forFeature([UserExerciseTemplate, UserExerciseTemplateCollection]) , UserModule , FriendshipModule  ],
+  imports: [TypeOrmModule.forFeature([UserExerciseTemplate, UserExerciseTemplateCollection]) , UserModule , FriendshipModule  ],
 })
 export class UserExerciseTemplateModule {}

@@ -11,70 +11,118 @@ export class PostAnswerController {
 
   @Post()
   create(
-      @Param('group_id') group_id: string,
-      @Param('collection_id') collection_id: string,
-      @Param('post_id') post_id: string,
-      @Body() body: CreatePostAnswerDto,
-      @GetRequesterInfo() requester: RequesterInfo,
+    @Param('group_id') group_id: string,
+    @Param('collection_id') collection_id: string,
+    @Param('post_id') post_id: string,
+    @Body() body: CreatePostAnswerDto,
+    @GetRequesterInfo() requester: RequesterInfo,
   ) {
-    return this.answerService.create({ group_id, collection_id, post_id, requester_id: requester.id, body });
+    return this.answerService.create({
+      group_id,
+      collection_id,
+      post_id,
+      requester_id: requester.id,
+      body,
+    });
   }
 
   @Get()
   getMany(
-      @Param('group_id') group_id: string,
-      @Param('collection_id') collection_id: string,
-      @Param('post_id') post_id: string,
-      @GetRequesterInfo() requester: RequesterInfo,
-      @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-      @Query('limit', new DefaultValuePipe(20), ParseLimitPipe) limit: number,
+    @Param('group_id') group_id: string,
+    @Param('collection_id') collection_id: string,
+    @Param('post_id') post_id: string,
+    @GetRequesterInfo() requester: RequesterInfo,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(20), ParseLimitPipe) limit: number,
   ) {
-    return this.answerService.findMany({ group_id, collection_id, post_id, requester_id: requester.id, page, limit });
+    return this.answerService.findOthersMany({
+      group_id,
+      collection_id,
+      post_id,
+      requester_id: requester.id,
+      page,
+      limit,
+    });
   }
 
   @Get(':answer_id')
   getOne(
-      @Param('group_id') group_id: string,
-      @Param('collection_id') collection_id: string,
-      @Param('post_id') post_id: string,
-      @Param('answer_id') answer_id: string,
-      @GetRequesterInfo() requester: RequesterInfo,
+    @Param('group_id') group_id: string,
+    @Param('collection_id') collection_id: string,
+    @Param('post_id') post_id: string,
+    @Param('answer_id') answer_id: string,
+    @GetRequesterInfo() requester: RequesterInfo,
   ) {
-    return this.answerService.findOne({ group_id, collection_id, post_id, answer_id, requester_id: requester.id });
+    return this.answerService.findOthersOne({
+      group_id,
+      collection_id,
+      post_id,
+      answer_id,
+      requester_id: requester.id,
+    });
   }
 
+  @Get('/me')
+  getMine(
+    @Param('group_id') group_id: string,
+    @Param('collection_id') collection_id: string,
+    @Param('post_id') post_id: string,
+    @Param('answer_id') answer_id: string,
+    @GetRequesterInfo() requester: RequesterInfo,
+  ) {
+    return this.answerService.findMine({
+      group_id,
+      post_id,
+      requester_id: requester.id,
+    });
+  }
 
   @Patch('retake/:answer_id')
   retake(
-      @Param('answer_id') answer_id: string,
-      @Body() body: CreatePostAnswerDto,
-      @GetRequesterInfo() requester: RequesterInfo,
+    @Param('answer_id') answer_id: string,
+    @Body() body: CreatePostAnswerDto,
+    @GetRequesterInfo() requester: RequesterInfo,
   ) {
-    return this.answerService.exerciseMulChoiceRetake({ user_id :requester.id , answer_id,  body });
+    return this.answerService.exerciseMulChoiceRetake({
+      user_id: requester.id,
+      answer_id,
+      body,
+    });
   }
-
 
   @Patch(':answer_id/grade')
   grade(
-      @Param('group_id') group_id: string,
-      @Param('collection_id') collection_id: string,
-      @Param('post_id') post_id: string,
-      @Param('answer_id') answer_id: string,
-      @Body() body: GradePostAnswerDto,
-      @GetRequesterInfo() requester: RequesterInfo,
+    @Param('group_id') group_id: string,
+    @Param('collection_id') collection_id: string,
+    @Param('post_id') post_id: string,
+    @Param('answer_id') answer_id: string,
+    @Body() body: GradePostAnswerDto,
+    @GetRequesterInfo() requester: RequesterInfo,
   ) {
-    return this.answerService.grade({ group_id, collection_id, post_id, answer_id, grader_id: requester.id, body });
+    return this.answerService.grade({
+      group_id,
+      collection_id,
+      post_id,
+      answer_id,
+      grader_id: requester.id,
+      body,
+    });
   }
 
   @Delete(':answer_id')
   delete(
-      @Param('group_id') group_id: string,
-      @Param('collection_id') collection_id: string,
-      @Param('post_id') post_id: string,
-      @Param('answer_id') answer_id: string,
-      @GetRequesterInfo() requester: RequesterInfo,
+    @Param('group_id') group_id: string,
+    @Param('collection_id') collection_id: string,
+    @Param('post_id') post_id: string,
+    @Param('answer_id') answer_id: string,
+    @GetRequesterInfo() requester: RequesterInfo,
   ) {
-    return this.answerService.softDelete({ group_id, collection_id, post_id, answer_id, requester_id: requester.id });
+    return this.answerService.softDelete({
+      group_id,
+      collection_id,
+      post_id,
+      answer_id,
+      requester_id: requester.id,
+    });
   }
-
 }

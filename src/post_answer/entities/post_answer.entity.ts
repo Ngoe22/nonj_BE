@@ -2,6 +2,7 @@ import {BaseEntity} from "../../_common/entities/base.entity.js";
 import {
   Column,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -13,10 +14,9 @@ import {Post_Answer_Status} from "../enum/post_answer.enum.js";
 import {Group} from "../../group/entities/group.entity.js";
 
 
-
+@Index(['post', 'user'])
 @Entity('post_answer')
 export class PostAnswer extends BaseEntity {
-
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -33,7 +33,7 @@ export class PostAnswer extends BaseEntity {
   group: Relation<Group>;
 
   @Column({ type: 'jsonb' })
-  answer_content: any ;
+  answer_content: any;
 
   @ManyToOne(() => User, (user_graded) => user_graded.post_answer_graded, {
     nullable: true,
@@ -45,7 +45,7 @@ export class PostAnswer extends BaseEntity {
   graded_at: Date | null;
 
   @Column({ type: 'jsonb' })
-  review_content: any ;
+  review_content: any;
 
   @Column({
     type: 'enum',

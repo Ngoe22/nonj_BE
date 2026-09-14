@@ -40,7 +40,7 @@ export class GroupMemberService {
     group_id: string;
     user_id: string;
     error_msg?: string;
-  }): Promise<Group_Member_Role> {
+  }){
     const { group_id, user_id , error_msg } = input;
     const member = await this.groupMemberRepo.findOne({
       where: { group: { id: group_id }, user: { id: user_id } ,deleted_at : IsNull() },
@@ -48,7 +48,7 @@ export class GroupMemberService {
     });
 
     if (!member)
-      throw new NotFoundException({ errorCode:  error_msg ?? 'user_or_group_not_found' });
+      throw new NotFoundException({ errorCode:  error_msg ?? 'not_a_member' });
 
     return member.role;
   }

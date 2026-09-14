@@ -11,30 +11,22 @@ export class AccessTokenGuard implements CanActivate {
     private readonly reflector: Reflector
 ) {}
 
-  // @ts-ignore
   async canActivate(context: ExecutionContext): Promise<boolean> {
 
     // check public
-
-
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
-
     if (isPublic) return true;
 
+    const request = context.switchToHttp().getRequest<Request>();
+    const accessToken = this.extractTokenFromHeader(request);
 
-    console.log(`access guard `);
+      if (!accessToken) throw new UnauthorizedException({ errorCode : 'access_token_not_found' });
+      request.requester = await this.tokenService.validateToken( accessToken , "access" );
 
-    // const request = context.switchToHttp().getRequest<Request>();
-    // const accessToken = this.extractTokenFromHeader(request);
-
-
-      // if (!accessToken) throw new UnauthorizedException({ errorCode : 'access_token_not_found' });
-      // request.user = await this.tokenService.validateToken( accessToken , "access" );
-
-    // if (accessToken) return true;
+    if (accessToken) return true;
     return true
   }
 

@@ -1,4 +1,5 @@
 import {
+  IsEmail,
   IsOptional,
   IsString,
   Matches,
@@ -22,8 +23,7 @@ export class CreateUserDto {
   @MaxLength(50)
   password: string;
 
-  @IsString()
-  @MinLength(10)
+  @IsEmail()
   email: string;
 
   @IsString()

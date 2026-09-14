@@ -32,12 +32,10 @@ export class AuthService {
     const token = await this.tokenService.generateTokens({
       ...this.tokenService.getPayloadFromUer(user),
       jti: crypto.randomUUID(),
-    });
-    const setting = await this.userService.getSetting(user.id , "me");
-
+    }); // return access + refresh
 
     const { password, ...safeUser } = user;
-    return { info: safeUser, setting, token };
+    return { info: safeUser,  ...token };
   }
 
 
@@ -57,6 +55,21 @@ export class AuthService {
   }
 
   async resetPassword() {}
+
+
+
+
+
+
+
+
+
+
+
+  //
+
+
+
 
 }
 

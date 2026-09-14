@@ -22,7 +22,6 @@ declare global {
     namespace Express {
         interface Request {
           requester?: RequesterInfo;
-          friendShip?: FriendShip;
         }
     }
 }

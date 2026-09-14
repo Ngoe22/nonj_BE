@@ -42,14 +42,14 @@ export class UserService {
         nickname: ['system_admin', 'me', 'friend' , 'not_friend'],
         bio: ['system_admin', 'me', 'friend' , 'not_friend'],
         avatar_url: ['system_admin', 'me', 'friend' , 'not_friend'],
-        status: ['system_admin'],
+        status: ['system_admin' , 'me'],
       },
       dataBase: User
     });
 
     this.settingFilterByRole = new FilterDbField({
       keyAndLabels: {
-        who_can_see_my_template: ['system_admin', 'me' ,'not_friend'],
+        who_can_see_my_template: ['system_admin', 'me' ,  'friend','not_friend'],
       },
       dataBase: UserSetting
     });

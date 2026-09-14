@@ -13,13 +13,24 @@ import {
 } from 'typeorm-transactional';
 import { DataSource } from 'typeorm';
 import { formatDtoException } from './_common/filters/dto_exception_format.js';
+import cookieParser from 'cookie-parser';
+
+
+
+
+
+///
+
 
 async function bootstrap() {
 
   const app = await NestFactory.create(AppModule);
 
+  // database
   initializeTransactionalContext();
   const dataSource = app.get(DataSource);
+
+  // data validate
   addTransactionalDataSource(dataSource);
   app.useGlobalPipes(
     new ValidationPipe({
@@ -39,10 +50,16 @@ async function bootstrap() {
       },
     }),
   );
-
   app.useGlobalFilters(new HttpExceptionFilter());
-
   app.useGlobalInterceptors(new TransformInterceptor());
+
+
+  // cookie
+  app.use(cookieParser());
+  app.enableCors({
+      origin: process.env.FE_URL,   // domain thật của FE, KHÔNG dùng '*' khi bật credentials
+      credentials: true,             // bắt buộc để cookie hoạt động qua CORS
+  });
 
   await app.listen(process.env.PORT ?? 3000);
 }

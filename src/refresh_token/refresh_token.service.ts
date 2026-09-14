@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { projectBcrypt } from '../_common/helper/customBcrypt.js';
 import { Transactional } from 'typeorm-transactional';
 import { UUID } from 'node:crypto';
+import {ACCESS_TOKEN_TTL_JWT, REFRESH_TOKEN_TTL_JWT, REFRESH_TOKEN_TTL_MS} from "../_common/constants/auth.constant.js";
 
 
 // =====================================================================================
@@ -37,7 +38,7 @@ export class RefreshTokenService {
       const { iat, exp, ...output } = await this.jwtService.verifyAsync(token, {
         secret,
       });
-      return output;
+      return output; // return payload = user info
     } catch (error) {
       const errorCode =
         error instanceof TokenExpiredError
@@ -65,7 +66,6 @@ export class RefreshTokenService {
 
 
 
-  //
   @Transactional()
   async regetAccessToken(oldRefreshToken: string) {
     const oldPayload = await this.validateToken(oldRefreshToken, 'refresh');
@@ -103,8 +103,6 @@ export class RefreshTokenService {
     };
   }
 
-
-
   private async checkTokenInDB(data: {
     jti: string;
     user_id: string;
@@ -135,15 +133,15 @@ export class RefreshTokenService {
 
 
   private async generateToken(
-    payload: RequesterInfo,
-    tokenType: 'access' | 'refresh',
+      payload: RequesterInfo,
+      tokenType: 'access' | 'refresh',
   ) {
-    const [secret, expiresIn]: [string | undefined, '45m' | '7d'] =
-      tokenType === 'access'
-        ? [process.env.JWT_ACCESS_SECRET, '45m']
-        : [process.env.JWT_REFRESH_SECRET, '7d'];
+    const secret = tokenType === 'access' ? process.env.JWT_ACCESS_SECRET : process.env.JWT_REFRESH_SECRET;
+    const expiresIn = tokenType === 'access' ? ACCESS_TOKEN_TTL_JWT : REFRESH_TOKEN_TTL_JWT;
+
     if (!secret) throw new Error(`Missing JWT secret for ${tokenType} token`);
-    return await this.jwtService.signAsync(payload, { secret, expiresIn });
+
+    return this.jwtService.signAsync(payload, { secret, expiresIn });
   }
 
   // ==== to DB ===========================
@@ -158,7 +156,7 @@ export class RefreshTokenService {
       jti,
       user: { id: user_id },
       token_hash: await projectBcrypt.encode(refreshToken),
-      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      expires_at: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
     });
   }
 
@@ -167,6 +165,7 @@ export class RefreshTokenService {
       user: { id: input.user_id },
     };
     if (input.jti) where.jti = input.jti;
-    return await this.refreshRepository.delete(where);
+     await this.refreshRepository.delete(where);
+     return true
   }
 }

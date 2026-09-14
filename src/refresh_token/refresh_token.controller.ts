@@ -11,11 +11,13 @@ import { RefreshTokenGuard } from '../_other_module/guards/refresh_token_guard.s
 export class RefreshTokenController {
   constructor(private readonly refreshTokenService: RefreshTokenService) {}
 
-  @Get()
-  @Public()
-  @UseGuards(RefreshTokenGuard)
-  regetAccessToken(@Headers('authorization') authorization: string) {
-    const refreshToken = authorization.replace('Bearer ', '');
-    return this.refreshTokenService.regetAccessToken(refreshToken);
-  }
+  // @Get()
+  // @Public()
+  // @UseGuards(RefreshTokenGuard)
+  // regetAccessToken(
+  //     @Headers('authorization') authorization: string
+  // ) {
+  //   const refreshToken = authorization.replace('Bearer ', '');
+  //   return this.refreshTokenService.regetAccessToken(refreshToken);
+  // }
 }

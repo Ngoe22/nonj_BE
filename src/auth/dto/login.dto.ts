@@ -1,4 +1,5 @@
 import {
+  IsEmail,
   IsOptional,
   IsString,
   Matches,
@@ -7,8 +8,7 @@ import {
 } from 'class-validator';
 
 export class LoginDto {
-  @IsString()
-  @MinLength(10)
+  @IsEmail()
   email: string;
 
   @IsString()

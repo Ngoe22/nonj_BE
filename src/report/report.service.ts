@@ -13,9 +13,10 @@ import {PostAnswer} from "../post_answer/entities/post_answer.entity.js";
 @Injectable()
 export class ReportService {
   private filterByRoles: FilterDbField<Report>;
-  private dataSource: any;
 
   constructor(
+      @InjectDataSource()
+      private readonly dataSource: DataSource,
       @InjectRepository(Report)
       private readonly reportRepo: Repository<Report>,
 
@@ -35,6 +36,8 @@ export class ReportService {
         review_note: ['admin'],
       },
       dataBase: Report,
+      dataSource : this.dataSource
+
     });
   }
 

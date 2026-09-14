@@ -9,8 +9,8 @@ import {
 } from '../../dto/group_collection.dto.js';
 import { FilterDbField } from '../../../_common/helper/filterQueryForRole.js';
 import { GroupCollection } from '../../entities/group_collection.entity.js';
-import {  InjectRepository } from '@nestjs/typeorm';
-import {  Repository } from 'typeorm';
+import {InjectDataSource, InjectRepository} from '@nestjs/typeorm';
+import {DataSource, Repository} from 'typeorm';
 import { GroupMemberService } from '../group_member/group_member.service.js';
 import { Group_Member_Role, Group_View_Mode } from '../../enum/group.enum.js';
 import { GroupService } from '../group/group.service.js';
@@ -20,6 +20,8 @@ export class GroupCollectionService {
   private filterByRoles: FilterDbField<GroupCollection>;
 
   constructor(
+      @InjectDataSource()
+      private readonly dataSource: DataSource,
     @InjectRepository(GroupCollection)
     private readonly collectionRepo: Repository<GroupCollection>,
     //
@@ -36,6 +38,7 @@ export class GroupCollectionService {
         group: ['member', 'unjoin', 'admin' , 'founder'],
       },
       dataBase: GroupCollection,
+      dataSource : this.dataSource
     });
   }
 

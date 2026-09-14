@@ -1,8 +1,8 @@
 import {BadRequestException, ConflictException, Injectable, NotFoundException} from '@nestjs/common';
 import { FilterDbField } from '../../../_common/helper/filterQueryForRole.js';
 import { GroupJoinRequest } from '../../entities/group_join_request.entity.js';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import {InjectDataSource, InjectRepository} from '@nestjs/typeorm';
+import {DataSource, Repository} from 'typeorm';
 import {Group_Join_Mode, Group_Join_Request_Status, Group_Member_Role} from '../../enum/group.enum.js';
 import {GroupService} from "../group/group.service.js";
 import {GroupMemberService} from "../group_member/group_member.service.js";
@@ -20,6 +20,8 @@ export class GroupJoinRequestService {
   private filterByRoles: FilterDbField<GroupJoinRequest>;
 
   constructor(
+      @InjectDataSource()
+      private readonly dataSource: DataSource,
     @InjectRepository(GroupJoinRequest)
     private groupJoinRequestRepo: Repository<GroupJoinRequest>,
     //
@@ -37,6 +39,7 @@ export class GroupJoinRequestService {
         reviewed_at: ['founder', 'admin'],
       },
       dataBase: GroupJoinRequest,
+      dataSource : this.dataSource
     });
   }
 

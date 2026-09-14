@@ -21,10 +21,12 @@ export class PostAnswerService {
   private filterByRoles: FilterDbField<PostAnswer>;
 
   constructor(
-    @InjectRepository(PostAnswer)
+      @InjectDataSource()
+      private readonly dataSource: DataSource,
+
+      @InjectRepository(PostAnswer)
     private readonly answerRepo: Repository<PostAnswer>,
-    @InjectDataSource()
-    private readonly dataSource: DataSource,
+    //
     private readonly groupMemberService: GroupMemberService,
   ) {
     this.filterByRoles = new FilterDbField({
@@ -40,6 +42,8 @@ export class PostAnswerService {
         review_content: ['me', 'admin', 'founder'],
       },
       dataBase: PostAnswer,
+      dataSource : this.dataSource
+
     });
   }
 

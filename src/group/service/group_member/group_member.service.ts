@@ -5,8 +5,8 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import {InjectDataSource, InjectRepository} from '@nestjs/typeorm';
+import {DataSource, IsNull, Repository} from 'typeorm';
 import { FilterDbField } from '../../../_common/helper/filterQueryForRole.js';
 import { GroupMember } from '../../entities/group_member.entity.js';
 import { Group_Member_Role } from '../../enum/group.enum.js';
@@ -19,6 +19,8 @@ export class GroupMemberService {
   private filterByRoles: FilterDbField<GroupMember>;
 
   constructor(
+      @InjectDataSource()
+      private readonly dataSource: DataSource,
     @InjectRepository(GroupMember)
     private groupMemberRepo: Repository<GroupMember>,
   ) {
@@ -31,6 +33,8 @@ export class GroupMemberService {
         updated_at: ['founder', 'admin'],
       },
       dataBase: GroupMember,
+      dataSource : this.dataSource
+
     });
   }
 

@@ -4,13 +4,12 @@ import { InjectDataSource } from '@nestjs/typeorm';
 type Input<T extends ObjectLiteral> = {
   keyAndLabels: Record<string, string[]>;
   dataBase: EntityTarget<T>;
-  // dataSource: DataSource;
+  dataSource: DataSource;
 };
 
 export class FilterDbField<T extends ObjectLiteral> {
   private readonly keyAndLabels: Record<string, Set<string>>;
-  @InjectDataSource()
-  private readonly dataSource: DataSource;
+
   constructor(input: Input<T>) {
     this.keyAndLabels = this.createSetsOfKeyAndLabels(input); //object { key : set[ role1 ,role2 ] }
   }
@@ -103,9 +102,12 @@ export class FilterDbField<T extends ObjectLiteral> {
   private createSetsOfKeyAndLabels(
     input: Input<T>,
   ): Record<string, Set<string>> {
-    const { keyAndLabels, dataBase } = input;
+    const { keyAndLabels, dataBase , dataSource } = input;
+
+    console.log(dataBase)
+
     const columns = new Set(
-      this.dataSource
+        dataSource
         .getMetadata(dataBase)
         .columns.map((col) => col.propertyName),
     );

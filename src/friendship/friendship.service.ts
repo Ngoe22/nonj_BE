@@ -1,6 +1,6 @@
 import {ConflictException, Injectable, NotFoundException} from '@nestjs/common';
 import {InjectDataSource, InjectRepository} from "@nestjs/typeorm";
-import { Repository} from "typeorm";
+import {DataSource, Repository} from "typeorm";
 import {Friendship} from "./entities/friendship.entity.js";
 import {FilterDbField} from "../_common/helper/filterQueryForRole.js";
 import {Transactional} from "typeorm-transactional";
@@ -14,6 +14,8 @@ export class FriendshipService {
   friendShipFilterByRole: FilterDbField<Friendship>;
 
   constructor(
+      @InjectDataSource()
+      private readonly dataSource: DataSource,
     @InjectRepository(Friendship)
     private readonly friendshipRepo: Repository<Friendship>,
     @InjectDataSource()
@@ -29,6 +31,8 @@ export class FriendshipService {
         deleted_at: ['admin'],
       },
       dataBase: Friendship,
+      dataSource : this.dataSource
+
     });
   }
 

@@ -1,6 +1,6 @@
 import { Group } from '../../entities/group.entity.js';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, IsNull, Repository } from 'typeorm';
+import {InjectDataSource, InjectRepository} from '@nestjs/typeorm';
+import {DataSource, In, IsNull, Repository} from 'typeorm';
 import { GroupMemberService } from '../group_member/group_member.service.js';
 import { FilterDbField } from '../../../_common/helper/filterQueryForRole.js';
 import { CreateGroupDto, UpdateGroupDto } from '../../dto/group.dto.js';
@@ -15,6 +15,8 @@ export class GroupService {
   private filterByRoles: FilterDbField<Group>;
 
   constructor(
+      @InjectDataSource()
+      private readonly dataSource: DataSource,
     @InjectRepository(Group)
     private readonly groupRepo: Repository<Group>,
     private readonly groupMemberService: GroupMemberService,
@@ -31,6 +33,8 @@ export class GroupService {
         created_at: ['member', 'admin', 'founder'],
       },
       dataBase: Group,
+      dataSource : this.dataSource
+
     });
   }
 

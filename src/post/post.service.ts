@@ -6,8 +6,8 @@ import {
 } from '@nestjs/common';
 import {FilterDbField} from "../_common/helper/filterQueryForRole.js";
 import {Post} from "./entities/post.entity.js";
-import {InjectRepository} from "@nestjs/typeorm";
-import {Repository} from "typeorm";
+import {InjectDataSource, InjectRepository} from "@nestjs/typeorm";
+import {DataSource, Repository} from "typeorm";
 import {GroupCollectionService} from "../group/service/group_collection/group_collection.service.js";
 import {GroupMemberService} from "../group/service/group_member/group_member.service.js";
 import {Group_Member_Role, Group_View_Mode} from "../group/enum/group.enum.js";
@@ -21,10 +21,12 @@ class CreatePostDto {
 @Injectable()
 export class PostService {
   private filterByRoles: FilterDbField<Post>;
-  private dataSource: any;
 
   constructor(
-    @InjectRepository(Post)
+      @InjectDataSource()
+      private readonly dataSource: DataSource,
+
+      @InjectRepository(Post)
     private readonly postRepo: Repository<Post>,
     //
     private readonly groupMemberService: GroupMemberService,
@@ -40,13 +42,14 @@ export class PostService {
         question_content: ['founder', 'member', 'admin'],
         deadline_at: ['founder', 'member', 'admin'],
         retake: ['founder', 'member', 'admin'],
-        view_each_member_answer: ['founder', 'member', 'admin'],
+        view_each_other_answer: ['founder', 'member', 'admin'],
         user: ['founder', 'member', 'admin'],
         group: ['founder', 'member', 'admin'],
         group_collection: ['founder', 'member', 'admin'],
-        source_template: ['founder', 'member', 'admin'],
       },
       dataBase: Post,
+      dataSource : this.dataSource
+
     });
   }
 

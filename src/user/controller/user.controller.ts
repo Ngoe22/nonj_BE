@@ -18,12 +18,13 @@ export class UserController {
   //   return this.userService.create(body);
   // }
 
+
+
   @Get('user_name/:user_name')
   findByUsername(
       @GetRequesterInfo() requester: RequesterInfo,
       @Param('user_name') user_name: string
   ) {
-    console.log('here');
     return this.userService.getOtherInfoByUserName({ requester_id : requester.id ,  search_target_username : user_name });
   }
 
@@ -41,6 +42,11 @@ export class UserController {
   ) {
     return this.userService.updateInfo({ user_id: requester.id , body });
   }
+
+
+  //======================================
+
+
 
   @Get('me/setting')
   getMySetting(@GetRequesterInfo() requester: RequesterInfo) {

@@ -2,8 +2,8 @@ import { Injectable, NotFoundException, UnauthorizedException} from '@nestjs/com
 import {
   CreateExerciseTemplateDto,
 } from '../dto/user_exercise_template.dto.js';
-import {  InjectRepository } from '@nestjs/typeorm';
-import { Repository} from 'typeorm';
+import {InjectDataSource, InjectRepository} from '@nestjs/typeorm';
+import {DataSource, Repository} from 'typeorm';
 import { FilterDbField } from '../../_common/helper/filterQueryForRole.js';
 import { UserExerciseTemplate } from '../entities/user_exercise_template.entity.js';
 import { User_Setting_Who_can_see_template} from '../../user/enums/user.enum.js';
@@ -28,6 +28,8 @@ export class UserExerciseTemplateService {
   // ================== EXERCISE TEMPLATE ==================
 
   constructor(
+      @InjectDataSource()
+      private readonly dataSource: DataSource,
     @InjectRepository(UserExerciseTemplate)
     private readonly templateRepo: Repository<UserExerciseTemplate>,
     //
@@ -48,6 +50,8 @@ export class UserExerciseTemplateService {
         deleted_at : ['system_admin', 'me', 'other'],
       },
       dataBase: UserExerciseTemplate,
+      dataSource : this.dataSource
+
     });
 
   }

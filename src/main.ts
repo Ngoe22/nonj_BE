@@ -36,9 +36,9 @@ async function bootstrap() {
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
-      transform: false,
+      transform: true,
       transformOptions: {
-        enableImplicitConversion: false,
+        enableImplicitConversion: true,
       },
       exceptionFactory :(errors: ValidationError[]) =>{
         const formatedErrors = errors.map((error) => formatDtoException(error));
@@ -57,8 +57,8 @@ async function bootstrap() {
   // cookie
   app.use(cookieParser());
   app.enableCors({
-      origin: process.env.FE_URL,   // domain thật của FE, KHÔNG dùng '*' khi bật credentials
-      credentials: true,             // bắt buộc để cookie hoạt động qua CORS
+      origin: process.env.FE_URL,
+      credentials: true,
   });
 
   await app.listen(process.env.PORT ?? 3000);

@@ -21,6 +21,8 @@ export class UserExerciseTemplateCollectionService {
     collectionFilterByRole: FilterDbField<UserExerciseTemplateCollection>;
 
     constructor(
+        @InjectDataSource()
+        private readonly dataSource: DataSource,
         @InjectRepository(UserExerciseTemplateCollection)
         private readonly collectionRepo: Repository<UserExerciseTemplateCollection>,
         //
@@ -33,6 +35,7 @@ export class UserExerciseTemplateCollectionService {
                 title: ['admin', 'me', 'other'],
             },
             dataBase: UserExerciseTemplateCollection,
+            dataSource : this.dataSource
         });
     }
 

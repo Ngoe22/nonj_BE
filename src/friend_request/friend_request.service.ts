@@ -3,8 +3,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import {  Repository } from 'typeorm';
+import {InjectDataSource, InjectRepository} from '@nestjs/typeorm';
+import {DataSource, Repository} from 'typeorm';
 import { FriendRequest } from './entities/friend_request.entity.js';
 import { FilterDbField } from '../_common/helper/filterQueryForRole.js';
 import {Friend_Request_Status, UpdateRequestFromReceiverEnum} from './enum/friend_request.enum.js';
@@ -17,6 +17,8 @@ export class FriendRequestService {
   private friendReqFilterByRole: FilterDbField<FriendRequest>;
 
   constructor(
+      @InjectDataSource()
+      private readonly dataSource: DataSource,
     @InjectRepository(FriendRequest)
     private readonly requestRepo: Repository<FriendRequest>,
     private readonly userService: UserService,
@@ -32,6 +34,7 @@ export class FriendRequestService {
         updated_at: ['admin', 'me'],
       },
       dataBase: FriendRequest,
+      dataSource : this.dataSource ,
     });
   }
 

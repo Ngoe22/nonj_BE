@@ -17,7 +17,7 @@ import {ACCESS_TOKEN_TTL_JWT, REFRESH_TOKEN_TTL_JWT, REFRESH_TOKEN_TTL_MS} from 
 
 
 @Injectable()
-export class RefreshTokenService {
+export class TokenService {
   constructor(
     private readonly jwtService: JwtService,
     @InjectRepository(RefreshToken)

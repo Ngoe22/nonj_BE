@@ -27,6 +27,8 @@ export class UserService {
   settingFilterByRole: FilterDbField<UserSetting>;
 
   constructor(
+      @InjectDataSource()
+      private readonly dataSource: DataSource,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     @InjectRepository(UserSetting)
@@ -44,14 +46,18 @@ export class UserService {
         avatar_url: ['system_admin', 'me', 'friend' , 'not_friend'],
         status: ['system_admin' , 'me'],
       },
-      dataBase: User
+      dataBase: User ,
+      dataSource : this.dataSource
+
     });
 
     this.settingFilterByRole = new FilterDbField({
       keyAndLabels: {
         who_can_see_my_template: ['system_admin', 'me' ,  'friend','not_friend'],
       },
-      dataBase: UserSetting
+      dataBase: UserSetting ,
+      dataSource : this.dataSource
+
     });
 
     // ==============================
@@ -62,6 +68,16 @@ export class UserService {
   private async checkPermissionBeforeGetOthersInfo (
       input : { requester_id :string , search_target_id ?: string , search_target_username ?: string }
   ) {
+
+  }
+
+  // ==============================
+
+
+  async creatUser ( body : CreateUserDto ) {
+     const result=  this.userRepository.save(body);
+
+     return this.userFilterByRole.filterDataOfQueryResult({ object : result , label:'me' });
 
   }
 

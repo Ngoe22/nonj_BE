@@ -17,7 +17,7 @@ export class AuthService {
   // ============================ handle login ============================
 
   async login(loginInfo: LoginDto) {
-    const user = await this.userService.getFullInfoForEmailLogin(loginInfo.email);
+    const user = await this.userService.getInfoForEmailLogin(loginInfo.email);
 
     if (
       !user ||
@@ -35,7 +35,9 @@ export class AuthService {
     });
     const setting = await this.userService.getSetting(user.id , "me");
 
-    return { info: user, setting, token };
+
+    const { password, ...safeUser } = user;
+    return { info: safeUser, setting, token };
   }
 
 

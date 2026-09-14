@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { UserModule } from './user/user.module.js';
-import { PostModule } from './post/post.module.js';
 import {ConfigModule} from "@nestjs/config";
 import {TypeOrmModule} from "@nestjs/typeorm";
 import { RefreshTokenModule } from './refresh_token/refresh_token.module.js';
@@ -19,6 +18,7 @@ import {
   TokenGuardModule,
 } from './_other_module/guards/token_guard.module.js';
 import { AccessTokenGuard } from './_other_module/guards/access_token_guard.service.js';
+import { PostModule } from './post/post.module.js';
 
 
 

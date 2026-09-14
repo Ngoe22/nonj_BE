@@ -67,6 +67,22 @@ export class UserService {
 
   // ==============================
 
+  async getInfoForEmailLogin( email : string ) {
+    const selectField = this.userFilterByRole.buildQuerySelectObject({
+      label: 'me',
+    });
+
+
+    return await this.userRepository.findOne({
+      where: { email: email },
+      select: {
+        ...selectField,
+        password :  true
+      },
+    });
+  }
+
+  //
 
   async getOtherInfoByUserName(input: { requester_id: string; search_target_username: string }) {
     return this.getOtherInfo({

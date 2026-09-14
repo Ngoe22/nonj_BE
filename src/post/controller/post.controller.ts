@@ -9,8 +9,6 @@ import {ParseLimitPipe} from "../../_common/pipe/ParseLimitPipe.js";
 export class PostController {
   constructor(private readonly postService: PostService) {}
 
-
-
   @Post('exercise')
   createExercise(
       @Param('group_id') group_id: string,

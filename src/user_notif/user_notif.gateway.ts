@@ -29,7 +29,7 @@ export class NotifGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.join(`user:${payload.id}`);
       client.data.user_id = payload.id;
     } catch (err:any) {
-      this.logger.warn(`Kết nối bị từ chối: ${err.message}`);
+      this.logger.warn(`Connect fail: ${err.message}`);
       client.disconnect();
     }
   }

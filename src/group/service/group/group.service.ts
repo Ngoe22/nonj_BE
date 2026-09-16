@@ -30,7 +30,7 @@ export class GroupService {
         description: ['member', 'unjoin', 'admin', 'founder'],
         join_mode: ['member', 'unjoin', 'admin', 'founder', 'setting'],
         view_mode: ['member', 'unjoin', 'admin', 'founder', 'setting'],
-        created_at: ['member', 'admin', 'founder'],
+        created_at: ['member', 'admin', 'founder' , 'member'],
       },
       dataBase: Group,
       dataSource : this.dataSource
@@ -45,7 +45,14 @@ export class GroupService {
     label: 'founder' | 'admin' | 'member' | 'unjoin',
   ) {
     const select = this.filterByRoles.buildQuerySelectObject({ label });
-    const group = await this.groupRepo.findOne({ where, select });
+    const group = await this.groupRepo.findOne({
+      where,
+      relations: { founder: true },
+      select: {
+        ...select,
+        founder: { id: true, user_name: true, nickname: true },
+      },
+    });
     if (!group) throw new NotFoundException({ errorCode: 'group_not_found' });
     return this.filterByRoles.filterDataOfQueryResult({ object: group, label });
   }
@@ -62,7 +69,11 @@ export class GroupService {
 
     return await this.groupRepo.find({
       where,
-      select,
+      relations: { founder: true },
+      select: {
+        ...select,
+        founder : { id:true , user_name:true , nickname :true },
+      },
       skip: (page - 1) * limit,
       take: limit,
       order: { created_at: 'DESC' },
@@ -103,7 +114,7 @@ export class GroupService {
 
     return this.filterByRoles.filterDataOfQueryResult({
       object: group,
-      label: 'member',
+      label: 'founder',
     });
   }
 

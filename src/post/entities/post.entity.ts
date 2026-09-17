@@ -2,13 +2,13 @@ import {BaseEntity} from "../../_common/entities/base.entity.js";
 import {Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, type Relation } from "typeorm";
 import {User} from "../../user/entities/user.entity.js";
 import {UserExerciseTemplate} from "../../user_exercise_template/entities/user_exercise_template.entity.js";
-import {GroupCollection} from "../../group/entities/post_collection.entity.js";
+import {PostCollection} from "../../group/entities/post_collection.entity.js";
 import {Group} from "../../group/entities/group.entity.js";
 import {PostAnswer} from "../../post_answer/entities/post_answer.entity.js";
 import {Exercise_Type, Post_Type, View_Each_Other_Answer} from "../enum/post.enum.js";
 
 
-@Index(['group_collection', 'created_at'])
+@Index(['post_collection', 'created_at'])
 @Entity('post')
 export class Post extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -47,9 +47,9 @@ export class Post extends BaseEntity {
   @JoinColumn({ name: 'group_id', referencedColumnName: 'id' })
   group: Relation<Group>;
 
-  @ManyToOne(() => GroupCollection, (c) => c.post)
-  @JoinColumn({ name: 'group_collection_id', referencedColumnName: 'id' })
-  post_collection: Relation<GroupCollection>;
+  @ManyToOne(() => PostCollection, (c) => c.post)
+  @JoinColumn({ name: 'post_collection_id', referencedColumnName: 'id' })
+  post_collection: Relation<PostCollection>;
 
   @OneToMany(() => PostAnswer, (a) => a.post)
   post_answer: PostAnswer;

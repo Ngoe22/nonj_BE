@@ -42,10 +42,10 @@ export class AuthService {
       !user.password ||
       !(await projectBcrypt.compare(loginInfo.password, user.password))
     )
-      throw new UnauthorizedException({ errorCode: 'invalid_credentials' });
+      throw new NotFoundException({ errorCode: 'invalid_credentials' });
 
     if (user.status === 'BANNED')
-      throw new UnauthorizedException({ errorCode: 'banned_account' });
+      throw new NotFoundException({ errorCode: 'banned_account' });
 
     const token = await this.tokenService.generateTokens({
       ...this.tokenService.getPayloadFromUer(user),

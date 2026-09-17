@@ -6,7 +6,7 @@ import {Matches} from "class-validator";
 import { Group_Join_Mode, Group_View_Mode } from '../enum/group.enum.js';
 import {GroupMember} from "./group_member.entity.js";
 import {GroupJoinRequest} from "./group_join_request.entity.js";
-import {GroupCollection} from "./post_collection.entity.js";
+import {PostCollection} from "./post_collection.entity.js";
 import {Post} from "../../post/entities/post.entity.js";
 import {PostAnswer} from "../../post_answer/entities/post_answer.entity.js";
 
@@ -71,8 +71,8 @@ export class Group extends BaseEntity {
   )
   group_join_request: GroupJoinRequest;
 
-  @OneToMany(() => GroupCollection, (collection) => collection.group)
-  collection: Relation<GroupCollection>;
+  @OneToMany(() => PostCollection, (collection) => collection.group)
+  collection: Relation<PostCollection>;
 
   @OneToMany(() => Post, (post) => post.group)
   post: Relation<Post>;

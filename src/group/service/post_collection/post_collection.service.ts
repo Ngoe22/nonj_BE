@@ -6,7 +6,7 @@ import {
 import {
   CreatePostCollectionDto,
   UpdatePostCollectionDto,
-} from '../../dto/group_collection.dto.js';
+} from '../../dto/group_post_collection.dto.js';
 import { FilterDbField } from '../../../_common/helper/filterQueryForRole.js';
 import { PostCollection} from '../../entities/post_collection.entity.js';
 import {InjectDataSource, InjectRepository} from '@nestjs/typeorm';

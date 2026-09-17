@@ -8,12 +8,12 @@ import {FilterDbField} from "../_common/helper/filterQueryForRole.js";
 import {Post} from "./entities/post.entity.js";
 import {InjectDataSource, InjectRepository} from "@nestjs/typeorm";
 import {DataSource, Repository} from "typeorm";
-import {GroupCollectionService} from "../group/service/post_collection/post_collection.service.js";
+import {PostCollectionService} from "../group/service/post_collection/post_collection.service.js";
 import {GroupMemberService} from "../group/service/group_member/group_member.service.js";
 import {Group_Member_Role, Group_View_Mode} from "../group/enum/group.enum.js";
 import {CreateExamPostDto, CreateExercisePostDto, UpdatePostDto} from "./dto/post.dto.js";
 import {Post_Type, View_Each_Other_Answer} from "./enum/post.enum.js";
-import { GroupCollection } from '../group/entities/post_collection.entity.js';
+import { PostCollection } from '../group/entities/post_collection.entity.js';
 
 class CreatePostDto {
 }
@@ -30,7 +30,7 @@ export class PostService {
     private readonly postRepo: Repository<Post>,
     //
     private readonly groupMemberService: GroupMemberService,
-    private readonly collectionService: GroupCollectionService,
+    private readonly collectionService: PostCollectionService,
   ) {
     this.filterByRoles = new FilterDbField({
       keyAndLabels: {
@@ -45,7 +45,7 @@ export class PostService {
         view_each_other_answer: ['founder', 'member', 'admin'],
         user: ['founder', 'member', 'admin'],
         group: ['founder', 'member', 'admin'],
-        group_collection: ['founder', 'member', 'admin'],
+        post_collection: ['founder', 'member', 'admin'],
       },
       dataBase: Post,
       dataSource : this.dataSource
@@ -89,7 +89,7 @@ export class PostService {
     const result = await this.dataSource
       .createQueryBuilder()
       .select('gm.role', 'role')
-      .from(GroupCollection, 'c')
+      .from(PostCollection, 'c')
       .leftJoin(
         'group_member',
         'gm',
@@ -210,7 +210,7 @@ export class PostService {
       where: {
         id: post_id,
         group: { id: group_id },
-        group_collection: { id: collection_id },
+        post_collection: { id: collection_id },
       },
       select: selects,
     });
@@ -243,7 +243,7 @@ export class PostService {
     return this.postRepo.find({
       where: {
         group: { id: group_id },
-        group_collection: { id: collection_id },
+        post_collection: { id: collection_id },
       },
       select: selects,
       skip: (page - 1) * limit,
@@ -273,7 +273,7 @@ export class PostService {
       {
         id: post_id,
         group: { id: group_id },
-        group_collection: { id: collection_id },
+        post_collection: { id: collection_id },
       },
       body,
     );
@@ -303,7 +303,7 @@ export class PostService {
       {
         id: post_id,
         group: { id: group_id },
-        group_collection: { id: collection_id },
+        post_collection: { id: collection_id },
       },
       { deleted_at: new Date(), deleted_by: requester_id },
     );
@@ -342,7 +342,7 @@ export class PostService {
     });
 
     return this.postRepo.find({
-      where: { group_collection: { id: collection_id } },
+      where: { post_collection: { id: collection_id } },
       select: selects,
       skip: (page - 1) * limit,
       take: limit,

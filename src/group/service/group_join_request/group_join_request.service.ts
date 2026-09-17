@@ -35,7 +35,7 @@ export class GroupJoinRequestService {
         status: ['SA' ,'founder', 'admin', 'member' , 'unjoin'],
         reviewer: ['SA' ],
         reviewed_at: ['SA' ],
-        created_time : ['SA' ,'founder', 'admin', 'member' , 'unjoin'],
+        created_at : ['SA' ,'founder', 'admin', 'member' , 'unjoin'],
       },
       dataBase: GroupJoinRequest,
       dataSource : this.dataSource

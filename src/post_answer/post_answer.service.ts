@@ -77,7 +77,7 @@ export class PostAnswerService {
       ])
       .where('p.id = :post_id', { post_id })
       .andWhere('p.group_id = :group_id', { group_id })
-      .andWhere('p.group_collection_id = :collection_id', { collection_id })
+      .andWhere('p.post_collection_id = :collection_id', { collection_id })
       .getRawOne();
 
     if (!check)
@@ -166,7 +166,7 @@ export class PostAnswerService {
         .where('a.id = :answer_id', { answer_id })
         .andWhere('p.id = :post_id', { post_id })
         .andWhere('p.group_id = :group_id', { group_id })
-        .andWhere('p.group_collection_id = :collection_id', { collection_id })
+        .andWhere('p.post_collection_id = :collection_id', { collection_id })
         .getRawOne();
 
       if (!result)
@@ -324,7 +324,7 @@ export class PostAnswerService {
         post: {
           id: post_id,
           group: { id: group_id },
-          group_collection: { id: collection_id },
+          post_collection: { id: collection_id },
         },
       },
       relations: { user: true },
@@ -412,7 +412,7 @@ export class PostAnswerService {
 
     const post = await this.dataSource.getRepository(Post).findOne({
       where: { id: post_id },
-      relations: { group: true, group_collection: true },
+      relations: { group: true, post_collection: true },
       select: {
         id: true,
         post_type: true,
@@ -420,14 +420,14 @@ export class PostAnswerService {
         deadline_at: true,
         view_each_other_answer: true,
         group: { id: true },
-        group_collection: { id: true },
+        post_collection: { id: true },
       },
     });
 
     if (
       !post ||
       post.group.id !== group_id ||
-      post.group_collection.id !== collection_id
+      post.post_collection.id !== collection_id
     ) {
       throw new NotFoundException({ errorCode: 'post_not_exist' });
     }

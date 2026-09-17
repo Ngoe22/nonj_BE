@@ -10,23 +10,23 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { GroupCollectionService } from '../../service/post_collection/post_collection.service.js';
+import { PostCollectionService } from '../../service/post_collection/post_collection.service.js';
 import {
-  CreateGroupCollectionDto,
-  UpdateGroupCollectionDto,
-} from '../../dto/group_collection.dto.js';
+  CreatePostCollectionDto,
+  UpdatePostCollectionDto,
+} from '../../dto/group_post_collection.dto.js';
 import { GetRequesterInfo } from '../../../_common/decorators/param/request_payload.decorator.js';
 import type { RequesterInfo } from '../../../_common/types/request.js';
 import { ParseLimitPipe } from '../../../_common/pipe/ParseLimitPipe.js';
 
 @Controller('group/:group_id/collection')
 export class GroupCollectionController {
-  constructor(private readonly collectionService: GroupCollectionService) {}
+  constructor(private readonly collectionService: PostCollectionService) {}
 
   @Post()
   create(
     @Param('group_id') group_id: string,
-    @Body() body: CreateGroupCollectionDto,
+    @Body() body: CreatePostCollectionDto,
     @GetRequesterInfo() requester: RequesterInfo,
   ) {
     return this.collectionService.create({
@@ -56,7 +56,7 @@ export class GroupCollectionController {
   update(
     @Param('group_id') group_id: string,
     @Param('collection_id') collection_id: string,
-    @Body() body: UpdateGroupCollectionDto,
+    @Body() body: UpdatePostCollectionDto,
     @GetRequesterInfo() requester: RequesterInfo,
   ) {
     return this.collectionService.update({

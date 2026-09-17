@@ -29,11 +29,11 @@ export class GroupMemberService {
   ) {
     this.filterByRoles = new FilterDbField({
       keyAndLabels: {
-        id: ['founder', 'admin', 'member'],
-        user: ['founder', 'admin', 'member'],
-        group: ['founder', 'admin'],
-        role: ['founder', 'admin'],
-        updated_at: ['founder', 'admin'],
+        id: [ 'SA' , 'founder', 'admin', 'member'],
+        user: ['SA','founder', 'admin', 'member'],
+        group: ['SA', 'founder' ,'admin'],
+        role: ['SA', 'founder', 'admin'],
+        updated_at: ['SA' ,'founder', 'admin'],
       },
       dataBase: GroupMember,
       dataSource : this.dataSource
@@ -183,12 +183,11 @@ export class GroupMemberService {
   }) {
     const { group_id, requester_id, page, limit } = input;
 
-    const requesterRole = await this.getRole({
-      group_id,
-      user_id: requester_id,
-    });
-    if (!requesterRole)
-      throw new ForbiddenException({ errorCode: 'not_a_member' });
+    const requesterRole =  await  this.checkActorRoleBeforeAction( {
+      actor_id : requester_id ,
+      group_id ,
+      actor_allow_roles : [ Group_Member_Role.FOUNDER , Group_Member_Role.ADMIN ]
+    } )
 
     const select = this.filterByRoles.buildQuerySelectObject({
       label: requesterRole.toLowerCase(),
@@ -350,12 +349,23 @@ export class GroupMemberService {
     const { group_id, page, limit } = input;
 
     const select = this.filterByRoles.buildQuerySelectObject({
-      label: 'founder',
+      label: 'SA',
     });
 
     return this.groupMemberRepo.find({
       where: { group: { id: group_id } },
-      select,
+      relations : { user : true } ,
+      select : {
+        ...select ,
+        user :  {
+          id : true ,
+          user_name : true,
+          nickname : true,
+        },
+        group : {
+          id : true,
+        }
+      },
       skip: (page - 1) * limit,
       take: limit,
       order: { created_at: 'ASC' },

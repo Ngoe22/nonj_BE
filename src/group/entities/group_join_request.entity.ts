@@ -34,7 +34,7 @@ export class GroupJoinRequest extends BaseEntity {
   status: Group_Join_Request_Status;
 
   @ManyToOne(() => User, (user) => user.group_join_request_reviewer, {
-    onDelete: 'SET NULL',
+    onDelete: 'CASCADE',
     nullable: true,
   })
   @JoinColumn({

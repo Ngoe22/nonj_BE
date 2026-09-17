@@ -31,8 +31,9 @@ export class UserExerciseTemplateCollectionService {
     ) {
         this.collectionFilterByRole = new FilterDbField({
             keyAndLabels: {
-                id: ['admin', 'me', 'other'],
-                title: ['admin', 'me', 'other'],
+                id: ['SA', 'me', 'other'],
+                title: ['SA', 'me', 'other'],
+                desc : ['SA', 'me', 'other'],
             },
             dataBase: UserExerciseTemplateCollection,
             dataSource : this.dataSource
@@ -56,7 +57,7 @@ export class UserExerciseTemplateCollectionService {
     private async checkViewPermission(input: { owner_id: string; requester_id: string }) {
         const { owner_id, requester_id } = input;
 
-        const setting = await this.userService.getSetting(owner_id, 'system_admin');
+        const setting = await this.userService.getSetting(owner_id, 'SA');
         if (!setting) throw new NotFoundException({ errorCode: 'owner_not_found' });
 
         switch (setting.who_can_see_my_template) {
@@ -68,12 +69,12 @@ export class UserExerciseTemplateCollectionService {
                     user_id: requester_id,
                     friend_id: owner_id,
                 });
-                if (isFriend !== 'is') throw new UnauthorizedException({ errorCode: 'unauthorized' });
+                if (isFriend !== 'is') throw new ForbiddenException({ errorCode: 'ForbiddenException' });
                 return true;
             }
 
             default:
-                throw new ForbiddenException({ errorCode: 'unauthorized' });
+                throw new ForbiddenException({ errorCode: 'ForbiddenException' });
         }
     }
 
@@ -239,7 +240,7 @@ export class UserExerciseTemplateCollectionService {
         const { collection_id } = input;
         return this.findOne({
             condition: { id: collection_id },
-            data_for: 'system_admin',
+            data_for: 'SA',
         });
     }
 
@@ -248,7 +249,7 @@ export class UserExerciseTemplateCollectionService {
         const { user_id, page, limit } = input;
         return this.findMany({
             condition: { user: { id: user_id } },
-            data_for: 'system_admin',
+            data_for: 'SA',
             page,
             limit,
         });

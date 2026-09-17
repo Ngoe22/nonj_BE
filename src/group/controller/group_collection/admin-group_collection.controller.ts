@@ -12,13 +12,13 @@ import {
 } from '@nestjs/common';
 import { UserGuard } from '../../../_other_module/guards/user.guard.js';
 import { User_Role } from '../../../user/enums/user.enum.js';
-import { GroupCollectionService } from '../../service/group_collection/group_collection.service.js';
+import { GroupCollectionService } from '../../service/post_collection/post_collection.service.js';
 import { ParseLimitPipe } from '../../../_common/pipe/ParseLimitPipe.js';
 import { UpdateGroupCollectionDto } from '../../dto/group_collection.dto.js';
 import { GetRequesterInfo } from '../../../_common/decorators/param/request_payload.decorator.js';
 import type { RequesterInfo } from '../../../_common/types/request.js';
 
-@Controller('admin/group_collection')
+@Controller('admin/post_collection')
 @UseGuards(UserGuard([User_Role.SYSTEM_ADMIN]))
 export class AdminGroupCollectionController {
   constructor(private readonly collectionService: GroupCollectionService) {}

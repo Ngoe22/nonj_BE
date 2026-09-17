@@ -1,15 +1,13 @@
 import {BadRequestException, ConflictException, Injectable, NotFoundException} from '@nestjs/common';
-import { FilterDbField } from '../../../_common/helper/filterQueryForRole.js';
-import { GroupJoinRequest } from '../../entities/group_join_request.entity.js';
+import {FilterDbField} from '../../../_common/helper/filterQueryForRole.js';
+import {GroupJoinRequest} from '../../entities/group_join_request.entity.js';
 import {InjectDataSource, InjectRepository} from '@nestjs/typeorm';
 import {DataSource, Repository} from 'typeorm';
 import {Group_Join_Mode, Group_Join_Request_Status, Group_Member_Role} from '../../enum/group.enum.js';
 import {GroupService} from "../group/group.service.js";
 import {GroupMemberService} from "../group_member/group_member.service.js";
 import {Transactional} from "typeorm-transactional";
-import {UpdateGroupJoinRequest} from "../../dto/join_group_request.dto.js";
 import {Group_Join_Request_Status_UPDATE} from "../../enum/group_join_request.enum.js";
-
 
 
 //======================================
@@ -31,12 +29,13 @@ export class GroupJoinRequestService {
   ) {
     this.filterByRoles = new FilterDbField({
       keyAndLabels: {
-        id: ['founder', 'admin', 'member' , 'unjoin'],
-        sender: ['founder', 'admin', 'member' , 'unjoin'],
-        group: ['founder', 'admin', 'member' , 'unjoin'],
-        status: ['founder', 'admin', 'member' , 'unjoin'],
-        reviewer: ['founder', 'admin'],
-        reviewed_at: ['founder', 'admin'],
+        id: ['SA' , 'founder', 'admin', 'member' , 'unjoin'],
+        sender: ['SA' ,'founder', 'admin', 'member' , 'unjoin'],
+        group: ['SA' ,'founder', 'admin', 'member' , 'unjoin'],
+        status: ['SA' ,'founder', 'admin', 'member' , 'unjoin'],
+        reviewer: ['SA' ],
+        reviewed_at: ['SA' ],
+        created_time : ['SA' ,'founder', 'admin', 'member' , 'unjoin'],
       },
       dataBase: GroupJoinRequest,
       dataSource : this.dataSource
@@ -65,7 +64,7 @@ export class GroupJoinRequestService {
   }) {
     const { group_id, requester_id, limit, page } = input;
 
-    // role is founder , admin
+
     const actor_role =  await this.groupMemberService.checkActorRoleBeforeAction({
       actor_id: requester_id,
       group_id,
@@ -76,7 +75,7 @@ export class GroupJoinRequestService {
     const select = this.filterByRoles.buildQuerySelectObject({ label: role });
 
     return await this.groupJoinRequestRepo.find({
-      where: { group: { id: group_id } },
+      where: { group: { id: group_id  }  , status : Group_Join_Request_Status.PENDING},
       relations : { sender : true } ,
       select : {
         ...select ,
@@ -84,6 +83,7 @@ export class GroupJoinRequestService {
             id : true ,
             user_name : true,
             nickname : true,
+            avatar_url : true,
         }
       },
       skip: (page - 1) * limit,
@@ -108,7 +108,8 @@ export class GroupJoinRequestService {
         ...select ,
         group : {
           id   : true ,
-          name : true
+          name : true ,
+          slug : true ,
         }
       },
       skip: (page - 1) * limit,
@@ -226,12 +227,25 @@ export class GroupJoinRequestService {
     const { join_request_id } = input;
 
     const select = this.filterByRoles.buildQuerySelectObject({
-      label: 'founder',
+      label: 'SA',
     });
 
     const request = await this.groupJoinRequestRepo.findOne({
       where: { id: join_request_id },
-      select,
+      relations : { sender : true ,  group : true} ,
+      select : {
+        ...select ,
+        sender : {
+          id : true ,
+          user_name : true,
+          nickname : true,
+        } ,
+        group : {
+          id : true ,
+          slug : true,
+          name : true,
+        }
+      },
     });
 
     if (!request)
@@ -246,12 +260,20 @@ export class GroupJoinRequestService {
     const { group_id, limit, page } = input;
 
     const select = this.filterByRoles.buildQuerySelectObject({
-      label: 'founder',
+      label: 'SA',
     });
 
     return this.groupJoinRequestRepo.find({
       where: { group: { id: group_id } },
-      select,
+      relations : { sender : true } ,
+      select : {
+        ...select ,
+        sender : {
+          id : true ,
+          user_name : true,
+          nickname : true,
+        }
+      },
       skip: (page - 1) * limit,
       take: limit,
     });

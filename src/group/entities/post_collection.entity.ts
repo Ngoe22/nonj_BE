@@ -5,13 +5,16 @@ import {Group} from "./group.entity.js";
 import {Post} from "../../post/entities/post.entity.js";
 
 @Index(['created_at'])
-@Entity('group_collection')
-export class GroupCollection extends BaseEntity {
+@Entity('post_collection')
+export class PostCollection extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ type: 'varchar', length: 50 })
   title: string;
+
+  @Column({ type: 'varchar', length: 100 })
+  desc: string;
 
   @Index()
   @ManyToOne(() => Group, (group) => group.collection)
@@ -20,6 +23,6 @@ export class GroupCollection extends BaseEntity {
 
   //
 
-  @OneToMany(() => Post, (post) => post.group_collection)
+  @OneToMany(() => Post, (post) => post.post_collection)
   post: Relation<Post>;
 }

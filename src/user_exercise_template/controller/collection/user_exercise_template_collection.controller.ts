@@ -38,34 +38,34 @@ export class UserExerciseTemplateCollectionController {
     ) {
         return this.collectionService.findMine({ collection_id, user_id: requester.id });
     }
-
-    @Get(':user_id')
-    getManyFromUser(
-        @GetRequesterInfo() requester: RequesterInfo,
-        @Param('user_id') user_id: string,
-        @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-        @Query('limit', new DefaultValuePipe(20), ParseLimitPipe) limit: number,
-    ) {
-        return this.collectionService.findManyFromUser({
-            owner_id: user_id,
-            requester_id: requester.id,
-            page,
-            limit,
-        });
-    }
-
-    @Get(':user_id/:collection_id')
-    getFromUser(
-        @GetRequesterInfo() requester: RequesterInfo,
-        @Param('user_id') user_id: string,
-        @Param('collection_id') collection_id: string,
-    ) {
-        return this.collectionService.findFromUser({
-            collection_id,
-            owner_id: user_id,
-            requester_id: requester.id,
-        });
-    }
+    //
+    // @Get(':user_id')
+    // getManyFromUser(
+    //     @GetRequesterInfo() requester: RequesterInfo,
+    //     @Param('user_id') user_id: string,
+    //     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    //     @Query('limit', new DefaultValuePipe(20), ParseLimitPipe) limit: number,
+    // ) {
+    //     return this.collectionService.findManyFromUser({
+    //         owner_id: user_id,
+    //         requester_id: requester.id,
+    //         page,
+    //         limit,
+    //     });
+    // }
+    //
+    // @Get(':user_id/:collection_id')
+    // getFromUser(
+    //     @GetRequesterInfo() requester: RequesterInfo,
+    //     @Param('user_id') user_id: string,
+    //     @Param('collection_id') collection_id: string,
+    // ) {
+    //     return this.collectionService.findFromUser({
+    //         collection_id,
+    //         owner_id: user_id,
+    //         requester_id: requester.id,
+    //     });
+    // }
 
     @Patch('me/:collection_id')
     update(

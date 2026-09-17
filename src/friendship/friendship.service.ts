@@ -27,7 +27,7 @@ export class FriendshipService {
         user: ['admin', 'me'],
         user_friend: ['admin', 'me'],
         created_at: ['admin'],
-        updated_at: ['admin'],
+        updated_at: ['admin' , 'me' ],
         deleted_at: ['admin'],
       },
       dataBase: Friendship,
@@ -43,7 +43,7 @@ export class FriendshipService {
 
     const user_select_obj =
       this.userService.userFilterByRole.buildQuerySelectObject({
-        label: 'other',
+        label: 'not_friend',
       });
 
     return this.friendshipRepo.find({

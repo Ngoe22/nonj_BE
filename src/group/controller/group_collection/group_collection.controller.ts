@@ -10,7 +10,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { GroupCollectionService } from '../../service/group_collection/group_collection.service.js';
+import { GroupCollectionService } from '../../service/post_collection/post_collection.service.js';
 import {
   CreateGroupCollectionDto,
   UpdateGroupCollectionDto,

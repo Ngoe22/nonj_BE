@@ -8,12 +8,12 @@ import {FilterDbField} from "../_common/helper/filterQueryForRole.js";
 import {Post} from "./entities/post.entity.js";
 import {InjectDataSource, InjectRepository} from "@nestjs/typeorm";
 import {DataSource, Repository} from "typeorm";
-import {GroupCollectionService} from "../group/service/group_collection/group_collection.service.js";
+import {GroupCollectionService} from "../group/service/post_collection/post_collection.service.js";
 import {GroupMemberService} from "../group/service/group_member/group_member.service.js";
 import {Group_Member_Role, Group_View_Mode} from "../group/enum/group.enum.js";
 import {CreateExamPostDto, CreateExercisePostDto, UpdatePostDto} from "./dto/post.dto.js";
 import {Post_Type, View_Each_Other_Answer} from "./enum/post.enum.js";
-import { GroupCollection } from '../group/entities/group_collection.entity.js';
+import { GroupCollection } from '../group/entities/post_collection.entity.js';
 
 class CreatePostDto {
 }

@@ -23,14 +23,14 @@ export class GroupService {
   ) {
     this.filterByRoles = new FilterDbField({
       keyAndLabels: {
-        id: ['member', 'unjoin', 'admin', 'founder', 'setting'],
-        founder: ['member', 'admin', 'founder'],
-        slug: ['member', 'unjoin', 'admin', 'founder'],
-        name: ['member', 'unjoin', 'admin', 'founder'],
-        description: ['member', 'unjoin', 'admin', 'founder'],
-        join_mode: ['member', 'unjoin', 'admin', 'founder', 'setting'],
-        view_mode: ['member', 'unjoin', 'admin', 'founder', 'setting'],
-        created_at: ['member', 'admin', 'founder' , 'member'],
+        id: [  'SA' , 'member', 'unjoin', 'admin', 'founder', 'setting'],
+        founder: ['SA' ,'member', 'admin', 'founder'],
+        slug: ['SA' ,'member', 'unjoin', 'admin', 'founder'],
+        name: ['SA' ,'member', 'unjoin', 'admin', 'founder'],
+        description: ['SA' ,'member', 'unjoin', 'admin', 'founder'],
+        join_mode: ['SA' ,'member', 'unjoin', 'admin', 'founder', 'setting'],
+        view_mode: ['SA' ,'member', 'unjoin', 'admin', 'founder', 'setting'],
+        created_at: ['SA' ,'member', 'admin', 'founder' , 'member'],
       },
       dataBase: Group,
       dataSource : this.dataSource

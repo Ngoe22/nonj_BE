@@ -55,13 +55,13 @@ export class FriendRequestService {
       });
     const userQueryObject =
       this.userService.userFilterByRole.buildQuerySelectObject({
-        label: 'other',
+        label: 'not_friend',
       });
 
     const where =
       type === 'outgoing_requests'
-        ? { sender: { id: user_id } }
-        : { receiver: { id: user_id } };
+        ? { sender: { id: user_id } , status : Friend_Request_Status.PENDING }
+        : { receiver: { id: user_id } ,  status : Friend_Request_Status.PENDING };
 
     const relations =
       type === 'outgoing_requests' ? { receiver: true } : { sender: true };

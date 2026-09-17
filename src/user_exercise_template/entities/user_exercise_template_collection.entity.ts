@@ -37,6 +37,12 @@ export class UserExerciseTemplateCollection extends BaseEntity {
   })
   title: string;
 
+  @Column({
+    type: 'varchar',
+    length: 100,
+  })
+  desc: string;
+
   // ==============================
 
   @OneToMany(() => UserExerciseTemplate, (template) => template.collection)

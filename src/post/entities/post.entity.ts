@@ -2,7 +2,7 @@ import {BaseEntity} from "../../_common/entities/base.entity.js";
 import {Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, type Relation } from "typeorm";
 import {User} from "../../user/entities/user.entity.js";
 import {UserExerciseTemplate} from "../../user_exercise_template/entities/user_exercise_template.entity.js";
-import {GroupCollection} from "../../group/entities/group_collection.entity.js";
+import {GroupCollection} from "../../group/entities/post_collection.entity.js";
 import {Group} from "../../group/entities/group.entity.js";
 import {PostAnswer} from "../../post_answer/entities/post_answer.entity.js";
 import {Exercise_Type, Post_Type, View_Each_Other_Answer} from "../enum/post.enum.js";
@@ -49,7 +49,7 @@ export class Post extends BaseEntity {
 
   @ManyToOne(() => GroupCollection, (c) => c.post)
   @JoinColumn({ name: 'group_collection_id', referencedColumnName: 'id' })
-  group_collection: Relation<GroupCollection>;
+  post_collection: Relation<GroupCollection>;
 
   @OneToMany(() => PostAnswer, (a) => a.post)
   post_answer: PostAnswer;

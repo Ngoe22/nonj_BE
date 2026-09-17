@@ -4,11 +4,11 @@ import {
   NotFoundException, UnauthorizedException,
 } from '@nestjs/common';
 import {
-  CreateGroupCollectionDto,
-  UpdateGroupCollectionDto,
+  CreatePostCollectionDto,
+  UpdatePostCollectionDto,
 } from '../../dto/group_collection.dto.js';
 import { FilterDbField } from '../../../_common/helper/filterQueryForRole.js';
-import { GroupCollection } from '../../entities/group_collection.entity.js';
+import { PostCollection} from '../../entities/post_collection.entity.js';
 import {InjectDataSource, InjectRepository} from '@nestjs/typeorm';
 import {DataSource, Repository} from 'typeorm';
 import { GroupMemberService } from '../group_member/group_member.service.js';
@@ -16,14 +16,14 @@ import { Group_Member_Role, Group_View_Mode } from '../../enum/group.enum.js';
 import { GroupService } from '../group/group.service.js';
 
 @Injectable()
-export class GroupCollectionService {
-  private filterByRoles: FilterDbField<GroupCollection>;
+export class PostCollectionService {
+  private filterByRoles: FilterDbField<PostCollection>;
 
   constructor(
       @InjectDataSource()
       private readonly dataSource: DataSource,
-    @InjectRepository(GroupCollection)
-    private readonly collectionRepo: Repository<GroupCollection>,
+    @InjectRepository(PostCollection)
+    private readonly collectionRepo: Repository<PostCollection>,
     //
     private readonly groupMemberService: GroupMemberService,
     private readonly groupService: GroupService,
@@ -31,13 +31,15 @@ export class GroupCollectionService {
 
     //
 
+    // SA == SYSTEM ADMIN
     this.filterByRoles = new FilterDbField({
       keyAndLabels: {
-        id: ['member', 'unjoin', 'admin' , 'founder'],
-        title: ['member', 'unjoin', 'admin' , 'founder'],
-        group: ['member', 'unjoin', 'admin' , 'founder'],
+        id: ['SA','member', 'unjoin', 'admin' , 'founder'],
+        title: ['SA','member', 'unjoin', 'admin' , 'founder'],
+        desc :  ['SA','member', 'unjoin', 'admin' , 'founder'],
+        group: ['SA',],
       },
-      dataBase: GroupCollection,
+      dataBase: PostCollection,
       dataSource : this.dataSource
     });
   }
@@ -55,7 +57,7 @@ export class GroupCollectionService {
   async create(input: {
     group_id: string;
     requester_id: string;
-    body: CreateGroupCollectionDto;
+    body: CreatePostCollectionDto;
   }) {
     const { group_id, requester_id, body } = input;
 
@@ -118,7 +120,7 @@ export class GroupCollectionService {
     group_id: string;
     collection_id: string;
     requester_id: string;
-    body: UpdateGroupCollectionDto;
+    body: UpdatePostCollectionDto;
   }) {
     const { group_id, collection_id, requester_id, body } = input;
 
@@ -180,7 +182,7 @@ export class GroupCollectionService {
 
   async adminFindOne(input: { collection_id: string }) {
     const selects = this.filterByRoles.buildQuerySelectObject({
-      label: 'admin',
+      label: 'SA',
     });
     const collection = await this.collectionRepo.findOne({
       where: { id: input.collection_id },
@@ -199,7 +201,7 @@ export class GroupCollectionService {
   }) {
     const { group_id, page, limit } = input;
     const selects = this.filterByRoles.buildQuerySelectObject({
-      label: 'admin',
+      label: 'SA',
     });
 
     return this.collectionRepo.find({
@@ -214,7 +216,7 @@ export class GroupCollectionService {
 
   async adminUpdate(input: {
     collection_id: string;
-    body: UpdateGroupCollectionDto;
+    body: UpdatePostCollectionDto;
   }) {
     const result = await this.collectionRepo.update(
       { id: input.collection_id },

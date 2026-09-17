@@ -42,12 +42,12 @@ export class UserExerciseTemplateService {
 
     this.exerciseFilterByRole = new FilterDbField({
       keyAndLabels: {
-        id: ['system_admin', 'me', 'other'],
-        title: ['system_admin', 'me', 'other'],
-        exercise_content: ['system_admin', 'me', 'other'],
-        collection: ['system_admin', 'me', 'other'],
-        user: ['system_admin', 'me', 'other'],
-        deleted_at : ['system_admin', 'me', 'other'],
+        id: ['SA', 'me', 'other'],
+        title: ['SA', 'me', 'other'],
+        exercise_content: ['SA', 'me', 'other'],
+        collection: ['SA', 'me', 'other'],
+        user: ['SA', 'me', 'other'],
+        deleted_at : ['SA' ],
       },
       dataBase: UserExerciseTemplate,
       dataSource : this.dataSource
@@ -65,7 +65,7 @@ export class UserExerciseTemplateService {
   }) {
     const { owner_id, requester_id } = input;
 
-    const setting =  await  this.userService.getSetting(owner_id , 'system_admin');
+    const setting =  await  this.userService.getSetting(owner_id , 'SA');
     if (!setting) {
       throw new NotFoundException({ errorCode: 'owner_not_found' });
     }
@@ -265,12 +265,12 @@ export class UserExerciseTemplateService {
     const { template_id } = input;
     return this.findOne( {
       condition : { template_id  },
-      data_for : 'system_admin'} )
+      data_for : 'SA'} )
   }
 
   async adminGetMany( input : { user_id: string , page: number, limit : number  }   ) {
     const { user_id , page , limit} = input;
-    return this.findMany( { user_id ,data_for : "system_admin" , limit , page } )
+    return this.findMany( { user_id ,data_for : "SA" , limit , page } )
   }
 
   // update share with user

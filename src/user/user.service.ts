@@ -38,13 +38,13 @@ export class UserService {
 
     this.userFilterByRole = new FilterDbField({
       keyAndLabels: {
-        id: ['system_admin', 'me' , 'friend' , 'not_friend'],
-        email: ['system_admin', 'friend' , 'me'],
-        user_name: ['system_admin', 'me', 'friend' , 'not_friend'],
-        nickname: ['system_admin', 'me', 'friend' , 'not_friend'],
-        bio: ['system_admin', 'me', 'friend' , 'not_friend'],
-        avatar_url: ['system_admin', 'me', 'friend' , 'not_friend'],
-        status: ['system_admin' , 'me'],
+        id: ['SA', 'me' , 'friend' , 'not_friend'],
+        email: ['SA', 'friend' , 'me'],
+        user_name: ['SA', 'me', 'friend' , 'not_friend'],
+        nickname: ['SA', 'me', 'friend' , 'not_friend'],
+        bio: ['SA', 'me', 'friend' , 'not_friend'],
+        avatar_url: ['SA', 'me', 'friend' , 'not_friend'],
+        status: ['SA' , 'me'],
       },
       dataBase: User ,
       dataSource : this.dataSource
@@ -53,7 +53,7 @@ export class UserService {
 
     this.settingFilterByRole = new FilterDbField({
       keyAndLabels: {
-        who_can_see_my_template: ['system_admin', 'me' ,  'friend','not_friend'],
+        who_can_see_my_template: ['SA', 'me' ,  'friend','not_friend'],
       },
       dataBase: UserSetting ,
       dataSource : this.dataSource
@@ -191,7 +191,7 @@ export class UserService {
 
   // ========================= Setting =========================
 
-  async getSetting(id: string, role: 'system_admin' | 'me' | 'not_friend') {
+  async getSetting(id: string, role: 'SA' | 'me' ) {
     const selectField = this.userFilterByRole.buildQuerySelectObject({
       label: role,
     });
@@ -218,7 +218,7 @@ export class UserService {
 
 
   adminGetOne ( user_id : string ) {
-    const select = this.userFilterByRole.buildQuerySelectObject({label:'system_admin'})
+    const select = this.userFilterByRole.buildQuerySelectObject({label:'SA'})
     return this.userRepository.findOne({
       where: {id  : user_id },
       select
@@ -229,7 +229,7 @@ export class UserService {
       page = 1,
       limit = 20,
   ) {
-    const selectField = this.userFilterByRole.buildQuerySelectObject({ label: 'system_admin' });
+    const selectField = this.userFilterByRole.buildQuerySelectObject({ label: 'SA' });
 
     return await this.userRepository.find({
       where: {},
@@ -255,7 +255,7 @@ export class UserService {
 
   async adminGetSetting(id: string) {
     const selectField = this.userFilterByRole.buildQuerySelectObject({
-      label: "system_admin",
+      label: "SA",
     });
     return await this.userSettingRepository.findOne({
       where: { user: { id }} ,

@@ -32,6 +32,7 @@ export class UserController {
 
   @Get('me')
   getProfile(@GetRequesterInfo() requester: RequesterInfo) {
+    // console.log(requester);
     return this.userService.getMyInfo(requester.id );
   }
 

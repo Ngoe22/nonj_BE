@@ -38,17 +38,17 @@ export class UserService {
 
     this.userFilterByRole = new FilterDbField({
       keyAndLabels: {
-        id: ['SA', 'me' , 'friend' , 'not_friend'],
-        email: ['SA', 'friend' , 'me'],
-        user_name: ['SA', 'me', 'friend' , 'not_friend'],
-        nickname: ['SA', 'me', 'friend' , 'not_friend'],
-        bio: ['SA', 'me', 'friend' , 'not_friend'],
-        avatar_url: ['SA', 'me', 'friend' , 'not_friend'],
-        status: ['SA' , 'me'],
+        id: ['SA', 'me', 'friend', 'not_friend'],
+        email: ['SA', 'friend', 'me'],
+        user_name: ['SA', 'me', 'friend', 'not_friend'],
+        nickname: ['SA', 'me', 'friend', 'not_friend'],
+        bio: ['SA', 'me', 'friend', 'not_friend'],
+        avatar_url: ['SA', 'me', 'friend', 'not_friend'],
+        role: ['SA', 'me'],
+        status: ['SA', 'me'],
       },
-      dataBase: User ,
-      dataSource : this.dataSource
-
+      dataBase: User,
+      dataSource: this.dataSource,
     });
 
     this.settingFilterByRole = new FilterDbField({
@@ -75,8 +75,7 @@ export class UserService {
 
 
   async creatUser ( body : CreateUserDto ) {
-     const result=  this.userRepository.save(body);
-
+     const result= await this.userRepository.save(body);
      return this.userFilterByRole.filterDataOfQueryResult({ object : result , label:'me' });
 
   }
@@ -142,6 +141,7 @@ export class UserService {
   }
 
   async getMyInfo( user_id : string ) {
+
     const role = 'me'
     const selectField = this.userFilterByRole.buildQuerySelectObject({ label: role });
     const user =  await this.userRepository.findOne({

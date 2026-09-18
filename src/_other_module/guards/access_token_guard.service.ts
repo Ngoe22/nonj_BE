@@ -1,12 +1,6 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
-import {Request} from "express"
-import { TokenService} from '../../refresh_token/refresh_token.service.js';
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException, } from '@nestjs/common';
+import { Request } from 'express';
+import { TokenService } from '../../refresh_token/refresh_token.service.js';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '../../_common/decorators/method/public.decorator.js';
 
@@ -18,13 +12,12 @@ export class AccessTokenGuard implements CanActivate {
 ) {}
 
   async canActivate(context: ExecutionContext){
-
-      // check public
-  const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
-    context.getHandler(),
-    context.getClass(),
-  ]);
-  if (isPublic) return true;
+    // check public
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (isPublic) return true;
 
     const request = context.switchToHttp().getRequest<Request>();
     const accessToken = this.extractAccessTokenFromCookie(request);
@@ -34,7 +27,12 @@ export class AccessTokenGuard implements CanActivate {
         errorCode: 'access_token_not_found',
       });
     }
-    request.requester = await this.tokenService.validateToken( accessToken , "access");
+
+    // console.log(howAccessLookLike);
+    request.requester = await this.tokenService.validateToken(
+      accessToken,
+      'access',
+    );
 
     return true;
   }

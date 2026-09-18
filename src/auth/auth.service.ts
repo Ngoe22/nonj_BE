@@ -7,6 +7,7 @@ import { projectBcrypt } from '../_common/helper/customBcrypt.js';
 import type { RequesterInfo } from '../_common/types/request.js';
 import { CreateUserDto } from '../user/dto/create-user.dto.js';
 import {User} from "../user/entities/user.entity.js";
+import { Transactional } from 'typeorm-transactional';
 
 @Injectable()
 export class AuthService {
@@ -19,16 +20,19 @@ export class AuthService {
 
 
 
-
+  @Transactional()
   async register (body : CreateUserDto)  {
 
     body.password = await projectBcrypt.encode(body.password )
 
     const info = await this.userService.creatUser(body);
-    const token = await this.tokenService.generateTokens({
+
+    const payload = {
       ...this.tokenService.getPayloadFromUer(info as User),
       jti: crypto.randomUUID(),
-    });
+    };
+
+    const token = await this.tokenService.generateTokens(payload);
     return { info,  ...token };
   }
 

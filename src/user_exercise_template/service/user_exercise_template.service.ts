@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, UnauthorizedException} from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import {
   CreateExerciseTemplateDto,
 } from '../dto/user_exercise_template.dto.js';
@@ -76,7 +81,7 @@ export class UserExerciseTemplateService {
       }
       case User_Setting_Who_can_see_template.FRIEND : {
         const isFriend = await this.friendshipService.isFriend({ user_id : owner_id , friend_id : requester_id })
-        if( isFriend !== 'is' ) throw new UnauthorizedException({ errorCode: 'unauthorized' });
+        if( isFriend !== 'is' ) throw new ForbiddenException({ errorCode: 'unauthorized' });
         return true
       }
     }
@@ -228,7 +233,7 @@ export class UserExerciseTemplateService {
       const check = await this.collectionService.isCollectionBelongToUser({
         collection_id : body.collection , user_id
       })
-      if ( !check ) throw new UnauthorizedException({ errorCode : 'collectio_dont_belong_to_user' } )
+      if ( !check ) throw new NotFoundException({ errorCode : 'collectio_dont_belong_to_user' } )
       body = FilterDbField.turnObjInfoToRelationObj(body, ['collection']) ;
     }
     const result = await this.templateRepo.update

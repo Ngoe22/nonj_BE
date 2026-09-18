@@ -113,7 +113,7 @@ export class PostService {
         poster_role,
       )
     ) {
-      throw new UnauthorizedException({
+      throw new ForbiddenException({
         errorCode: 'actor_not_allowed_to_do_action',
       });
     }

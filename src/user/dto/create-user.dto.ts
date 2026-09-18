@@ -13,9 +13,9 @@ export class CreateUserDto {
 
 
   @IsString()
-  @MinLength(1)
+  @MinLength(3)
   @MaxLength(50)
-  @Matches(/^[a-z0-9]+$/, { context: { errorCode: 'only_letter_and_number' } })
+  @Matches(/^[a-zA-Z0-9_]+$/, { context: { errorCode: 'only_letter_and_number_and_underscore' } })
   user_name: string;
 
   @IsString()

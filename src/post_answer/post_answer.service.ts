@@ -250,8 +250,8 @@ export class PostAnswerService {
       this.isOthersAnswerVisible(post.view_each_other_answer, post.deadline_at);
 
     if (!canSeeOthers)
-      throw new UnauthorizedException({
-        errorCode: 'unauthorized_to_view_others_answer',
+      throw new ForbiddenException({
+        errorCode: 'not_allow_to_view_others_answer',
       });
 
     const label = isPrivileged ? 'admin' : 'member';

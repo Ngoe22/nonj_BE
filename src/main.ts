@@ -40,14 +40,14 @@ async function bootstrap() {
       transformOptions: {
         enableImplicitConversion: true,
       },
-      exceptionFactory :(errors: ValidationError[]) =>{
-        const formatedErrors = errors.map((error) => formatDtoException(error));
-        return new BadRequestException({
-          statusCode: 400,
-          errorCode: 'invalid_input',
-          detail: formatedErrors,
-        });
-      },
+      // exceptionFactory :(errors: ValidationError[]) =>{
+      //   const formatedErrors = errors.map((error) => formatDtoException(error));
+      //   return new BadRequestException({
+      //     statusCode: 400,
+      //     errorCode: 'invalid_input',
+      //     detail: formatedErrors,
+      //   });
+      // },
     }),
   );
   app.useGlobalFilters(new HttpExceptionFilter());

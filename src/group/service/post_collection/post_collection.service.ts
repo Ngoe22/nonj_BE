@@ -100,7 +100,7 @@ export class PostCollectionService {
       // error mean not found in group
       const groupSetting = await this.groupService.getSetting(group_id);
       if ( groupSetting.view_mode ) label = 'unjoin';
-      else return new UnauthorizedException({errorCode : 'unauthorized_to_access'});
+      else return new ForbiddenException({errorCode : 'not_allow_to_access'});
     }
 
     const selects = this.filterByRoles.buildQuerySelectObject({ label });

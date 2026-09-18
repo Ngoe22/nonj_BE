@@ -1,6 +1,7 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -21,7 +22,7 @@ export const UserGuard = (roles : string[]) => {
         });
       }
 
-      if (!roles.includes(reqUser.role))  throw new UnauthorizedException({errorCode : "unauthorized"});
+      if (!roles.includes(reqUser.role))  throw new ForbiddenException({errorCode : "actor_is_not_allow"});
 
         return true ;
     }

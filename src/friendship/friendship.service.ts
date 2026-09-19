@@ -14,8 +14,8 @@ export class FriendshipService {
   friendShipFilterByRole: FilterDbField<Friendship>;
 
   constructor(
-      @InjectDataSource()
-      private readonly dataSource: DataSource,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
     @InjectRepository(Friendship)
     private readonly friendshipRepo: Repository<Friendship>,
     @InjectDataSource()
@@ -27,12 +27,11 @@ export class FriendshipService {
         user: ['admin', 'me'],
         user_friend: ['admin', 'me'],
         created_at: ['admin'],
-        updated_at: ['admin' , 'me' ],
+        updated_at: ['admin', 'me'],
         deleted_at: ['admin'],
       },
       dataBase: Friendship,
-      dataSource : this.dataSource
-
+      dataSource: this.dataSource,
     });
   }
 
@@ -59,6 +58,15 @@ export class FriendshipService {
       take: limit,
     });
   }
+
+  // ================= Search friend
+
+  async searchUserName(input: {
+    requester_id: string;
+    search_target_username: string;
+  }){
+    return this.userService.getOtherInfoByUserName(input);
+  };
 
   // ==================== Create ====================
 
@@ -130,10 +138,11 @@ export class FriendshipService {
   async delete(input: { user_id: string; friend_id: string }) {
     const { user_id, friend_id } = input;
 
-    const isFriend = this.isFriend(( {
-      user_id , friend_id
-    } ))
-    if ( !isFriend ) throw new NotFoundException({ errorCode : 'not_friend' })
+    const isFriend = this.isFriend({
+      user_id,
+      friend_id,
+    });
+    if (!isFriend) throw new NotFoundException({ errorCode: 'not_friend' });
 
     return this.update_2side(
       input,

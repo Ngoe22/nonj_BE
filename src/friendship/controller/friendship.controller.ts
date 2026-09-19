@@ -8,14 +8,24 @@ import {ParseLimitPipe} from "../../_common/pipe/ParseLimitPipe.js";
 export class FriendshipController {
   constructor(private readonly friendshipService: FriendshipService) {}
 
+  @Get('search/:user_name')
+  findByUsername(
+      @GetRequesterInfo() requester: RequesterInfo,
+      @Param('user_name') user_name: string
+  ) {
+    return this.friendshipService.searchUserName({
+      requester_id: requester.id,
+      search_target_username: user_name,
+    });
+  }
 
   // add_friend be called from friend quest service
 
   @Get()
   getMyFriends(
-      @GetRequesterInfo() userInfo: RequesterInfo,
-      @Query('limit', new DefaultValuePipe(20), ParseLimitPipe) limit: number,
-      @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @GetRequesterInfo() userInfo: RequesterInfo,
+    @Query('limit', new DefaultValuePipe(20), ParseLimitPipe) limit: number,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
   ) {
     return this.friendshipService.getMany({
       user_id: userInfo.id,
@@ -24,15 +34,14 @@ export class FriendshipController {
     });
   }
 
-
   @Patch()
   async delete(
-      @Param('friend_id') friend_id: string ,
-      @GetRequesterInfo() userInfo: RequesterInfo
+    @Param('friend_id') friend_id: string,
+    @GetRequesterInfo() userInfo: RequesterInfo,
   ) {
-    return await this.friendshipService.delete({ user_id : userInfo.id , friend_id })
+    return await this.friendshipService.delete({
+      user_id: userInfo.id,
+      friend_id,
+    });
   }
-
-
-
 }

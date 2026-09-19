@@ -86,8 +86,6 @@ export class UserService {
     const selectField = this.userFilterByRole.buildQuerySelectObject({
       label: 'me',
     });
-
-
     return await this.userRepository.findOne({
       where: { email: email },
       select: {
@@ -98,6 +96,8 @@ export class UserService {
   }
 
   //
+
+  // =============== SEARCH =====================
 
   async getOtherInfoByUserName(input: { requester_id: string; search_target_username: string }) {
     return this.getOtherInfo({
@@ -127,15 +127,14 @@ export class UserService {
 
     if (condition.id) qb.where('u.id = :id', { id: condition.id });
     if (condition.username) qb.where('u.user_name = :username', { username: condition.username });
-
     const user = await qb.getRawOne();
+
     if (!user) throw new NotFoundException({ errorCode: 'user_not_found' });
+
     const isFriend = user.is_friend === 'true';
     const label = isFriend ? 'friend' : 'not_friend'
-
     const output = this.userFilterByRole.filterDataOfQueryResult( {object : user , label } );
     output.is_firend = isFriend
-
 
     return output
   }

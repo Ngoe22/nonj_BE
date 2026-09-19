@@ -20,13 +20,13 @@ export class UserController {
 
 
 
-  @Get('user_name/:user_name')
-  findByUsername(
-      @GetRequesterInfo() requester: RequesterInfo,
-      @Param('user_name') user_name: string
-  ) {
-    return this.userService.getOtherInfoByUserName({ requester_id : requester.id ,  search_target_username : user_name });
-  }
+  // @Get('user_name/:user_name')
+  // findByUsername(
+  //     @GetRequesterInfo() requester: RequesterInfo,
+  //     @Param('user_name') user_name: string
+  // ) {
+  //   return this.userService.getOtherInfoByUserName({ requester_id : requester.id ,  search_target_username : user_name });
+  // }
 
   // ==================== Current user (me) ====================
 

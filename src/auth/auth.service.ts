@@ -8,6 +8,7 @@ import type { RequesterInfo } from '../_common/types/request.js';
 import { CreateUserDto } from '../user/dto/create-user.dto.js';
 import {User} from "../user/entities/user.entity.js";
 import { Transactional } from 'typeorm-transactional';
+import { User_Status } from '../user/enums/user.enum.js';
 
 @Injectable()
 export class AuthService {
@@ -48,7 +49,7 @@ export class AuthService {
     )
       throw new NotFoundException({ errorCode: 'invalid_credentials' });
 
-    if (user.status === 'BANNED')
+    if (user.status === User_Status.BANNED)
       throw new NotFoundException({ errorCode: 'banned_account' });
 
     const token = await this.tokenService.generateTokens({
@@ -56,7 +57,7 @@ export class AuthService {
       jti: crypto.randomUUID(),
     }); // return access + refresh
 
-    const { password, ...safeUser } = user;
+    const { password, role , status, ...safeUser } = user;
     return { info: safeUser,  ...token };
   }
 

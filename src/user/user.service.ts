@@ -1,30 +1,25 @@
 import {
-  Body,
-  ForbiddenException,
-  Get,
   Injectable,
   NotFoundException,
-  Param,
 } from '@nestjs/common';
 import {CreateUserDto} from './dto/create-user.dto.js';
 import {UpdateUserDto} from './dto/update-user.dto.js';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, FindOptionsWhere, Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import {User} from "./entities/user.entity.js";
 import { Transactional } from 'typeorm-transactional';
 import { UserSetting } from './entities/user_setting.entity.js';
 import { UpdateUserSettingDto } from './dto/update-setting.dto.js';
 import { projectBcrypt } from '../_common/helper/customBcrypt.js';
 import { FilterDbField } from '../_common/helper/filterQueryForRole.js';
-import {FriendshipService} from "../friendship/friendship.service.js";
 
 // ==========================================
 
 
 @Injectable()
 export class UserService {
-  userFilterByRole: FilterDbField<User>;
-  settingFilterByRole: FilterDbField<UserSetting>;
+  private userFilterByRole: FilterDbField<User, string>;
+  private settingFilterByRole: FilterDbField<UserSetting, string>;
 
   constructor(
       @InjectDataSource()
@@ -36,28 +31,34 @@ export class UserService {
   ) {
     // ============================== Filter DB & QueryField
 
-    this.userFilterByRole = new FilterDbField({
-      keyAndLabels: {
-        id: ['SA', 'me', 'friend', 'not_friend'],
-        email: ['SA', 'friend', 'me'],
-        user_name: ['SA', 'me', 'friend', 'not_friend'],
-        nickname: ['SA', 'me', 'friend', 'not_friend'],
-        bio: ['SA', 'me', 'friend', 'not_friend'],
-        avatar_url: ['SA', 'me', 'friend', 'not_friend'],
-        role: ['SA', 'me'],
-        status: ['SA', 'me'],
+    this.userFilterByRole = FilterDbField.create({
+      labels: ['SA', 'for_auth', 'me', 'friend', 'not_friend'],
+      fieldAndLabels: {
+        id: ['SA', 'for_auth', 'me', 'friend', 'not_friend'],
+        email: ['SA', 'for_auth', 'me'],
+        user_name: ['SA', 'for_auth', 'me', 'friend', 'not_friend'],
+        nickname: ['SA', 'for_auth', 'me', 'friend', 'not_friend'],
+        bio: ['SA', 'for_auth', 'me', 'friend'],
+        avatar_url: ['SA', 'for_auth', 'me', 'friend', 'not_friend'],
+        role: ['SA', 'for_auth'],
+        status: ['SA', 'for_auth'],
+        created_at: ['SA'],
       },
-      dataBase: User,
+      dataBases: {
+        _main: User,
+      },
       dataSource: this.dataSource,
     });
 
-    this.settingFilterByRole = new FilterDbField({
-      keyAndLabels: {
-        who_can_see_my_template: ['SA', 'me' ,  'friend','not_friend'],
+    this.settingFilterByRole = FilterDbField.create({
+      labels: ['SA', 'for_auth', 'me', 'friend', 'not_friend'],
+      fieldAndLabels: {
+        who_can_see_my_template: ['SA', 'me', 'friend', 'not_friend'],
       },
-      dataBase: UserSetting ,
-      dataSource : this.dataSource
-
+      dataBases: {
+        _main: UserSetting,
+      },
+      dataSource: this.dataSource,
     });
 
     // ==============================
@@ -73,24 +74,22 @@ export class UserService {
 
   // ==============================
 
-
   async creatUser ( body : CreateUserDto ) {
      const result= await this.userRepository.save(body);
      return this.userFilterByRole.filterDataOfQueryResult({ object : result , label:'me' });
-
   }
 
   // ==============================
 
   async getInfoForEmailLogin( email : string ) {
-    const selectField = this.userFilterByRole.buildQuerySelectObject({
-      label: 'me',
-    });
+    const { select , relation }
+      = this.userFilterByRole.buildQueryObject({ label: 'for_auth' });
+
     return await this.userRepository.findOne({
       where: { email: email },
       select: {
-        ...selectField,
-        password :  true
+        ...select,
+        password: true,
       },
     });
   }
@@ -142,10 +141,12 @@ export class UserService {
   async getMyInfo( user_id : string ) {
 
     const role = 'me'
-    const selectField = this.userFilterByRole.buildQuerySelectObject({ label: role });
+    const {select ,relation} =
+      this.userFilterByRole.buildQueryObject({ label: role });
+
     const user =  await this.userRepository.findOne({
       where: { id : user_id },
-      select: selectField,
+      select,
     });
     if (!user) return new NotFoundException({ error: 'user_not_found' });
     return user;
@@ -191,12 +192,12 @@ export class UserService {
   // ========================= Setting =========================
 
   async getSetting(id: string, role: 'SA' | 'me' ) {
-    const selectField = this.userFilterByRole.buildQuerySelectObject({
+    const {  select ,relation } = this.userFilterByRole.buildQueryObject({
       label: role,
     });
     return await this.userSettingRepository.findOne({
       where: { user: { id }} ,
-      select : selectField
+      select
     })
   }
 
@@ -217,7 +218,7 @@ export class UserService {
 
 
   adminGetOne ( user_id : string ) {
-    const select = this.userFilterByRole.buildQuerySelectObject({label:'SA'})
+    const { select ,relation } = this.userFilterByRole.buildQueryObject({ label: 'SA' });
     return this.userRepository.findOne({
       where: {id  : user_id },
       select
@@ -228,11 +229,12 @@ export class UserService {
       page = 1,
       limit = 20,
   ) {
-    const selectField = this.userFilterByRole.buildQuerySelectObject({ label: 'SA' });
+    const { select , relation }
+      = this.userFilterByRole.buildQueryObject({ label: 'SA' });
 
     return await this.userRepository.find({
       where: {},
-      select: selectField,
+      select,
       order: { created_at: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
@@ -253,12 +255,13 @@ export class UserService {
   // ================= Setting =========================
 
   async adminGetSetting(id: string) {
-    const selectField = this.userFilterByRole.buildQuerySelectObject({
+    const {select , relation}
+      = this.userFilterByRole.buildQueryObject({
       label: "SA",
     });
     return await this.userSettingRepository.findOne({
       where: { user: { id }} ,
-      select : selectField
+      select
     })
   }
 

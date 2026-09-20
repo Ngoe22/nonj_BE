@@ -17,9 +17,9 @@ export class CreateExerciseTemplateDto {
 
 export class UpdateExerciseTemplateDto {
 
-
-  @IsUUID()
-  collection: string //id
+  //
+  // @IsUUID()
+  // collection: string //id
 
   @IsString()
   @MinLength(1)

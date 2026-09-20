@@ -21,12 +21,11 @@ export class UserExerciseTemplateController {
 
   // ================== EXERCISE TEMPLATE ==================
 
-
   @Get('me')
   getManyMine(
-      @GetRequesterInfo() requester: RequesterInfo,
-      @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-      @Query('limit', new DefaultValuePipe(20), ParseLimitPipe) limit: number,
+    @GetRequesterInfo() requester: RequesterInfo,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(20), ParseLimitPipe) limit: number,
   ) {
     return this.exerciseTemplateService.findManyMine({
       user_id: requester.id,
@@ -37,8 +36,8 @@ export class UserExerciseTemplateController {
 
   @Get('me/:template_id')
   getMine(
-      @GetRequesterInfo() requester: RequesterInfo,
-      @Param('template_id') template_id: string,
+    @GetRequesterInfo() requester: RequesterInfo,
+    @Param('template_id') template_id: string,
   ) {
     return this.exerciseTemplateService.findMine({
       template_id,
@@ -85,14 +84,18 @@ export class UserExerciseTemplateController {
     });
   }
 
-  @Patch(':exercise_template_id')
+  @Patch(':collection_id/:exercise_template_id')
   update(
     @Body() body: UpdateExerciseTemplateDto,
     @GetRequesterInfo() requester: RequesterInfo,
     @Param('template_id') template_id: string,
+    @Param('collection_id') collection_id: string,
   ) {
     return this.exerciseTemplateService.update({
-      body, user_id: requester.id, template_id
+      body,
+      user_id: requester.id,
+      collection_id ,
+      template_id,
     });
   }
 
@@ -102,12 +105,10 @@ export class UserExerciseTemplateController {
     @Param('template_id') template_id: string,
   ) {
     return this.exerciseTemplateService.softDelete({
-      user_id: requester.id, template_id
+      user_id: requester.id,
+      template_id,
     });
   }
 
   // ================== COLLECTION ==================
-
-
-
 }

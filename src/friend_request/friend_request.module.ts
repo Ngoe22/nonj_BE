@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import {forwardRef, Module} from '@nestjs/common';
 import { FriendRequestService } from './friend_request.service.js';
 import { FriendRequestController } from './controller/friend_request.controller.js';
 import {TypeOrmModule} from "@nestjs/typeorm";
@@ -8,7 +8,7 @@ import {AdminFriendReqController} from "./controller/admin-friend_request.contro
 import {FriendshipModule} from "../friendship/friendship.module.js";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([FriendRequest]), UserModule , FriendshipModule  ] ,
+  imports: [TypeOrmModule.forFeature([FriendRequest]), UserModule ,forwardRef(() => FriendshipModule)   ] ,
   controllers: [FriendRequestController,AdminFriendReqController],
   providers: [FriendRequestService],
   exports: [FriendRequestService],

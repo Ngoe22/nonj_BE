@@ -12,7 +12,7 @@ import {PostAnswer} from "../post_answer/entities/post_answer.entity.js";
 
 @Injectable()
 export class ReportService {
-  private filterByRoles: FilterDbField<Report>;
+  private filterByLabels: FilterDbField<Report | User, string>;
 
   constructor(
       @InjectDataSource()
@@ -21,21 +21,34 @@ export class ReportService {
       private readonly reportRepo: Repository<Report>,
 
   ) {
-    this.filterByRoles = new FilterDbField({
-      keyAndLabels: {
-        id: ['me', 'admin'],
-        user_report: ['me', 'admin'],
-        target_type: ['me', 'admin'],
-        target_id: ['me', 'admin'],
-        reason: ['me', 'admin'],
-        description: ['me', 'admin'],
-        status: ['me', 'admin'],
-        action_taken: ['admin'],
-        review_by: ['admin'],
-        reviewed_at: ['admin'],
-        review_note: ['admin'],
+    this.filterByLabels =  FilterDbField.create({
+      labels : [ 'SA' , 'me' ] ,
+      fieldAndLabels: {
+        id: [ 'SA', 'me'],
+        user_report: {
+          id : [ 'SA' ] ,
+          user_name : [ 'SA' ] ,
+          nickname : [ 'SA' ] ,
+        },
+        target_type: [ 'SA', 'me'],
+        target_id: [ 'SA', 'me'],
+        reason: [ 'SA', 'me'],
+        description: [ 'SA', 'me'],
+        status: [ 'SA', 'me'],
+        action_taken: ['SA', 'me'],
+        review_by:{
+          id : [ 'SA' ] ,
+          user_name : [ 'SA' ] ,
+          nickname : [ 'SA' ] ,
+        },
+        reviewed_at: ['SA', 'me'],
+        review_note: ['SA'],
       },
-      dataBase: Report,
+      dataBases: {
+        _main : Report ,
+        user_report : User ,
+        review_by : User ,
+      },
       dataSource : this.dataSource
 
     });
@@ -72,7 +85,7 @@ export class ReportService {
       ...body ,
     });
 
-    return this.filterByRoles.filterDataOfQueryResult({ object: report, label: 'me' });
+    return this.filterByLabels.filterDataOfQueryResult({ object: report, label: 'me' });
   }
 
   // ==================== Read - own reports ====================
@@ -80,11 +93,11 @@ export class ReportService {
   async findManyMine(input: { requester_id: string; page: number; limit: number }) {
     const { requester_id, page, limit } = input;
 
-    const select = this.filterByRoles.buildQuerySelectObject({ label: 'me' });
+    const { select ,relations } = this.filterByLabels.buildQueryObject({ label: 'me' });
 
     return this.reportRepo.find({
       where: { user_report: { id: requester_id } },
-      select,
+      select ,relations,
       skip: (page - 1) * limit,
       take: limit,
       order: { created_at: 'DESC' },
@@ -117,7 +130,7 @@ export class ReportService {
   }) {
     const { status, target_type, page, limit } = input;
 
-    const select = this.filterByRoles.buildQuerySelectObject({ label: 'admin' });
+    const {select ,relations} = this.filterByLabels.buildQueryObject({ label: 'SA' });
 
     const where: any = {};
     if (status) where.status = status;
@@ -125,7 +138,7 @@ export class ReportService {
 
     return this.reportRepo.find({
       where,
-      select,
+      select ,relations,
       skip: (page - 1) * limit,
       take: limit,
       order: { created_at: 'DESC' },
@@ -133,11 +146,11 @@ export class ReportService {
   }
 
   async adminFindOne(input: { report_id: string }) {
-    const select = this.filterByRoles.buildQuerySelectObject({ label: 'admin' });
+    const {select ,relations} = this.filterByLabels.buildQueryObject({ label: 'SA' });
 
     const report = await this.reportRepo.findOne({
       where: { id: input.report_id },
-      select,
+      select ,relations,
     });
 
     if (!report) throw new NotFoundException({ errorCode: 'report_not_found' });

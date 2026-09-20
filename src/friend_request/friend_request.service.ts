@@ -1,5 +1,5 @@
 import {
-  ConflictException,
+  ConflictException, forwardRef, Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -23,7 +23,8 @@ export class FriendRequestService {
     @InjectRepository(FriendRequest)
     private readonly requestRepo: Repository<FriendRequest>,
     private readonly userService: UserService,
-    private readonly friendshipService: FriendshipService,
+      @Inject(forwardRef(() => FriendshipService))
+    private readonly friendshipService: any,
   ) {
     this.filterByLabels =  FilterDbField.create({
       labels :[  'SA' , 'outgoing_requests', 'ingoing_requests'] ,

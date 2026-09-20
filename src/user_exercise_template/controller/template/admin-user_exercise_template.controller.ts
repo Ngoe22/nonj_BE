@@ -58,7 +58,7 @@ export class AdminUserExerciseTemplateController {
         @Param('template_id') template_id: string,
         @Param('user_id') user_id: string,
     ) {
-        return this.exerciseTemplateService.update({
+        return this.exerciseTemplateService.adminUpdate({
             body, user_id, template_id,
         });
     }

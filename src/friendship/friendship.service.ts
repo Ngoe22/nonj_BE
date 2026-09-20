@@ -1,4 +1,4 @@
-import {ConflictException, Injectable, NotFoundException} from '@nestjs/common';
+import {ConflictException, forwardRef, Inject, Injectable, NotFoundException} from '@nestjs/common';
 import {InjectDataSource, InjectRepository} from "@nestjs/typeorm";
 import {DataSource, Repository} from "typeorm";
 import {Friendship} from "./entities/friendship.entity.js";
@@ -21,10 +21,9 @@ export class FriendshipService {
     private readonly dataSource: DataSource,
     @InjectRepository(Friendship)
     private readonly friendshipRepo: Repository<Friendship>,
-    @InjectDataSource()
     private readonly userService: UserService,
-    @InjectDataSource()
-    private readonly friendRequestService: FriendRequestService,
+    @Inject(forwardRef(() => FriendRequestService))
+    private readonly friendRequestService: any,
   ) {
     this.friendShipFilterByRole =  FilterDbField.create({
 

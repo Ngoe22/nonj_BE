@@ -15,10 +15,12 @@ import {Exercise_Type, Post_Type, View_Each_Other_Answer } from "../post/enum/po
 import { Post_Answer_Status } from "./enum/post_answer.enum.js";
 import { Group_Member_Role } from "../group/enum/group.enum.js";
 import {Post} from "../post/entities/post.entity.js";
+import {User} from "../user/entities/user.entity.js";
+import {Group} from "../group/entities/group.entity.js";
 
 @Injectable()
 export class PostAnswerService {
-  private filterByRoles: FilterDbField<PostAnswer>;
+  private filterByLabels: FilterDbField<PostAnswer | User, string>;
 
   constructor(
       @InjectDataSource()
@@ -29,19 +31,37 @@ export class PostAnswerService {
     //
     private readonly groupMemberService: GroupMemberService,
   ) {
-    this.filterByRoles = new FilterDbField({
-      keyAndLabels: {
-        id: ['me', 'member', 'admin', 'founder'],
-        user: ['me', 'member', 'admin', 'founder'],
-        post: ['me', 'member', 'admin', 'founder'],
-        group: ['admin', 'founder'],
-        answer_content: ['me', 'admin', 'founder'],
-        status: ['me', 'member', 'admin', 'founder'],
-        graded_by: ['me', 'admin', 'founder'],
-        graded_at: ['me', 'member', 'admin', 'founder'],
-        review_content: ['me', 'admin', 'founder'],
+    this.filterByLabels =  FilterDbField.create({
+      labels : [ 'SA' , 'me', 'member', 'admin', 'founder'] ,
+      fieldAndLabels: {
+        id: ['SA' ,'me', 'member', 'admin', 'founder'],
+        user: {
+          id : ['SA' ,'me', 'member', 'admin', 'founder'] ,
+          user_name : ['SA' ,'me', 'member', 'admin', 'founder'] ,
+          nickname : ['SA' ,'me', 'member', 'admin', 'founder'] ,
+          avatar_url : ['me', 'member', 'admin', 'founder'] ,
+        } ,
+        post: {
+          id : ['SA']
+        },
+        group: {
+          id : ['SA'] ,
+          slug : [ 'SA' ] ,
+          name: ['SA']
+        },
+        answer_content: [ 'SA' , 'me', 'admin', 'founder'],
+        status: ['SA' ,'me', 'member', 'admin', 'founder'],
+        graded_by: ['SA' ,'me', 'admin', 'founder'],
+        graded_at: ['SA' ,'me', 'member', 'admin', 'founder'],
+        review_content: ['SA' ,'me', 'admin', 'founder'],
       },
-      dataBase: PostAnswer,
+      dataBases: {
+        _main : PostAnswer ,
+        user : User ,
+        post : Post ,
+        group : Group,
+        graded_by :User
+      },
       dataSource : this.dataSource
 
     });
@@ -108,7 +128,7 @@ export class PostAnswerService {
       graded_by: null,
     });
 
-    return this.filterByRoles.filterDataOfQueryResult({
+    return this.filterByLabels.filterDataOfQueryResult({
       object: answer,
       label: 'me',
     });
@@ -201,19 +221,23 @@ export class PostAnswerService {
   }) {
     const { group_id, post_id, requester_id } = input;
 
+
     const isMem = await this.groupMemberService.isMember({
       group_id,
       user_id: requester_id,
     });
+    if ( !isMem ) return  new ForbiddenException({ errorCode :'actor_not_allow' })
 
-    const selects = this.filterByRoles.buildQuerySelectObject({ label: 'me' });
+    const { select ,relations } = this.filterByLabels.buildQueryObject({ label: 'me' });
 
     const answer = await this.answerRepo.findOne({
       where: {
+        group : { id : group_id } ,
         post: { id: post_id },
         user: { id: requester_id },
+
       },
-      select: selects,
+      relations , select
     });
     if (!answer) throw new NotFoundException({ errorCode: 'answer_not_found' });
     return answer;
@@ -255,11 +279,11 @@ export class PostAnswerService {
       });
 
     const label = isPrivileged ? 'admin' : 'member';
-    const selects = this.filterByRoles.buildQuerySelectObject({ label });
+    const { relations , select } = this.filterByLabels.buildQueryObject({ label });
 
     return this.answerRepo.find({
       where: { post: { id: post_id } },
-      select: selects,
+      relations , select ,
       skip: (page - 1) * limit,
       take: limit,
       order: { created_at: 'ASC' },
@@ -360,12 +384,12 @@ export class PostAnswerService {
   // ==========================================================================
 
   async adminFindOne(input: { answer_id: string }) {
-    const selects = this.filterByRoles.buildQuerySelectObject({
-      label: 'admin',
+    const { select , relations } = this.filterByLabels.buildQueryObject({
+      label: 'SA',
     });
     const answer = await this.answerRepo.findOne({
       where: { id: input.answer_id },
-      select: selects,
+      select , relations
     });
     if (!answer) throw new NotFoundException({ errorCode: 'answer_not_found' });
     return answer;
@@ -373,13 +397,13 @@ export class PostAnswerService {
 
   async adminFindMany(input: { post_id: string; page: number; limit: number }) {
     const { post_id, page, limit } = input;
-    const selects = this.filterByRoles.buildQuerySelectObject({
-      label: 'admin',
+    const { select , relations } = this.filterByLabels.buildQueryObject({
+      label: 'SA',
     });
 
     return this.answerRepo.find({
       where: { post: { id: post_id } },
-      select: selects,
+      select , relations ,
       skip: (page - 1) * limit,
       take: limit,
       order: { created_at: 'ASC' },

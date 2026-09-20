@@ -14,13 +14,15 @@ import {Group_Member_Role, Group_View_Mode} from "../group/enum/group.enum.js";
 import {CreateExamPostDto, CreateExercisePostDto, UpdatePostDto} from "./dto/post.dto.js";
 import {Post_Type, View_Each_Other_Answer} from "./enum/post.enum.js";
 import { PostCollection } from '../group/entities/post_collection.entity.js';
+import {Group} from "../group/entities/group.entity.js";
+import {User} from "../user/entities/user.entity.js";
 
 class CreatePostDto {
 }
 
 @Injectable()
 export class PostService {
-  private filterByRoles: FilterDbField<Post>;
+  private filterByLabels: FilterDbField<Post | User | Group | PostCollection, string>;
 
   constructor(
       @InjectDataSource()
@@ -32,22 +34,40 @@ export class PostService {
     private readonly groupMemberService: GroupMemberService,
     private readonly collectionService: PostCollectionService,
   ) {
-    this.filterByRoles = new FilterDbField({
-      keyAndLabels: {
+    this.filterByLabels =  FilterDbField.create({
+      labels :  [ 'SA' , 'me', 'member', 'admin', 'founder']  ,
+      fieldAndLabels: {
         id: ['founder', 'member', 'admin'],
-        post_type: ['founder', 'member', 'admin'],
-        title: ['founder', 'member', 'admin'],
-        description: ['founder', 'member', 'admin'],
-        question_type: ['founder', 'member', 'admin'],
-        question_content: ['founder', 'member', 'admin'],
-        deadline_at: ['founder', 'member', 'admin'],
-        retake: ['founder', 'member', 'admin'],
-        view_each_other_answer: ['founder', 'member', 'admin'],
-        user: ['founder', 'member', 'admin'],
-        group: ['founder', 'member', 'admin'],
-        post_collection: ['founder', 'member', 'admin'],
+        post_type: ['SA' ,'founder', 'member', 'admin'],
+        title: ['SA' ,'founder', 'member', 'admin'],
+        description: ['SA' ,'founder', 'member', 'admin'],
+        question_type: ['SA' ,'founder', 'member', 'admin'],
+        question_content: ['SA' ,'founder', 'member', 'admin'],
+        deadline_at: ['SA' , 'founder', 'member', 'admin'],
+        retake: ['SA' , 'member', 'admin'],
+        view_each_other_answer: ['SA' ,'founder', 'member', 'admin'],
+        user: {
+          id : ['founder', 'member', 'admin'] ,
+          nickname : ['founder', 'member', 'admin'],
+          user_name : ['founder', 'member', 'admin'] ,
+          avatar_url : ['founder', 'member', 'admin'],
+        },
+        group: {
+          id : ['SA'] ,
+          slug : ['SA' ],
+          name : ['SA' ],
+        },
+        post_collection: {
+          id : ['SA'] ,
+          name : ['SA' ],
+        },
       },
-      dataBase: Post,
+      dataBases: {
+        _main : Post ,
+        user : User ,
+        group : Group ,
+        post_collection : PostCollection ,
+      },
       dataSource : this.dataSource
 
     });
@@ -149,7 +169,7 @@ export class PostService {
       view_each_other_answer: View_Each_Other_Answer.NEVER,
     });
 
-    return this.filterByRoles.filterDataOfQueryResult({
+    return this.filterByLabels.filterDataOfQueryResult({
       object: post,
       label: poster_role.toLowerCase(),
     });
@@ -180,7 +200,7 @@ export class PostService {
       view_each_other_answer: body.view_each_other_answer,
     });
 
-    return this.filterByRoles.filterDataOfQueryResult({
+    return this.filterByLabels.filterDataOfQueryResult({
       object: post,
       label: poster_role.toLowerCase(),
     });
@@ -202,7 +222,7 @@ export class PostService {
         group_id,
         actor_allow_roles: [Group_Member_Role.ADMIN, Group_Member_Role.FOUNDER],
       });
-    const selects = this.filterByRoles.buildQuerySelectObject({
+    const { select ,relations } = this.filterByLabels.buildQueryObject({
       label: requester_group_role,
     });
 
@@ -212,7 +232,8 @@ export class PostService {
         group: { id: group_id },
         post_collection: { id: collection_id },
       },
-      select: selects,
+      relations ,
+      select
     });
 
     if (!post) throw new NotFoundException({ errorCode: 'post_not_found' });
@@ -236,7 +257,7 @@ export class PostService {
         group_id,
         actor_allow_roles: [Group_Member_Role.ADMIN, Group_Member_Role.FOUNDER],
       });
-    const selects = this.filterByRoles.buildQuerySelectObject({
+    const {select ,relations} = this.filterByLabels.buildQueryObject({
       label: requester_group_role,
     });
 
@@ -245,7 +266,8 @@ export class PostService {
         group: { id: group_id },
         post_collection: { id: collection_id },
       },
-      select: selects,
+      relations ,
+      select,
       skip: (page - 1) * limit,
       take: limit,
       order: { created_at: 'DESC' },
@@ -320,12 +342,13 @@ export class PostService {
   // ====================  read ====================
 
   async adminFindOne(input: { post_id: string }) {
-    const selects = this.filterByRoles.buildQuerySelectObject({
-      label: 'admin',
+    const { select ,relations } = this.filterByLabels.buildQueryObject({
+      label: 'SA',
     });
     const post = await this.postRepo.findOne({
       where: { id: input.post_id },
-      select: selects,
+      relations ,
+      select
     });
     if (!post) throw new NotFoundException({ errorCode: 'post_not_found' });
     return post;
@@ -337,13 +360,14 @@ export class PostService {
     limit: number;
   }) {
     const { collection_id, page, limit } = input;
-    const selects = this.filterByRoles.buildQuerySelectObject({
-      label: 'admin',
+    const { select ,relations } = this.filterByLabels.buildQueryObject({
+      label: 'SA',
     });
 
     return this.postRepo.find({
       where: { post_collection: { id: collection_id } },
-      select: selects,
+      relations ,
+      select ,
       skip: (page - 1) * limit,
       take: limit,
       order: { created_at: 'DESC' },

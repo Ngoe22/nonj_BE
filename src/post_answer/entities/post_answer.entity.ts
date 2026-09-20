@@ -14,7 +14,7 @@ import {Post_Answer_Status} from "../enum/post_answer.enum.js";
 import {Group} from "../../group/entities/group.entity.js";
 
 
-@Index(['post', 'user'])
+@Index([ 'group' , 'post', 'user'])
 @Entity('post_answer')
 export class PostAnswer extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')

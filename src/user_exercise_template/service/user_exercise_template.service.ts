@@ -123,7 +123,20 @@ export class UserExerciseTemplateService {
 
   //===============================================
 
+
+
+
+
+
   // -------------------- get many --------------------------------
+
+  async findOneMine(input: { user_id: string , template_id: string }) {
+    const { user_id ,  template_id} = input;
+    return this.findOne({
+      condition : {  id : template_id , user : {id : user_id} } ,
+      data_for: 'me',
+    });
+  }
 
   async findManyMine(input: { user_id: string; page: number; limit: number }) {
     const { user_id, page, limit } = input;
@@ -215,6 +228,34 @@ export class UserExerciseTemplateService {
   }
 
   // update share with user
+
+  async adminUpdate(input: {
+    user_id: string;
+    template_id: string;
+    body: any; // UpdateExerciseTemplateDto | DeleteExerciseTemplateDto;
+  }) {
+
+    let { user_id, template_id, body } = input;
+    // if (body.collection) {
+    //   const check = await this.collectionService.isCollectionBelongToUser({
+    //     collection_id,
+    //     user_id,
+    //   });
+    //
+    //   if (!check)
+    //     throw new NotFoundException({
+    //       errorCode: 'collection_not_belong_to_user',
+    //     });
+    // }
+    const result = await this.templateRepo.update(
+        { user: { id: user_id }, id: template_id },
+        body,
+    );
+    if (result.affected === 0) {
+      throw new NotFoundException({ errorCode: 'template_or_owner_not_found' });
+    }
+    return body;
+  }
 
   async adminSoftDelete(input: { template_id: string; admin_id: string }) {
     const { template_id, admin_id } = input;

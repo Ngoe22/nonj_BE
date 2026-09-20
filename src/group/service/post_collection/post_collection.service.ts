@@ -14,10 +14,11 @@ import {DataSource, Repository} from 'typeorm';
 import { GroupMemberService } from '../group_member/group_member.service.js';
 import { Group_Member_Role, Group_View_Mode } from '../../enum/group.enum.js';
 import { GroupService } from '../group/group.service.js';
+import {Group} from "../../entities/group.entity.js";
 
 @Injectable()
 export class PostCollectionService {
-  private filterByRoles: FilterDbField<PostCollection>;
+  private filterByLabels: FilterDbField<PostCollection | Group, string>;
 
   constructor(
       @InjectDataSource()
@@ -32,14 +33,22 @@ export class PostCollectionService {
     //
 
     // SA == SYSTEM ADMIN
-    this.filterByRoles = new FilterDbField({
-      keyAndLabels: {
+    this.filterByLabels =  FilterDbField.create({
+      labels : ['SA', 'admin' , 'founder','member', 'unjoin'] ,
+      fieldAndLabels: {
         id: ['SA','member', 'unjoin', 'admin' , 'founder'],
         title: ['SA','member', 'unjoin', 'admin' , 'founder'],
         desc :  ['SA','member', 'unjoin', 'admin' , 'founder'],
-        group: ['SA',],
+        group: {
+          id : [ 'SA' ] ,
+          name : [ 'SA' ] ,
+          slug : [ 'SA' ] ,
+        },
       },
-      dataBase: PostCollection,
+      dataBases:  {
+        _main : PostCollection ,
+        group : Group ,
+      },
       dataSource : this.dataSource
     });
   }
@@ -73,7 +82,7 @@ export class PostCollectionService {
       created_by: requester_id,
     });
 
-    return this.filterByRoles.filterDataOfQueryResult({
+    return this.filterByLabels.filterDataOfQueryResult({
       object: collection,
       label: role.toLowerCase(),
     });
@@ -103,11 +112,12 @@ export class PostCollectionService {
       else return new ForbiddenException({errorCode : 'not_allow_to_access'});
     }
 
-    const selects = this.filterByRoles.buildQuerySelectObject({ label });
+    const { select ,relations } = this.filterByLabels.buildQueryObject({ label });
 
     return this.collectionRepo.find({
       where: { group: { id: group_id } },
-      select: selects,
+      relations ,
+      select,
       skip: (page - 1) * limit,
       take: limit,
       order: { created_at: 'DESC' },
@@ -181,12 +191,13 @@ export class PostCollectionService {
   // ==========================================================================
 
   async adminFindOne(input: { collection_id: string }) {
-    const selects = this.filterByRoles.buildQuerySelectObject({
+    const  { relations , select } = this.filterByLabels.buildQueryObject({
       label: 'SA',
     });
     const collection = await this.collectionRepo.findOne({
       where: { id: input.collection_id },
-      select: selects,
+      relations ,
+      select ,
     });
     if (!collection)
       throw new NotFoundException({ errorCode: 'collection_not_found' });
@@ -200,13 +211,14 @@ export class PostCollectionService {
     limit: number;
   }) {
     const { group_id, page, limit } = input;
-    const selects = this.filterByRoles.buildQuerySelectObject({
+    const  { relations , select } = this.filterByLabels.buildQueryObject({
       label: 'SA',
     });
 
     return this.collectionRepo.find({
       where: { group: { id: group_id } },
-      select: selects,
+      relations ,
+      select,
       skip: (page - 1) * limit,
       take: limit,
       order: { created_at: 'DESC' },
@@ -260,7 +272,7 @@ export class PostCollectionService {
 //     requester_id,
 //   });
 //
-//   const selects = this.filterByRoles.buildQuerySelectObject({ label });
+//   const selects = this.filterByLabels.buildQuerySelectObject({ label });
 //
 //   return this.collectionRepo.findOne({
 //     where: { id: collection_id },

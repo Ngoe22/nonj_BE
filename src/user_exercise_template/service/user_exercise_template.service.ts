@@ -31,7 +31,7 @@ type CreateExerciseTemplateInput = CreateExerciseTemplateDto & {
 @Injectable()
 export class UserExerciseTemplateService {
   // ================== EXERCISE TEMPLATE ==================
-  private exerciseFilterByRole: FilterDbField<
+  private filterByLabels: FilterDbField<
     UserExerciseTemplate | User | UserExerciseTemplateCollection,
     string
   >;
@@ -48,7 +48,7 @@ export class UserExerciseTemplateService {
   ) {
     // ============================== Filter DB & QueryField
 
-    this.exerciseFilterByRole = FilterDbField.create({
+    this.filterByLabels = FilterDbField.create({
       labels: ['SA', 'me', 'friend', 'not_friend'],
       fieldAndLabels: {
         id: ['SA', 'me'],
@@ -80,50 +80,19 @@ export class UserExerciseTemplateService {
 
   // ---------------  Check Permission ---------------
 
-  // temp - stop
-  // private async checkViewPermission(input :  {
-  //   owner_id: string ,
-  //   requester_id: string
-  // }) {
-  //   const { owner_id, requester_id } = input;
-  //
-  //   const setting =  await  this.userService.getSetting(owner_id , 'SA');
-  //   if (!setting) {
-  //     throw new NotFoundException({ errorCode: 'owner_not_found' });
-  //   }
-  //
-  //   switch (setting.who_can_see_my_template) {
-  //     case  User_Setting_Who_can_see_template.EVERYONE : {
-  //       return true
-  //     }
-  //     case User_Setting_Who_can_see_template.FRIEND : {
-  //       const isFriend = await this.friendshipService.isFriend({ user_id : owner_id , friend_id : requester_id })
-  //       if( isFriend !== 'is' ) throw new ForbiddenException({ errorCode: 'unauthorized' });
-  //       return true
-  //     }
-  //   }
-  // }
-
   // ===========================================
 
   private async findOne(input: { condition: any; data_for: string }) {
     const { condition, data_for } = input;
 
-    const selects = this.exerciseFilterByRole.buildQueryObject({
+    const { select ,relations } = this.filterByLabels.buildQueryObject({
       label: data_for,
     });
-    const collection_selects =
-      this.collectionService.collectionFilterByRole.buildQuerySelectObject({
-        label: data_for,
-      });
 
     const template = await this.templateRepo.findOne({
       where: condition,
-      relations: { collection: true },
-      select: {
-        ...selects,
-        collection: collection_selects,
-      },
+      relations,
+      select,
     });
     if (!template)
       throw new NotFoundException({ errorCode: 'template_not_found' });
@@ -138,13 +107,13 @@ export class UserExerciseTemplateService {
   }) {
     const { user_id, data_for, page, limit } = input;
 
-    const { select } = this.exerciseFilterByRole.buildQueryObject({
+    const { select , relations } = this.filterByLabels.buildQueryObject({
       label: data_for,
     });
 
     return this.templateRepo.find({
       where: { user: { id: user_id } },
-      relations: { collection: true },
+      relations,
       select,
       skip: (page - 1) * limit,
       take: limit,
@@ -153,35 +122,6 @@ export class UserExerciseTemplateService {
   }
 
   //===============================================
-
-  // temp - stop
-  // async findFromOtherUser(input: {
-  //   template_id: string;
-  //   owner_id: string;
-  //   requester_id: string;
-  // }) {
-  //   const { template_id, owner_id, requester_id } = input;
-  //
-  //   if (owner_id === requester_id)
-  //     return this.findMine({template_id, user_id: requester_id})
-  //
-  //   await this.checkViewPermission({owner_id: owner_id, requester_id: requester_id,});
-  //
-  //   return this.findOne( {
-  //     condition : { id : template_id } ,
-  //     data_for : 'other'} )
-  // }
-  //
-  // async findMine(input: {
-  //   template_id: string;
-  //   user_id: string;
-  // }) {
-  //   const { template_id , user_id } = input
-  //
-  //   return this.findOne( {
-  //     condition : { id : template_id , user: user_id },
-  //     data_for : 'me'} )
-  // }
 
   // -------------------- get many --------------------------------
 
@@ -194,29 +134,6 @@ export class UserExerciseTemplateService {
       limit,
     });
   }
-
-  // temp stop
-  // async findManyFromUser(input: {
-  //   owner_id: string;
-  //   requester_id: string;
-  //   page: number;
-  //   limit: number;
-  // }) {
-  //   const { owner_id, requester_id, page, limit } = input;
-  //
-  //   if (owner_id === requester_id) {
-  //     return this.findManyMine({ user_id: requester_id, page, limit });
-  //   }
-  //
-  //   await this.checkViewPermission({ owner_id, requester_id });
-  //
-  //   return this.findMany({
-  //     user_id : owner_id,
-  //     data_for: 'other',
-  //     page,
-  //     limit,
-  //   });
-  // }
 
   // ----------------- Create -----------------
 
@@ -311,3 +228,95 @@ export class UserExerciseTemplateService {
     return true;
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+// =================================================
+
+// temp - stop
+// private async checkViewPermission(input :  {
+//   owner_id: string ,
+//   requester_id: string
+// }) {
+//   const { owner_id, requester_id } = input;
+//
+//   const setting =  await  this.userService.getSetting(owner_id , 'SA');
+//   if (!setting) {
+//     throw new NotFoundException({ errorCode: 'owner_not_found' });
+//   }
+//
+//   switch (setting.who_can_see_my_template) {
+//     case  User_Setting_Who_can_see_template.EVERYONE : {
+//       return true
+//     }
+//     case User_Setting_Who_can_see_template.FRIEND : {
+//       const isFriend = await this.friendshipService.isFriend({ user_id : owner_id , friend_id : requester_id })
+//       if( isFriend !== 'is' ) throw new ForbiddenException({ errorCode: 'unauthorized' });
+//       return true
+//     }
+//   }
+// }
+
+
+// temp - stop
+// async findFromOtherUser(input: {
+//   template_id: string;
+//   owner_id: string;
+//   requester_id: string;
+// }) {
+//   const { template_id, owner_id, requester_id } = input;
+//
+//   if (owner_id === requester_id)
+//     return this.findMine({template_id, user_id: requester_id})
+//
+//   await this.checkViewPermission({owner_id: owner_id, requester_id: requester_id,});
+//
+//   return this.findOne( {
+//     condition : { id : template_id } ,
+//     data_for : 'other'} )
+// }
+//
+// async findMine(input: {
+//   template_id: string;
+//   user_id: string;
+// }) {
+//   const { template_id , user_id } = input
+//
+//   return this.findOne( {
+//     condition : { id : template_id , user: user_id },
+//     data_for : 'me'} )
+// }
+
+
+// temp stop
+// async findManyFromUser(input: {
+//   owner_id: string;
+//   requester_id: string;
+//   page: number;
+//   limit: number;
+// }) {
+//   const { owner_id, requester_id, page, limit } = input;
+//
+//   if (owner_id === requester_id) {
+//     return this.findManyMine({ user_id: requester_id, page, limit });
+//   }
+//
+//   await this.checkViewPermission({ owner_id, requester_id });
+//
+//   return this.findMany({
+//     user_id : owner_id,
+//     data_for: 'other',
+//     page,
+//     limit,
+//   });
+// }

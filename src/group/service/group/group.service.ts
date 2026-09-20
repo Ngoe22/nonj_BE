@@ -7,24 +7,31 @@ import { CreateGroupDto, UpdateGroupDto } from '../../dto/group.dto.js';
 import { Transactional } from 'typeorm-transactional';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Group_Member_Role, Group_View_Mode } from '../../enum/group.enum.js';
+import {User} from "../../../user/entities/user.entity.js";
 
 //====================================================================
 
 @Injectable()
 export class GroupService {
-  private filterByRoles: FilterDbField<Group>;
+  private filterByLabels: FilterDbField<Group | User, string>;
 
   constructor(
-      @InjectDataSource()
-      private readonly dataSource: DataSource,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
     @InjectRepository(Group)
     private readonly groupRepo: Repository<Group>,
     private readonly groupMemberService: GroupMemberService,
   ) {
-    this.filterByRoles = new FilterDbField({
-      keyAndLabels: {
+    this.filterByLabels =  FilterDbField.create({
+      labels : [ 'SA' , 'founder' , 'admin' , 'member' , 'unjoin' , 'setting' ]     ,
+      fieldAndLabels: {
         id: [  'SA' , 'member', 'unjoin', 'admin', 'founder', 'setting'],
-        founder: ['SA' ,'member', 'admin', 'founder'],
+        founder: {
+          id : ['SA' ],
+          nickname : ['SA'],
+          user_name : ['SA' ],
+          avatar_url : []
+        },
         slug: ['SA' ,'member', 'unjoin', 'admin', 'founder'],
         name: ['SA' ,'member', 'unjoin', 'admin', 'founder'],
         description: ['SA' ,'member', 'unjoin', 'admin', 'founder'],
@@ -32,7 +39,10 @@ export class GroupService {
         view_mode: ['SA' ,'member', 'unjoin', 'admin', 'founder', 'setting'],
         created_at: ['SA' ,'member', 'admin', 'founder' , 'member'],
       },
-      dataBase: Group,
+      dataBases: {
+        _main : Group,
+        founder : User ,
+      },
       dataSource : this.dataSource
 
     });
@@ -44,17 +54,14 @@ export class GroupService {
     where: any,
     label: 'founder' | 'admin' | 'member' | 'unjoin',
   ) {
-    const select = this.filterByRoles.buildQuerySelectObject({ label });
+    const { relations , select } = this.filterByLabels.buildQueryObject({ label });
     const group = await this.groupRepo.findOne({
       where,
-      relations: { founder: true },
-      select: {
-        ...select,
-        founder: { id: true, user_name: true, nickname: true },
-      },
+      relations,
+      select,
     });
     if (!group) throw new NotFoundException({ errorCode: 'group_not_found' });
-    return this.filterByRoles.filterDataOfQueryResult({ object: group, label });
+    return this.filterByLabels.filterDataOfQueryResult({ object: group, label });
   }
 
   private async findMany(input: {
@@ -64,16 +71,12 @@ export class GroupService {
     page: number;
   }) {
     const { where, label, limit, page } = input;
-
-    const select = this.filterByRoles.buildQuerySelectObject({ label });
+    const {select , relations} = this.filterByLabels.buildQueryObject({ label });
 
     return await this.groupRepo.find({
       where,
-      relations: { founder: true },
-      select: {
-        ...select,
-        founder : { id:true , user_name:true , nickname :true },
-      },
+      relations,
+      select,
       skip: (page - 1) * limit,
       take: limit,
       order: { created_at: 'DESC' },
@@ -83,10 +86,11 @@ export class GroupService {
   // ==================== Helper ====================
 
   async getSetting ( group_id: string ) {
-    const select = this.filterByRoles.buildQuerySelectObject({ label:'setting' });
+    const {select , relations} = this.filterByLabels.buildQueryObject({ label:'setting' });
 
       const  result = await this.groupRepo.findOne({
         where: { id: group_id },
+        relations ,
         select,
       });
 
@@ -112,7 +116,7 @@ export class GroupService {
       user_id: founder_id,
     });
 
-    return this.filterByRoles.filterDataOfQueryResult({
+    return this.filterByLabels.filterDataOfQueryResult({
       object: group,
       label: 'founder',
     });
@@ -123,15 +127,17 @@ export class GroupService {
   async searchOneBySlug(input: {
     slug: string;
     requester_id: string;
-    page: number;
-    limit: number;
   }) {
-    const { slug, requester_id, page, limit } = input;
+    const { slug, requester_id } = input;
 
-    const selectArray = this.filterByRoles.buildQuerySelectArray({
-      label: 'unjoin',
-      tableName: 'g',
-    });
+    const selectArray = [
+      'g.id AS g_id',
+      'g.name AS g_name',
+      'g.slug AS slug',
+      'g.description AS description',
+      'g.join_mode AS join_mode',
+      'g.view_mode AS view_mode',
+    ];
 
     const result = await this.groupRepo
       .createQueryBuilder('g')
@@ -148,8 +154,6 @@ export class GroupService {
       )
       .where('g.slug = :slug', { slug })
       .andWhere('g.deleted_at IS NULL')
-      .skip((page - 1) * limit)
-      .take(limit)
       .getRawOne();
 
     if (!result) throw new NotFoundException({ errorCode: 'group_not_found' });
@@ -167,30 +171,38 @@ export class GroupService {
   }) {
     const { name, requester_id, page, limit } = input;
 
-    const selectArray = this.filterByRoles.buildQuerySelectArray({
-      label: 'unjoin',
-      tableName: 'g',
-    });
+
+    const selectArray = [
+      'g.id AS g_id',
+      'g.name AS g_name',
+      'g.slug AS slug',
+      'g.description AS description',
+      'g.join_mode AS join_mode',
+      'g.view_mode AS view_mode',
+    ];
+
 
     return this.groupRepo
-      .createQueryBuilder('g')
-      .leftJoin(
-        'g.group_member',
-        'gm',
-        'gm.user_id = :requester_id AND gm.deleted_at IS NULL',
-        { requester_id },
-      )
-      .select(selectArray)
-      .addSelect(
-        'CASE WHEN gm.id IS NOT NULL THEN true ELSE false END',
-        'is_joined',
-      )
-      .where('g.name ILIKE :name', { name: `%${name}%` })
-      .andWhere('g.deleted_at IS NULL')
-      .skip((page - 1) * limit)
-      .take(limit)
-      .getRawMany();
-    // if false return []
+        .createQueryBuilder('g')
+        .leftJoin(
+            'g.group_member',
+            'gm',
+            'gm.user_id = :requester_id AND gm.deleted_at IS NULL',
+            { requester_id },
+        )
+        .select(selectArray)                       // mảng string, mỗi phần tử có AS alias
+        .addSelect(
+            'CASE WHEN gm.id IS NOT NULL THEN true ELSE false END',
+            'is_joined',
+        )
+        .where('g.name ILIKE :name', { name: `%${name}%` })
+        .andWhere('g.deleted_at IS NULL')
+        .orderBy('g.created_at', 'DESC')           // bắt buộc khi phân trang raw
+        .offset((page - 1) * limit)                // 👈 thay skip
+        .limit(limit)                              // 👈 thay take
+        .getRawMany();
+
+
   }
 
   // personal
@@ -268,18 +280,28 @@ export class GroupService {
   //   =========================================================================
 
   async adminFindById(group_id: string) {
-    return this.findOne({ id: group_id }, 'founder');
+
+    const  { select , relations } = this.filterByLabels.buildQueryObject({label : 'SA'})
+
+    return this.groupRepo.findOne( {
+      where: { id :  group_id },relations , select
+    } );
   }
 
   async adminFindMany(input: { page: number; limit: number }) {
-    const { page, limit } = input;
 
-    return this.findMany({
-      where: {},
-      label: 'founder',
-      page,
-      limit,
-    });
+    const { page, limit } = input;
+    const  { select , relations } = this.filterByLabels.buildQueryObject({label : 'SA'})
+
+
+    return this.groupRepo.find( {
+      where: {} ,
+      relations ,
+      select ,
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { created_at: 'DESC' },
+    } );
   }
 
   async adminUpdate(input: {
@@ -307,3 +329,31 @@ export class GroupService {
     return true;
   }
 }
+
+
+//////// =================================
+// broken code
+// const selectArray = this.filterByLabels.buildQuerySelectArray({
+//   label: 'unjoin',
+//   tableName: 'g',
+// });
+//
+// return this.groupRepo
+//   .createQueryBuilder('g')
+//   .leftJoin(
+//     'g.group_member',
+//     'gm',
+//     'gm.user_id = :requester_id AND gm.deleted_at IS NULL',
+//     { requester_id },
+//   )
+//   .select(selectArray)
+//   .addSelect(
+//     'CASE WHEN gm.id IS NOT NULL THEN true ELSE false END',
+//     'is_joined',
+//   )
+//   .where('g.name ILIKE :name', { name: `%${name}%` })
+//   .andWhere('g.deleted_at IS NULL')
+//   .skip((page - 1) * limit)
+//   .take(limit)
+//   .getRawMany();
+// if false return []

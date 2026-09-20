@@ -10,6 +10,8 @@ import {DataSource, IsNull, Repository} from 'typeorm';
 import { FilterDbField } from '../../../_common/helper/filterQueryForRole.js';
 import { GroupMember } from '../../entities/group_member.entity.js';
 import { Group_Member_Role } from '../../enum/group.enum.js';
+import {User} from "../../../user/entities/user.entity.js";
+import {Group} from "../../entities/group.entity.js";
 
 
 
@@ -19,7 +21,7 @@ import { Group_Member_Role } from '../../enum/group.enum.js';
 
 @Injectable()
 export class GroupMemberService {
-  private filterByRoles: FilterDbField<GroupMember>;
+  private filterByLabels: FilterDbField<GroupMember | User | Group, string>;
 
   constructor(
       @InjectDataSource()
@@ -27,15 +29,29 @@ export class GroupMemberService {
     @InjectRepository(GroupMember)
     private groupMemberRepo: Repository<GroupMember>,
   ) {
-    this.filterByRoles = new FilterDbField({
-      keyAndLabels: {
+    this.filterByLabels =  FilterDbField.create({
+      labels : [ 'SA'  , 'founder' , 'admin' , 'member' ] ,
+      fieldAndLabels: {
         id: [ 'SA' , 'founder', 'admin', 'member'],
-        user: ['SA','founder', 'admin', 'member'],
-        group: ['SA', 'founder' ,'admin'],
-        role: ['SA', 'founder', 'admin'],
+        user: {
+          id : ['SA','founder', 'admin', 'member'] ,
+          user_name : ['SA','founder', 'admin', 'member'] ,
+          nickname : ['SA','founder', 'admin', 'member'] ,
+          avatar_url : ['founder', 'admin', 'member']
+        },
+        group: {
+          id : ['SA'] ,
+          slug : ['SA'] ,
+          name : ['SA'] ,
+        },
+        role: ['SA', 'founder', 'admin','member'],
         updated_at: ['SA' ,'founder', 'admin'],
       },
-      dataBase: GroupMember,
+      dataBases: {
+        _main : GroupMember ,
+        user : User ,
+        group : Group ,
+      },
       dataSource : this.dataSource
 
     });
@@ -189,13 +205,14 @@ export class GroupMemberService {
       actor_allow_roles : [ Group_Member_Role.FOUNDER , Group_Member_Role.ADMIN ]
     } )
 
-    const select = this.filterByRoles.buildQuerySelectObject({
+    const { select , relations } = this.filterByLabels.buildQueryObject({
       label: requesterRole.toLowerCase(),
     });
 
     return this.groupMemberRepo.find({
       where: { group: { id: group_id } },
       select,
+      relations ,
       skip: (page - 1) * limit,
       take: limit,
       order: { created_at: 'DESC' },
@@ -348,24 +365,14 @@ export class GroupMemberService {
   async adminGetMany(input: { group_id: string; page: number; limit: number }) {
     const { group_id, page, limit } = input;
 
-    const select = this.filterByRoles.buildQuerySelectObject({
+    const { select ,relations } = this.filterByLabels.buildQueryObject({
       label: 'SA',
     });
 
     return this.groupMemberRepo.find({
       where: { group: { id: group_id } },
-      relations : { user : true } ,
-      select : {
-        ...select ,
-        user :  {
-          id : true ,
-          user_name : true,
-          nickname : true,
-        },
-        group : {
-          id : true,
-        }
-      },
+      relations  ,
+      select ,
       skip: (page - 1) * limit,
       take: limit,
       order: { created_at: 'ASC' },

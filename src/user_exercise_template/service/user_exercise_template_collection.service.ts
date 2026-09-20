@@ -18,7 +18,7 @@ import {User_Setting_Who_can_see_template} from "../../user/enums/user.enum.js";
 
 @Injectable()
 export class UserExerciseTemplateCollectionService {
-    private collectionFilterByRole: FilterDbField<UserExerciseTemplateCollection, string>;
+    filterByLabels: FilterDbField<UserExerciseTemplateCollection, string>;
 
     constructor(
         @InjectDataSource()
@@ -29,7 +29,7 @@ export class UserExerciseTemplateCollectionService {
         private readonly userService: UserService,
         private readonly friendshipService: FriendshipService,
     ) {
-        this.collectionFilterByRole =  FilterDbField.create({
+        this.filterByLabels =  FilterDbField.create({
             labels : [ 'SA' , 'me' ] ,
             fieldAndLabels: {
                 id: ['SA', 'me' ],
@@ -91,7 +91,7 @@ export class UserExerciseTemplateCollectionService {
     private async findOne(input: { condition: object; data_for: string }) {
         const { condition, data_for } = input;
 
-        const { select } = this.collectionFilterByRole.buildQueryObject({ label: data_for });
+        const { select } = this.filterByLabels.buildQueryObject({ label: data_for });
 
         const collection = await this.collectionRepo.findOne({
             where: condition,
@@ -112,7 +112,7 @@ export class UserExerciseTemplateCollectionService {
     }) {
         const { condition, data_for, page, limit } = input;
 
-        const {select} = this.collectionFilterByRole.buildQueryObject({ label: data_for });
+        const {select} = this.filterByLabels.buildQueryObject({ label: data_for });
 
         return this.collectionRepo.find({
             where: condition,

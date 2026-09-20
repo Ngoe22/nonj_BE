@@ -11,10 +11,11 @@ import {Friend_Request_Status, UpdateRequestFromReceiverEnum} from './enum/frien
 import { Transactional } from 'typeorm-transactional';
 import { UserService } from '../user/user.service.js';
 import {FriendshipService} from "../friendship/friendship.service.js";
+import {User} from "../user/entities/user.entity.js";
 
 @Injectable()
 export class FriendRequestService {
-  private friendReqFilterByRole: FilterDbField<FriendRequest>;
+  private filterByLabels: FilterDbField<FriendRequest, string>;
 
   constructor(
       @InjectDataSource()
@@ -24,16 +25,31 @@ export class FriendRequestService {
     private readonly userService: UserService,
     private readonly friendshipService: FriendshipService,
   ) {
-    this.friendReqFilterByRole = new FilterDbField({
-      keyAndLabels: {
-        id: ['admin', 'me'],
-        sender: ['admin', 'me'],
-        receiver: ['admin', 'me'],
-        status: ['admin', 'me'],
-        created_at: ['admin', 'me'],
-        updated_at: ['admin', 'me'],
+    this.filterByLabels =  FilterDbField.create({
+      labels :[  'SA' , 'outgoing_requests', 'ingoing_requests'] ,
+      fieldAndLabels: {
+        id: ['SA', 'outgoing_requests', 'ingoing_requests'],
+        sender: {
+          id :['SA', 'ingoing_requests'],
+          name : ['SA', 'ingoing_requests'],
+          user_name : ['SA', 'ingoing_requests'],
+          avatar_url : [ 'ingoing_requests']
+        } ,
+        receiver:  {
+          id :['SA', 'outgoing_requests'],
+          name : ['SA', 'outgoing_requests'],
+          user_name : ['SA', 'outgoing_requests'],
+          avatar_url : [ 'outgoing_requests']
+        },
+        status: ['SA', 'outgoing_requests', 'ingoing_requests'],
+        created_at: ['SA', 'outgoing_requests', 'ingoing_requests'],
+        updated_at: ['SA', 'outgoing_requests', 'ingoing_requests'],
       },
-      dataBase: FriendRequest,
+      dataBases: {
+        _main : FriendRequest ,
+        sender: User ,
+        receiver: User ,
+      },
       dataSource : this.dataSource ,
     });
   }
@@ -44,32 +60,19 @@ export class FriendRequestService {
     user_id: string;
     page: number;
     limit: number;
-    data_for_role: string;
     type: 'outgoing_requests' | 'ingoing_requests';
   }) {
-    const { user_id, page, limit, data_for_role, type } = input;
+    const { user_id, page, limit, type } = input;
 
-    const friendReqQueryObject =
-      this.friendReqFilterByRole.buildQuerySelectObject({
-        label: data_for_role,
-      });
-    const userQueryObject =
-      this.userService.userFilterByRole.buildQuerySelectObject({
-        label: 'not_friend',
+    const { relations , select } =
+      this.filterByLabels.buildQueryObject({
+        label: type,
       });
 
     const where =
       type === 'outgoing_requests'
         ? { sender: { id: user_id } , status : Friend_Request_Status.PENDING }
         : { receiver: { id: user_id } ,  status : Friend_Request_Status.PENDING };
-
-    const relations =
-      type === 'outgoing_requests' ? { receiver: true } : { sender: true };
-
-    const select =
-      type === 'outgoing_requests'
-        ? { ...friendReqQueryObject, receiver: userQueryObject }
-        : { ...friendReqQueryObject, sender: userQueryObject };
 
     return await this.requestRepo.find({
       where,
@@ -80,15 +83,36 @@ export class FriendRequestService {
     });
   }
 
+
+  // =========== Helper =================
+
+
+  //
+
+  async isPending(
+      requestId: string,
+      receiverId: string,
+  ): Promise<boolean> {
+    return this.requestRepo.exists({
+      where: {
+        receiver: { id: receiverId },
+        sender: { id: requestId },
+        status: Friend_Request_Status.PENDING,
+      },
+    });
+  }
+
+
+
   // =========== Create =================
 
-  async add_request(body: any) {
-    const { sender, receiver } = body;
+  async add_request(input : { sender_id : string  , receiver_id : string } ) {
+    const { sender_id, receiver_id } = input;
 
     // isPending
     const [pendingFromMe, pendingFromThem] = await Promise.all([
-      this.isPending(sender, receiver),
-      this.isPending(receiver, sender),
+      this.isPending(sender_id, receiver_id),
+      this.isPending(receiver_id, sender_id),
     ]);
     if (pendingFromMe || pendingFromThem) {
       throw new ConflictException({ errorCode: 'request_already_pending' });
@@ -96,16 +120,17 @@ export class FriendRequestService {
 
     // is already friend
     const is_friend = await this.friendshipService.isFriend({
-      user_id: sender,
-      friend_id: receiver,
+      user_id: sender_id,
+      friend_id: receiver_id,
     });
     if (is_friend === 'is')
       throw new ConflictException({ errorCode: 'already_friends' });
 
     // create request
-    await this.requestRepo.save(
-      FilterDbField.turnObjInfoToRelationObj(body, ['sender', 'receiver']),
-    );
+    await this.requestRepo.save({
+      sender : { id: sender_id },
+      receiver : { id: receiver_id },
+    });
 
     return true;
   }
@@ -162,10 +187,97 @@ export class FriendRequestService {
     return true;
   }
 
+  // ================================================
+  //              ADMIN
+  // ================================================
+
+  async admin_get_one_request(input: {
+    request_id: string;
+  }) {
+    const {request_id } = input;
+
+    const { relations , select } =
+        this.filterByLabels.buildQueryObject({
+          label: 'SA',
+        });
+
+    return await this.requestRepo.findOne({
+      where : { id : request_id },
+      relations,
+      select,
+    });
+  }
+
+
+
+  async admin_get_many_request(input: {
+    page: number;
+    limit: number;
+  }) {
+    const {  page, limit } = input;
+
+    const { relations , select } =
+        this.filterByLabels.buildQueryObject({
+          label: 'SA',
+        });
+
+    return await this.requestRepo.find({
+      where : {},
+      relations,
+      select,
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+  }
+
+  async admin_get_many_user_sending_request(input: {
+    sender_id: string;
+    page: number;
+    limit: number;
+  }) {
+    const { sender_id, page, limit } = input;
+
+    const { relations , select } =
+        this.filterByLabels.buildQueryObject({
+          label: 'SA',
+        });
+
+    return await this.requestRepo.find({
+      where : { sender : { id : sender_id}  },
+      relations,
+      select,
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+  }
+
+  async admin_get_many_user_receiving_request(input: {
+    receiver_id: string;
+    page: number;
+    limit: number;
+  }) {
+    const { receiver_id, page, limit } = input;
+
+    const { relations , select } =
+        this.filterByLabels.buildQueryObject({
+          label: 'SA',
+        });
+
+    return await this.requestRepo.find({
+      where : { receiver : { id : receiver_id}  },
+      relations,
+      select,
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+  }
+
+
+
   async admin_soft_delete(request_id: string) {
     const result = await this.requestRepo.update(
-      { id: request_id },
-      { deleted_at: new Date() },
+        { id: request_id },
+        { deleted_at: new Date() },
     );
     if (result.affected === 0) {
       throw new NotFoundException({ errorCode: 'request_not_found' });
@@ -173,16 +285,8 @@ export class FriendRequestService {
     return true;
   }
 
-   async isPending(
-    requestId: string,
-    receiverId: string,
-  ): Promise<boolean> {
-    return this.requestRepo.exists({
-      where: {
-        receiver: { id: receiverId },
-        sender: { id: requestId },
-        status: Friend_Request_Status.PENDING,
-      },
-    });
-  }
+
+
+
+
 }

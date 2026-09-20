@@ -27,7 +27,7 @@ export class Friendship extends BaseEntity {
   @JoinColumn({ name: 'friend_id', referencedColumnName: 'id' })
   user_friend: Relation<User>;
 
-  @ManyToOne(() => FriendRequest, (request) => request.friendship)
-  @JoinColumn({ name: 'source_request_id', referencedColumnName: 'id' })
+  @ManyToOne(() => FriendRequest, (request) => request.friendship,{ nullable: true  , onDelete: 'SET NULL' } )
+  @JoinColumn({ name: 'source_request_id', referencedColumnName: 'id'  })
   source_request: Relation<FriendRequest>;
 }

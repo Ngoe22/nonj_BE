@@ -8,6 +8,8 @@ import {GroupService} from "../group/group.service.js";
 import {GroupMemberService} from "../group_member/group_member.service.js";
 import {Transactional} from "typeorm-transactional";
 import {Group_Join_Request_Status_UPDATE} from "../../enum/group_join_request.enum.js";
+import {User} from "../../../user/entities/user.entity.js";
+import {Group} from "../../entities/group.entity.js";
 
 
 //======================================
@@ -15,7 +17,7 @@ import {Group_Join_Request_Status_UPDATE} from "../../enum/group_join_request.en
 
 @Injectable()
 export class GroupJoinRequestService {
-  private filterByRoles: FilterDbField<GroupJoinRequest>;
+  private filterByLabels: FilterDbField<GroupJoinRequest | User | Group, string>;
 
   constructor(
       @InjectDataSource()
@@ -27,17 +29,31 @@ export class GroupJoinRequestService {
     private readonly groupService: GroupService,
 
   ) {
-    this.filterByRoles = new FilterDbField({
-      keyAndLabels: {
-        id: ['SA' , 'founder', 'admin', 'member' , 'unjoin'],
-        sender: ['SA' ,'founder', 'admin', 'member' , 'unjoin'],
-        group: ['SA' ,'founder', 'admin', 'member' , 'unjoin'],
-        status: ['SA' ,'founder', 'admin', 'member' , 'unjoin'],
+    this.filterByLabels =  FilterDbField.create({
+      labels : ['SA' , 'founder', 'admin',  'pending'] ,
+      fieldAndLabels: {
+        id: ['SA' , 'founder', 'admin' , 'pending'],
+        sender: {
+          id : ['SA' , 'founder', 'admin'],
+          user_name : ['SA' , 'founder', 'admin'],
+          nickname : ['SA' , 'founder', 'admin'],
+          avatar_url : [ 'founder', 'admin'],
+        },
+        group: {
+          id : ['SA' ,'pending'],
+          slug : ['SA' ,'pending'],
+          name : ['SA' ,'pending'],
+        },
+        status: ['SA' ,'founder', 'admin',  'pending'],
         reviewer: ['SA' ],
         reviewed_at: ['SA' ],
-        created_at : ['SA' ,'founder', 'admin', 'member' , 'unjoin'],
+        created_at : ['SA' ,'founder', 'admin',  'pending'],
       },
-      dataBase: GroupJoinRequest,
+      dataBases: {
+        _main : GroupJoinRequest ,
+        sender : User ,
+        group : Group
+      },
       dataSource : this.dataSource
     });
   }
@@ -72,20 +88,12 @@ export class GroupJoinRequestService {
     });
 
     const role = actor_role.toLowerCase()
-    const select = this.filterByRoles.buildQuerySelectObject({ label: role });
+    const { select , relations } = this.filterByLabels.buildQueryObject({ label: role });
 
     return await this.groupJoinRequestRepo.find({
       where: { group: { id: group_id  }  , status : Group_Join_Request_Status.PENDING},
-      relations : { sender : true } ,
-      select : {
-        ...select ,
-        sender : {
-            id : true ,
-            user_name : true,
-            nickname : true,
-            avatar_url : true,
-        }
-      },
+      relations  ,
+      select ,
       skip: (page - 1) * limit,
       take: limit,
       order: { created_at: 'DESC' },
@@ -99,23 +107,15 @@ export class GroupJoinRequestService {
   }) {
     const { user_id, limit, page } = input;
 
-    const select = this.filterByRoles.buildQuerySelectObject({ label: 'unjoin' });
+    const { select , relations } = this.filterByLabels.buildQueryObject({ label: 'pending' });
 
     return await this.groupJoinRequestRepo.find({
       where: { sender: { id: user_id } },
-      relations : { group : true } ,
-      select : {
-        ...select ,
-        group : {
-          id   : true ,
-          name : true ,
-          slug : true ,
-        }
-      },
+      relations  ,
+      select ,
       skip: (page - 1) * limit,
       take: limit,
       order: { created_at: 'DESC' },
-
     });
   }
 
@@ -226,26 +226,14 @@ export class GroupJoinRequestService {
   async adminGetOne(input: { join_request_id: string }) {
     const { join_request_id } = input;
 
-    const select = this.filterByRoles.buildQuerySelectObject({
+    const { select , relations  } = this.filterByLabels.buildQueryObject({
       label: 'SA',
     });
 
     const request = await this.groupJoinRequestRepo.findOne({
       where: { id: join_request_id },
-      relations : { sender : true ,  group : true} ,
-      select : {
-        ...select ,
-        sender : {
-          id : true ,
-          user_name : true,
-          nickname : true,
-        } ,
-        group : {
-          id : true ,
-          slug : true,
-          name : true,
-        }
-      },
+      relations ,
+      select ,
     });
 
     if (!request)
@@ -259,21 +247,14 @@ export class GroupJoinRequestService {
   async adminGetMany(input: { group_id: string; limit: number; page: number }) {
     const { group_id, limit, page } = input;
 
-    const select = this.filterByRoles.buildQuerySelectObject({
+    const { select , relations  } = this.filterByLabels.buildQueryObject({
       label: 'SA',
     });
 
     return this.groupJoinRequestRepo.find({
       where: { group: { id: group_id } },
-      relations : { sender : true } ,
-      select : {
-        ...select ,
-        sender : {
-          id : true ,
-          user_name : true,
-          nickname : true,
-        }
-      },
+      relations ,
+      select ,
       skip: (page - 1) * limit,
       take: limit,
     });

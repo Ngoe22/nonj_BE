@@ -32,13 +32,9 @@ export class GroupController {
   searchOneBySlug(
     @GetRequesterInfo() requester: RequesterInfo,
     @Param('slug') slug: string,
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(20), ParseLimitPipe) limit: number,
   ) {
     return this.groupService.searchOneBySlug({
       slug,
-      page,
-      limit,
       requester_id: requester.id,
     });
   }
@@ -48,7 +44,7 @@ export class GroupController {
     @Param('name') name: string,
     @GetRequesterInfo() requester: RequesterInfo,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(10), ParseLimitPipe) limit: number,
+    @Query('limit', new DefaultValuePipe(8), ParseLimitPipe) limit: number,
   ) {
     return this.groupService.searchManyByName({
       name,

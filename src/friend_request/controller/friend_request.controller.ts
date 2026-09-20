@@ -12,7 +12,6 @@ import {
 } from '@nestjs/common';
 import { FriendRequestService } from '../friend_request.service.js';
 import {
-  CreateFriendRequestDto,
   UpdateRequestFromReceiverDto,
 } from '../dto/friend_request.dto.js';
 import { GetRequesterInfo } from '../../_common/decorators/param/request_payload.decorator.js';
@@ -24,14 +23,18 @@ import { ParseLimitPipe } from '../../_common/pipe/ParseLimitPipe.js';
 export class FriendRequestController {
   constructor(private readonly friendRequestService: FriendRequestService) {}
 
-  @Post()
+
+
+
+  @Post(':receiver_id')
   create(
-    @Body() body: CreateFriendRequestDto,
+    @Param('receiver_id') receiver_id: string,
     @GetRequesterInfo() user: RequesterInfo,
   ) {
     return this.friendRequestService.add_request({
-      ...body,
-      sender: user.id,
+
+      sender_id: user.id,
+      receiver_id,
     });
   }
 
@@ -45,7 +48,6 @@ export class FriendRequestController {
       user_id: user.id,
       limit,
       page,
-      data_for_role : 'me' ,
       type :"outgoing_requests"
     }  );
   }
@@ -60,7 +62,6 @@ export class FriendRequestController {
       user_id: user.id,
       limit,
       page,
-      data_for_role : 'me' ,
       type :"ingoing_requests"
     } );
   }

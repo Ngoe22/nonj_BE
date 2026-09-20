@@ -14,6 +14,7 @@ import {User} from "../user/entities/user.entity.js";
 
 @Injectable()
 export class FriendshipService {
+  private friendShipFilterByRole: FilterDbField<Friendship | User, string>;
 
   constructor(
     @InjectDataSource()
@@ -37,7 +38,7 @@ export class FriendshipService {
           user_name : ['SA', 'me'],
           avatar_url : [ 'me'],
         } ,
-        created_at: ['SA'],
+        created_at: ['SA' , 'me'],
         updated_at: ['SA', 'me'],
         deleted_at: ['SA'],
       },
@@ -47,7 +48,9 @@ export class FriendshipService {
         user_friend : User
       },
       dataSource: this.dataSource,
-
+      FE_permission : {
+        undefined : ['me']
+      }
     });
   }
 
@@ -55,20 +58,12 @@ export class FriendshipService {
 
   async getMany(input: { user_id: string; page: number; limit: number }) {
     const { user_id, page, limit } = input;
-
-    const user_select_obj =
-      this.userService.userFilterByRole.buildQuerySelectObject({
-        label: 'not_friend',
-      });
+    const { select , relations } = this.friendShipFilterByRole.buildQueryObject({label:'me'})
 
     return this.friendshipRepo.find({
       where: { user: { id: user_id } },
-      relations: { user_friend: true },
-      select: {
-        id: true,
-        created_at: true,
-        user_friend: user_select_obj,
-      },
+      relations ,
+      select ,
       order: { created_at: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
@@ -77,40 +72,38 @@ export class FriendshipService {
 
   // ================= Search friend
 
-  async searchUserName(input: {
+  async searchUserName(input: {  // search One
     requester_id: string;
     search_target_username: string;
   }){
 
-
-
     const { info , is_friend } = await this.userService.getOtherInfoByUserName(input);
 
-    const FE_permission = {
+    const permission = {
       add_friend: false,
       cancel_request_friend: false,
+      accept_request_friend: false,
       unfriend: false,
     }
 
 
     if (!is_friend) {
-      const isPending = await this.friendRequestService.isPending(input.requester_id, info.id);
+      const amISending = await this.friendRequestService.isPending(input.requester_id, info.id);
+      const amIReceiving = await this.friendRequestService.isPending(info.id, input.requester_id);
 
-      if (isPending) {
-        FE_permission.cancel_request_friend = true;
-        return { ...info , is_friend , FE_permission  };
+
+      if (amISending) {
+        permission.cancel_request_friend = true
+      }  else if (amIReceiving) {
+        permission.accept_request_friend = true
       } else {
-        FE_permission.add_friend = true;
-        return { ...info , is_friend , FE_permission  };
+          permission.add_friend = true;
       }
     } else  {
-      FE_permission.unfriend = true;
-      return { ...info , is_friend , FE_permission  };
+      permission.unfriend = true;
     }
 
-
-
-
+    return { ...info , is_friend , permission  };
 
   };
 
@@ -137,26 +130,19 @@ export class FriendshipService {
     friend_id: string;
     source_request: string;
   }) {
-    const saveInfo1 = FilterDbField.turnObjInfoToRelationObj(
-      {
-        user: body.user_id,
-        user_friend: body.friend_id,
-        source_request: body.source_request,
-      },
-      ['user', 'user_friend', 'source_request'],
-    );
 
-    const saveInfo2 = FilterDbField.turnObjInfoToRelationObj(
-      {
-        user: body.friend_id,
-        user_friend: body.user_id,
-        source_request: body.source_request,
-      },
-      ['user', 'user_friend', 'source_request'],
-    );
+    const  {  user_id, friend_id , source_request } = body;
 
-    await this.friendshipRepo.save(saveInfo1);
-    await this.friendshipRepo.save(saveInfo2);
+    await this.friendshipRepo.save({
+      user :  { id : user_id } ,
+      user_friend : { id  : friend_id } ,
+      source_request : { id : source_request },
+    });
+    await this.friendshipRepo.save({
+      user :  { id : friend_id } ,
+      user_friend : { id  : user_id } ,
+      source_request : { id : source_request },
+    });
 
     return true;
   }

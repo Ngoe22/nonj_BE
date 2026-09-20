@@ -95,7 +95,7 @@ export class FilterDbField<T extends ObjectLiteral, L extends string> {
 
   buildQueryObject(input: { label: L }) {
     const select: Record<string, boolean> = {};
-    const relation: Record<string, boolean | Record<string, boolean>> = {};
+    const relations: Record<string, boolean | Record<string, boolean>> = {};
     const { label } = input;
 
     Object.entries(this.keyAndLabels).forEach(([field, value]) => {
@@ -107,13 +107,13 @@ export class FilterDbField<T extends ObjectLiteral, L extends string> {
           if (relationSet.has(label)) relationQueries[relationKey] = true;
         });
         if (Object.keys(relationQueries).length > 0) {
-          relation[field] = relationQueries;
+          relations[field] = relationQueries;
         }
       }
     });
 
     const permission = this.getLabelPermission(label);
-    return { select, relation, permission };
+    return { select, relations, permission };
   }
 
   filterDataOfQueryResult(input: {

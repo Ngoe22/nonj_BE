@@ -11,9 +11,9 @@ export class UpdateRequestFromReceiverDto {
 }
 
 
-export class CreateFriendRequestDto {
-
-  @IsUUID()
-  friend_request_receiver:string;
-}
+// export class CreateFriendRequestDto {
+//
+//   @IsUUID()
+//   friend_request_receiver:string;
+// }
 

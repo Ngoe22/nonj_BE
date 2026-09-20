@@ -18,7 +18,7 @@ import {User_Setting_Who_can_see_template} from "../../user/enums/user.enum.js";
 
 @Injectable()
 export class UserExerciseTemplateCollectionService {
-    collectionFilterByRole: FilterDbField<UserExerciseTemplateCollection>;
+    private collectionFilterByRole: FilterDbField<UserExerciseTemplateCollection, string>;
 
     constructor(
         @InjectDataSource()
@@ -29,14 +29,22 @@ export class UserExerciseTemplateCollectionService {
         private readonly userService: UserService,
         private readonly friendshipService: FriendshipService,
     ) {
-        this.collectionFilterByRole = new FilterDbField({
-            keyAndLabels: {
-                id: ['SA', 'me', 'other'],
-                title: ['SA', 'me', 'other'],
-                desc : ['SA', 'me', 'other'],
+        this.collectionFilterByRole =  FilterDbField.create({
+            labels : [ 'SA' , 'me' ] ,
+            fieldAndLabels: {
+                id: ['SA', 'me' ],
+                title: ['SA', 'me' ],
+                desc : ['SA', 'me'],
             },
-            dataBase: UserExerciseTemplateCollection,
-            dataSource : this.dataSource
+            dataBases: {
+                _main : UserExerciseTemplateCollection
+            },
+            dataSource : this.dataSource ,
+            FE_permission : {
+                create : [ 'me' ] ,
+                update : [ 'me' ] ,
+                delete : [ 'me' ] ,
+            }
         });
     }
 
@@ -83,17 +91,16 @@ export class UserExerciseTemplateCollectionService {
     private async findOne(input: { condition: object; data_for: string }) {
         const { condition, data_for } = input;
 
-        const selects = this.collectionFilterByRole.buildQuerySelectObject({ label: data_for });
+        const { select } = this.collectionFilterByRole.buildQueryObject({ label: data_for });
 
         const collection = await this.collectionRepo.findOne({
             where: condition,
-            select: selects,
+            select,
         });
 
         if (!collection) {
             throw new NotFoundException({ errorCode: 'collection_not_found' });
         }
-
         return collection;
     }
 
@@ -105,11 +112,11 @@ export class UserExerciseTemplateCollectionService {
     }) {
         const { condition, data_for, page, limit } = input;
 
-        const selects = this.collectionFilterByRole.buildQuerySelectObject({ label: data_for });
+        const {select} = this.collectionFilterByRole.buildQueryObject({ label: data_for });
 
         return this.collectionRepo.find({
             where: condition,
-            select: selects,
+            select,
             skip: (page - 1) * limit,
             take: limit,
             order: { created_at: 'DESC' },
@@ -129,25 +136,6 @@ export class UserExerciseTemplateCollectionService {
         });
     }
 
-    async findFromUser(input: {
-        collection_id: string;
-        owner_id: string;
-        requester_id: string;
-    }) {
-        const { collection_id, owner_id, requester_id } = input;
-
-        if (owner_id === requester_id) {
-            return this.findMine({ collection_id, user_id: requester_id });
-        }
-
-        await this.checkViewPermission({ owner_id, requester_id });
-
-        return this.findOne({
-            condition: { id: collection_id, user: { id: owner_id } },
-            data_for: 'other',
-        });
-    }
-
     // ==================== Get - Many ====================
 
 
@@ -156,28 +144,6 @@ export class UserExerciseTemplateCollectionService {
         return this.findMany({
             condition: { user: { id: user_id } },
             data_for: 'me',
-            page,
-            limit,
-        });
-    }
-
-    async findManyFromUser(input: {
-        owner_id: string;
-        requester_id: string;
-        page: number;
-        limit: number;
-    }) {
-        const { owner_id, requester_id, page, limit } = input;
-
-        if (owner_id === requester_id) {
-            return this.findManyMine({ user_id: requester_id, page, limit });
-        }
-
-        await this.checkViewPermission({ owner_id, requester_id });
-
-        return this.findMany({
-            condition: { user: { id: owner_id } },
-            data_for: 'other',
             page,
             limit,
         });
@@ -227,10 +193,6 @@ export class UserExerciseTemplateCollectionService {
     }
 
 
-
-
-
-
     // ==============================================================
     //                             ADMIN
     // ==============================================================
@@ -262,7 +224,6 @@ export class UserExerciseTemplateCollectionService {
 
         if (result.affected === 0)
             throw new NotFoundException({ errorCode: 'collection_not_found' });
-
         return true;
     }
 
@@ -282,3 +243,49 @@ export class UserExerciseTemplateCollectionService {
     }
 
 }
+
+//=================================
+
+// stop - temp
+// async findFromUser(input: {
+//     collection_id: string;
+//     owner_id: string;
+//     requester_id: string;
+// }) {
+//     const { collection_id, owner_id, requester_id } = input;
+//
+//     if (owner_id === requester_id) {
+//         return this.findMine({ collection_id, user_id: requester_id });
+//     }
+//
+//     await this.checkViewPermission({ owner_id, requester_id });
+//
+//     return this.findOne({
+//         condition: { id: collection_id, user: { id: owner_id } },
+//         data_for: 'other',
+//     });
+// }
+
+
+
+// async findManyFromUser(input: {
+//     owner_id: string;
+//     requester_id: string;
+//     page: number;
+//     limit: number;
+// }) {
+//     const { owner_id, requester_id, page, limit } = input;
+//
+//     if (owner_id === requester_id) {
+//         return this.findManyMine({ user_id: requester_id, page, limit });
+//     }
+//
+//     await this.checkViewPermission({ owner_id, requester_id });
+//
+//     return this.findMany({
+//         condition: { user: { id: owner_id } },
+//         data_for: 'other',
+//         page,
+//         limit,
+//     });
+// }

@@ -135,7 +135,7 @@ export class UserService {
     const output = this.userFilterByRole.filterDataOfQueryResult( {object : user , label } );
     output.is_firend = isFriend
 
-    return output
+    return {  info : output , is_friend: isFriend }
   }
 
   async getMyInfo( user_id : string ) {

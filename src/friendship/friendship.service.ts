@@ -5,13 +5,15 @@ import {Friendship} from "./entities/friendship.entity.js";
 import {FilterDbField} from "../_common/helper/filterQueryForRole.js";
 import {Transactional} from "typeorm-transactional";
 import {UserService} from "../user/user.service.js";
+import {FriendRequest} from "../friend_request/entities/friend_request.entity.js";
+import {FriendRequestService} from "../friend_request/friend_request.service.js";
+import {User} from "../user/entities/user.entity.js";
 
 
 // ======================================================================
 
 @Injectable()
 export class FriendshipService {
-  friendShipFilterByRole: FilterDbField<Friendship>;
 
   constructor(
     @InjectDataSource()
@@ -20,18 +22,32 @@ export class FriendshipService {
     private readonly friendshipRepo: Repository<Friendship>,
     @InjectDataSource()
     private readonly userService: UserService,
+    @InjectDataSource()
+    private readonly friendRequestService: FriendRequestService,
   ) {
-    this.friendShipFilterByRole = new FilterDbField({
-      keyAndLabels: {
-        id: ['admin', 'me'],
-        user: ['admin', 'me'],
-        user_friend: ['admin', 'me'],
-        created_at: ['admin'],
-        updated_at: ['admin', 'me'],
-        deleted_at: ['admin'],
+    this.friendShipFilterByRole =  FilterDbField.create({
+
+      labels : [ 'SA' , 'me' , 'friend' ] ,
+      fieldAndLabels: {
+        id: ['SA', 'me'],
+        user: ['SA',],
+        user_friend: {
+          id : ['SA', 'me'],
+          name : ['SA', 'me'],
+          user_name : ['SA', 'me'],
+          avatar_url : [ 'me'],
+        } ,
+        created_at: ['SA'],
+        updated_at: ['SA', 'me'],
+        deleted_at: ['SA'],
       },
-      dataBase: Friendship,
+      dataBases: {
+        _main: Friendship ,
+        user : User ,
+        user_friend : User
+      },
       dataSource: this.dataSource,
+
     });
   }
 
@@ -65,7 +81,37 @@ export class FriendshipService {
     requester_id: string;
     search_target_username: string;
   }){
-    return this.userService.getOtherInfoByUserName(input);
+
+
+
+    const { info , is_friend } = await this.userService.getOtherInfoByUserName(input);
+
+    const FE_permission = {
+      add_friend: false,
+      cancel_request_friend: false,
+      unfriend: false,
+    }
+
+
+    if (!is_friend) {
+      const isPending = await this.friendRequestService.isPending(input.requester_id, info.id);
+
+      if (isPending) {
+        FE_permission.cancel_request_friend = true;
+        return { ...info , is_friend , FE_permission  };
+      } else {
+        FE_permission.add_friend = true;
+        return { ...info , is_friend , FE_permission  };
+      }
+    } else  {
+      FE_permission.unfriend = true;
+      return { ...info , is_friend , FE_permission  };
+    }
+
+
+
+
+
   };
 
   // ==================== Create ====================

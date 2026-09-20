@@ -173,7 +173,7 @@ export class FriendRequestService {
     return true;
   }
 
-  private async isPending(
+   async isPending(
     requestId: string,
     receiverId: string,
   ): Promise<boolean> {

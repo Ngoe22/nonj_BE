@@ -33,7 +33,7 @@ export class FriendshipService {
         user: ['SA',],
         user_friend: {
           id : ['SA', 'me'],
-          name : ['SA', 'me'],
+          nickname : ['SA', 'me'],
           user_name : ['SA', 'me'],
           avatar_url : [ 'me'],
         } ,

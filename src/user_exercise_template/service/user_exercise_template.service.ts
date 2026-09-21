@@ -56,7 +56,7 @@ export class UserExerciseTemplateService {
         exercise_content: ['SA', 'me'],
         collection: {
           id: ['SA'],
-          name: ['SA'],
+          title: ['SA'],
         },
         user: {
           id :['SA'],

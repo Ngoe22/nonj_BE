@@ -72,7 +72,7 @@ export class FilterDbField<T extends ObjectLiteral, L extends string> {
           Object.entries(mainLabels).map(([relationKey, relationLabels]) => {
             if (!AllDbColumns[mainKey]?.has(relationKey)) {
               throw new Error(
-                `server: FilterDbField created fail - input relation key (${relationKey}) not in database column.`,
+                `server: FilterDbField created fail - ${mainKey} relation key (${relationKey}) not in database column.`,
               );
             }
             return [relationKey, new Set(relationLabels)];

@@ -7,6 +7,6 @@ import { RefreshTokenGuard } from './refresh_token_guard.service.js';
 @Module({
   imports: [RefreshTokenModule],
   providers: [AccessTokenGuard , RefreshTokenGuard],
-  exports: [AccessTokenGuard, RefreshTokenGuard], // để module khác dùng lại được nếu cần
+  exports: [AccessTokenGuard, RefreshTokenGuard],
 })
 export class TokenGuardModule {}

@@ -32,13 +32,13 @@ export class FriendRequestService {
         id: ['SA', 'outgoing_requests', 'ingoing_requests'],
         sender: {
           id :['SA', 'ingoing_requests'],
-          name : ['SA', 'ingoing_requests'],
+          nickname : ['SA', 'ingoing_requests'],
           user_name : ['SA', 'ingoing_requests'],
           avatar_url : [ 'ingoing_requests']
         } ,
         receiver:  {
           id :['SA', 'outgoing_requests'],
-          name : ['SA', 'outgoing_requests'],
+          nickname : ['SA', 'outgoing_requests'],
           user_name : ['SA', 'outgoing_requests'],
           avatar_url : [ 'outgoing_requests']
         },

@@ -59,7 +59,7 @@ export class PostService {
         },
         post_collection: {
           id : ['SA'] ,
-          name : ['SA' ],
+          title : ['SA' ],
         },
       },
       dataBases: {

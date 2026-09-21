@@ -1,57 +1,58 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { JwtService, TokenExpiredError } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
+import { FindOptionsWhere, Repository } from 'typeorm';
+import { Transactional } from 'typeorm-transactional';
+
 import { User } from '../user/entities/user.entity.js';
 import type { RequesterInfo } from '../_common/types/request.js';
-import { JwtService, TokenExpiredError } from '@nestjs/jwt';
 import { RefreshToken } from './entities/refresh_token.entity.js';
-import { FindOptionsWhere, Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
 import { projectBcrypt } from '../_common/helper/customBcrypt.js';
-import { Transactional } from 'typeorm-transactional';
-import { UUID } from 'node:crypto';
-import {ACCESS_TOKEN_TTL_JWT, REFRESH_TOKEN_TTL_JWT, REFRESH_TOKEN_TTL_MS} from "../_common/constants/auth.constant.js";
+import {
+  ACCESS_TOKEN_TTL_JWT,
+  REFRESH_TOKEN_TTL_JWT,
+  REFRESH_TOKEN_TTL_MS,
+} from '../_common/constants/auth.constant.js';
 
-
-// =====================================================================================
-
-
-
+const ROTATE_THRESHOLD_MS = 24 * 60 * 60 * 1000; // 24h
 
 @Injectable()
 export class TokenService {
   constructor(
-    private readonly jwtService: JwtService,
-    @InjectRepository(RefreshToken)
-    private readonly refreshRepository: Repository<RefreshToken>,
+      private readonly jwtService: JwtService,
+      @InjectRepository(RefreshToken)
+      private readonly refreshRepository: Repository<RefreshToken>,
   ) {}
 
   // ============================ handle token ============================
 
   async validateToken(
-    token: string,
-    type: 'access' | 'refresh',
+      token: string,
+      type: 'access' | 'refresh',
   ): Promise<RequesterInfo> {
     const secret =
-      type === 'access'
-        ? process.env.JWT_ACCESS_SECRET
-        : process.env.JWT_REFRESH_SECRET;
+        type === 'access'
+            ? process.env.JWT_ACCESS_SECRET
+            : process.env.JWT_REFRESH_SECRET;
+
     try {
       const { iat, exp, ...output } = await this.jwtService.verifyAsync(token, {
         secret,
       });
-      return output; // return payload = user info
+      return output;
     } catch (error) {
       const errorCode =
-        error instanceof TokenExpiredError
-          ? `${type}_token_expired`
-          : `${type}_token_invalid`;
+          error instanceof TokenExpiredError
+              ? `${type}_token_expired`
+              : `${type}_token_invalid`;
       throw new UnauthorizedException({ errorCode });
     }
   }
 
-  //
+  // ============================ generate ============================
+
   @Transactional()
   async generateTokens(payload: RequesterInfo) {
-
     const accessToken = await this.generateToken(payload, 'access');
     const refreshToken = await this.generateToken(payload, 'refresh');
 
@@ -64,50 +65,96 @@ export class TokenService {
     return { accessToken, refreshToken };
   }
 
-
-
+  /**
+   * Refresh flow:
+   *  - Nếu refresh token còn > 24h → giữ nguyên refresh, chỉ cấp access mới (jti giữ nguyên)
+   *  - Nếu refresh token còn ≤ 24h → rotate: xoá cũ, tạo mới, LƯU MỚI vào DB
+   *  - jti LUÔN dùng chung giữa access & refresh trong cùng 1 phiên
+   *    → logout "one" dùng jti access vẫn xoá được refresh token
+   */
   @Transactional()
   async regetAccessToken(oldRefreshToken: string) {
     const oldPayload = await this.validateToken(oldRefreshToken, 'refresh');
 
-    await this.checkTokenInDB({
+    const stored = await this.checkTokenInDB({
       user_id: oldPayload.id,
       jti: oldPayload.jti,
       refreshToken: oldRefreshToken,
     });
 
-    // delete old refresh
-    await this.deleteRefreshTokenFromDB({
-      jti: oldPayload.jti,
-      user_id: oldPayload.id,
-    });
+    const now = Date.now();
+    const expiresAt = new Date(stored.expires_at).getTime();
 
-    oldPayload.jti = crypto.randomUUID(); // update old payload
-    const { accessToken, refreshToken } = await this.generateTokens(oldPayload);
-    // saved new refresh generateTokens
+    let newRefreshToken = oldRefreshToken;
+    let currentJti = oldPayload.jti;
 
-    return { accessToken, refreshToken };
+    // rotate nếu còn dưới 24h
+    if (expiresAt - now < ROTATE_THRESHOLD_MS) {
+      // 1. xoá refresh token cũ khỏi DB
+      await this.deleteRefreshTokenFromDB({
+        jti: oldPayload.jti,
+        user_id: oldPayload.id,
+      });
+
+      // 2. jti mới — dùng chung cho cả access & refresh
+      currentJti = crypto.randomUUID();
+
+      // 3. tạo refresh token mới
+      newRefreshToken = await this.generateToken(
+          { ...oldPayload, jti: currentJti },
+          'refresh',
+      );
+
+      // 4. ✅ LƯU refresh token mới vào DB (bug cũ: thiếu bước này)
+      await this.saveRefreshTokenToDB({
+        refreshToken: newRefreshToken,
+        user_id: oldPayload.id,
+        jti: currentJti,
+      });
+    }
+
+    // 5. access token mới — dùng cùng jti với refresh hiện tại
+    const newAccessToken = await this.generateToken(
+        { ...oldPayload, jti: currentJti },
+        'access',
+    );
+
+    return { newAccessToken, newRefreshToken };
   }
 
-
-
-  // ==== to  ===========================
-
-
+  // ============================ helpers ============================
 
   getPayloadFromUer(user: User) {
     return {
       id: user.id,
       user_name: user.user_name,
-      role: user.role   ,
+      role: user.role,
     };
   }
+
+  async generateToken(
+      payload: RequesterInfo,
+      tokenType: 'access' | 'refresh',
+  ) {
+    const secret =
+        tokenType === 'access'
+            ? process.env.JWT_ACCESS_SECRET
+            : process.env.JWT_REFRESH_SECRET;
+    const expiresIn =
+        tokenType === 'access' ? ACCESS_TOKEN_TTL_JWT : REFRESH_TOKEN_TTL_JWT;
+
+    if (!secret) throw new Error(`Missing JWT secret for ${tokenType} token`);
+
+    return this.jwtService.signAsync(payload, { secret, expiresIn });
+  }
+
+  // ============================ DB ============================
 
   private async checkTokenInDB(data: {
     jti: string;
     user_id: string;
     refreshToken: string;
-  }) {
+  }): Promise<RefreshToken> {
     const { user_id, jti, refreshToken } = data;
 
     const stored = await this.refreshRepository.findOne({
@@ -121,32 +168,16 @@ export class TokenService {
       throw new UnauthorizedException({ errorCode: 'refresh_token_expired' });
 
     const isMatch = await projectBcrypt.compare(
-      refreshToken,
-      stored.token_hash,
+        refreshToken,
+        stored.token_hash,
     );
     if (!isMatch)
       throw new UnauthorizedException({ errorCode: 'refresh_token_not_found' });
 
-    return true;
+    return stored;
   }
 
-
-
-  private async generateToken(
-      payload: RequesterInfo,
-      tokenType: 'access' | 'refresh',
-  ) {
-    const secret = tokenType === 'access' ? process.env.JWT_ACCESS_SECRET : process.env.JWT_REFRESH_SECRET;
-    const expiresIn = tokenType === 'access' ? ACCESS_TOKEN_TTL_JWT : REFRESH_TOKEN_TTL_JWT;
-
-    if (!secret) throw new Error(`Missing JWT secret for ${tokenType} token`);
-
-    return this.jwtService.signAsync(payload, { secret, expiresIn });
-  }
-
-  // ==== to DB ===========================
-
-  private async saveRefreshTokenToDB(data: {
+  async saveRefreshTokenToDB(data: {
     refreshToken: string;
     user_id: string;
     jti: string;
@@ -164,8 +195,10 @@ export class TokenService {
     const where: FindOptionsWhere<RefreshToken> = {
       user: { id: input.user_id },
     };
-    if (input.jti) where.jti = input.jti;
-     await this.refreshRepository.delete(where);
-     return true
+    // ✅ dùng !== undefined để phân biệt "không truyền jti" vs "jti rỗng"
+    if (input.jti !== undefined) where.jti = input.jti;
+
+    await this.refreshRepository.delete(where);
+    return true;
   }
 }

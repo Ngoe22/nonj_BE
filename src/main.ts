@@ -53,7 +53,6 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalInterceptors(new TransformInterceptor());
 
-
   // cookie
   app.use(cookieParser());
   app.enableCors({

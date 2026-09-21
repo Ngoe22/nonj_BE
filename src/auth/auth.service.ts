@@ -17,24 +17,19 @@ export class AuthService {
       private readonly userService: UserService,
   ) {}
 
-  // ============================ register ============================
-
   @Transactional()
   async register(body: CreateUserDto) {
     body.password = await projectBcrypt.encode(body.password);
 
     const info = await this.userService.creatUser(body);
 
-    const payload = {
+    const tokens = await this.tokenService.generateTokens({
       ...this.tokenService.getPayloadFromUer(info as User),
       jti: crypto.randomUUID(),
-    };
+    });
 
-    const token = await this.tokenService.generateTokens(payload);
-    return { info, ...token };
+    return { info, ...tokens };
   }
-
-  // ============================ login ============================
 
   async login(loginInfo: LoginDto) {
     const user = await this.userService.getInfoForEmailLogin(loginInfo.email);
@@ -49,22 +44,19 @@ export class AuthService {
     if (user.status === User_Status.BANNED)
       throw new NotFoundException({ errorCode: 'banned_account' });
 
-    const token = await this.tokenService.generateTokens({
+    const tokens = await this.tokenService.generateTokens({
       ...this.tokenService.getPayloadFromUer(user),
       jti: crypto.randomUUID(),
     });
 
     const { password, role, status, ...safeUser } = user;
-    return { info: safeUser, ...token };
+    return { info: safeUser, ...tokens };
   }
-
-  // ============================ logout ============================
 
   async logout(tokenPayload: RequesterInfo, range: 'one' | 'all') {
     const deleteTarget: { user_id: string; jti?: string } = {
       user_id: tokenPayload.id,
     };
-    // ✅ chỉ set jti khi logout "one" → logout "all" xoá hết theo user
     if (range === 'one') deleteTarget.jti = tokenPayload.jti;
 
     return await this.tokenService.deleteRefreshTokenFromDB(deleteTarget);

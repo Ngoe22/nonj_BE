@@ -24,7 +24,7 @@ export class TokenService {
       private readonly refreshRepository: Repository<RefreshToken>,
   ) {}
 
-  // ============================ handle token ============================
+  // ============================ validate ============================
 
   async validateToken(
       token: string,
@@ -67,10 +67,9 @@ export class TokenService {
 
   /**
    * Refresh flow:
-   *  - Nếu refresh token còn > 24h → giữ nguyên refresh, chỉ cấp access mới (jti giữ nguyên)
-   *  - Nếu refresh token còn ≤ 24h → rotate: xoá cũ, tạo mới, LƯU MỚI vào DB
-   *  - jti LUÔN dùng chung giữa access & refresh trong cùng 1 phiên
-   *    → logout "one" dùng jti access vẫn xoá được refresh token
+   *  - Nếu refresh token còn > 24h → cấp access mới, giữ nguyên refresh (jti giữ nguyên)
+   *  - Nếu còn ≤ 24h → rotate: xoá cũ, tạo mới, LƯU MỚI vào DB
+   *  - jti dùng chung giữa access & refresh trong cùng phiên
    */
   @Transactional()
   async regetAccessToken(oldRefreshToken: string) {
@@ -88,24 +87,19 @@ export class TokenService {
     let newRefreshToken = oldRefreshToken;
     let currentJti = oldPayload.jti;
 
-    // rotate nếu còn dưới 24h
     if (expiresAt - now < ROTATE_THRESHOLD_MS) {
-      // 1. xoá refresh token cũ khỏi DB
       await this.deleteRefreshTokenFromDB({
         jti: oldPayload.jti,
         user_id: oldPayload.id,
       });
 
-      // 2. jti mới — dùng chung cho cả access & refresh
       currentJti = crypto.randomUUID();
 
-      // 3. tạo refresh token mới
       newRefreshToken = await this.generateToken(
           { ...oldPayload, jti: currentJti },
           'refresh',
       );
 
-      // 4. ✅ LƯU refresh token mới vào DB (bug cũ: thiếu bước này)
       await this.saveRefreshTokenToDB({
         refreshToken: newRefreshToken,
         user_id: oldPayload.id,
@@ -113,7 +107,6 @@ export class TokenService {
       });
     }
 
-    // 5. access token mới — dùng cùng jti với refresh hiện tại
     const newAccessToken = await this.generateToken(
         { ...oldPayload, jti: currentJti },
         'access',
@@ -195,7 +188,6 @@ export class TokenService {
     const where: FindOptionsWhere<RefreshToken> = {
       user: { id: input.user_id },
     };
-    // ✅ dùng !== undefined để phân biệt "không truyền jti" vs "jti rỗng"
     if (input.jti !== undefined) where.jti = input.jti;
 
     await this.refreshRepository.delete(where);

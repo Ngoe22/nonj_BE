@@ -1,13 +1,13 @@
-import { Group } from '../../entities/group.entity.js';
+import {Group} from '../../entities/group.entity.js';
 import {InjectDataSource, InjectRepository} from '@nestjs/typeorm';
-import {DataSource, In, IsNull, Repository} from 'typeorm';
-import { GroupMemberService } from '../group_member/group_member.service.js';
-import { FilterDbField } from '../../../_common/helper/filterQueryForRole.js';
-import { CreateGroupDto, UpdateGroupDto } from '../../dto/group.dto.js';
-import { Transactional } from 'typeorm-transactional';
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { Group_Member_Role, Group_View_Mode } from '../../enum/group.enum.js';
+import {DataSource, IsNull, Repository} from 'typeorm';
+import {GroupMemberService} from '../group_member/group_member.service.js';
+import {FilterDbField} from '../../../_common/helper/filterQueryForRole.js';
+import {CreateGroupDto, UpdateGroupDto} from '../../dto/group.dto.js';
+import {Transactional} from 'typeorm-transactional';
+import {Injectable, NotFoundException} from '@nestjs/common';
 import {User} from "../../../user/entities/user.entity.js";
+import {GroupMember} from "../../entities/group_member.entity.js";
 
 //====================================================================
 
@@ -38,13 +38,25 @@ export class GroupService {
         join_mode: ['SA' ,'member', 'unjoin', 'admin', 'founder', 'setting'],
         view_mode: ['SA' ,'member', 'unjoin', 'admin', 'founder', 'setting'],
         created_at: ['SA' ,'member', 'admin', 'founder' , 'member'],
+
+        group_member : {
+          role : ['member', 'admin', 'founder' ]
+        }
       },
       dataBases: {
         _main : Group,
         founder : User ,
+        group_member : GroupMember
       },
-      dataSource : this.dataSource
-
+      dataSource : this.dataSource ,
+      FE_permission : {
+        view_setting: [ 'founder' ],
+        view_join_req : [ 'founder' ],
+        view_member : [ 'founder' ,'admin' ],
+        edit_setting: [ 'founder' ],
+        able_to_leave : [ 'member' ,'admin' ],
+        able_to_delete : [ 'founder' ],
+      }
     });
   }
 
@@ -190,22 +202,21 @@ export class GroupService {
             'gm.user_id = :requester_id AND gm.deleted_at IS NULL',
             { requester_id },
         )
-        .select(selectArray)                       // mảng string, mỗi phần tử có AS alias
+        .select(selectArray)
         .addSelect(
             'CASE WHEN gm.id IS NOT NULL THEN true ELSE false END',
             'is_joined',
         )
         .where('g.name ILIKE :name', { name: `%${name}%` })
         .andWhere('g.deleted_at IS NULL')
-        .orderBy('g.created_at', 'DESC')           // bắt buộc khi phân trang raw
-        .offset((page - 1) * limit)                // 👈 thay skip
-        .limit(limit)                              // 👈 thay take
+        .orderBy('g.created_at', 'DESC')
+        .offset((page - 1) * limit)
+        .limit(limit)
         .getRawMany();
-
-
   }
 
   // personal
+
 
   async findMyOwnMany(input: {
     requester_id: string;
@@ -214,12 +225,18 @@ export class GroupService {
   }) {
     const { requester_id, page, limit } = input;
 
-    return this.findMany({
+    const  { select , relations } = this.filterByLabels.buildQueryObject({ label:'founder' })
+    const result = await this.groupRepo.find({
       where: { founder: { id: requester_id } },
-      label: 'founder',
-      page,
-      limit,
+      relations ,
+      select ,
+      skip: (page - 1) * limit,
+      take: limit,
     });
+
+    const permission = this.filterByLabels.getLabelPermission('founder')
+    return result.map((group)=>  { return {...group , permission} } )
+
   }
 
   async findManyJoined(input: {
@@ -229,14 +246,21 @@ export class GroupService {
   }) {
     const { requester_id, page, limit } = input;
 
-    return this.findMany({
-      where: {
-        group_member: { user: { id: requester_id }, deleted_at: IsNull() },
-      },
-      label: 'member',
-      page,
-      limit,
+    const  { select , relations } = this.filterByLabels.buildQueryObject({ label:'founder' })
+    const result = await this.groupRepo.find({
+      where: { founder: { id: requester_id } },
+      relations ,
+      select ,
+      skip: (page - 1) * limit,
+      take: limit,
     });
+
+    return result.map((group) => {
+
+      const role = group.group_member.role
+      const permission = this.filterByLabels.getLabelPermission(role)
+      return {...group, permission};
+    })
   }
 
   // ==================== Update ====================

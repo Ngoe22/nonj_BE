@@ -83,6 +83,9 @@ export class FilterDbField<T extends ObjectLiteral, L extends string> {
     );
   }
 
+
+  // public
+
   getLabelPermission(label: L): Record<string, boolean> {
     if (!this.permission) return {};
 
@@ -94,20 +97,27 @@ export class FilterDbField<T extends ObjectLiteral, L extends string> {
   }
 
   buildQueryObject(input: { label: L }) {
-    const select: Record<string, boolean> = {};
-    const relations: Record<string, boolean | Record<string, boolean>> = {};
+    const select: Record<string, any> = {};
+    const relations: Record<string, boolean> = {};
     const { label } = input;
 
     Object.entries(this.keyAndLabels).forEach(([field, value]) => {
       if (value instanceof Set) {
+        // Column thường
         if (value.has(label)) select[field] = true;
       } else {
-        const relationQueries: Record<string, boolean> = {};
+        // Relation
+        const relationSelect: Record<string, boolean> = {};
+
         Object.entries(value).forEach(([relationKey, relationSet]) => {
-          if (relationSet.has(label)) relationQueries[relationKey] = true;
+          if ((relationSet as Set<string>).has(label)) {
+            relationSelect[relationKey] = true;
+          }
         });
-        if (Object.keys(relationQueries).length > 0) {
-          relations[field] = relationQueries;
+
+        if (Object.keys(relationSelect).length > 0) {
+          select[field] = relationSelect;
+          relations[field] = true;
         }
       }
     });
@@ -115,6 +125,7 @@ export class FilterDbField<T extends ObjectLiteral, L extends string> {
     const permission = this.getLabelPermission(label);
     return { select, relations, permission };
   }
+
 
   filterDataOfQueryResult(input: {
     object: Record<string, any>;
@@ -127,22 +138,45 @@ export class FilterDbField<T extends ObjectLiteral, L extends string> {
       const fieldLabels = this.keyAndLabels[field];
       if (!fieldLabels) return;
 
+      // ============ Floor 1 — column ============
       if (fieldLabels instanceof Set) {
-        // Floor 1  — field
         if (fieldLabels.has(label)) output[field] = value;
-      } else {
-        // Floor 2 —  relation (object)
-        if (value && typeof value === 'object') {
-          const nestedOutput: Record<string, any> = {};
-          Object.entries(value).forEach(([relationField, relationValue]) => {
-            const relationLabels = fieldLabels[relationField];
-            if (relationLabels?.has(label)) {
-              nestedOutput[relationField] = relationValue;
-            }
-          });
-          if (Object.keys(nestedOutput).length > 0) {
-            output[field] = nestedOutput;
+        return;
+      }
+
+      // ============ Floor 2 — relation ============
+      if (!value) return; // null / undefined
+
+      // Helper: filter 1 object theo config relation
+      const filterRelationItem = (item: Record<string, any>) => {
+        const nested: Record<string, any> = {};
+        Object.entries(item).forEach(([relationField, relationValue]) => {
+          const relationLabels = fieldLabels[relationField];
+          if (relationLabels?.has(label)) {
+            nested[relationField] = relationValue;
           }
+        });
+        return nested;
+      };
+
+      // Case A: relation là MẢNG (OneToMany / ManyToMany)
+      if (Array.isArray(value)) {
+        const filtered = value
+            .map((item) =>
+                item && typeof item === 'object' ? filterRelationItem(item) : null,
+            )
+            .filter((item): item is Record<string, any> => item !== null);
+
+        // Giữ array rỗng hay bỏ? — tuỳ bạn. Ở đây giữ nếu có phần tử.
+        if (filtered.length > 0) output[field] = filtered;
+        return;
+      }
+
+      // Case B: relation là OBJECT (ManyToOne / OneToOne)
+      if (typeof value === 'object') {
+        const nested = filterRelationItem(value);
+        if (Object.keys(nested).length > 0) {
+          output[field] = nested;
         }
       }
     });

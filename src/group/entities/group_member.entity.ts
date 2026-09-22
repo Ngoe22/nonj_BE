@@ -29,11 +29,11 @@ export class GroupMember extends BaseEntity {
   })
   user: Relation<User>;
 
-  @ManyToOne(() => Group, (group) => group.group_member)
+  @ManyToOne(() => Group, (group) => group.group_member,{onDelete: 'CASCADE'})
   @JoinColumn({
     name: 'group_id',
     referencedColumnName: 'id',
-  })
+  } )
   group: Relation<Group>;
 
   @Column({

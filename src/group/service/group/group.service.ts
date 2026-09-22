@@ -38,10 +38,10 @@ export class GroupService {
         join_mode: ['SA' ,'member', 'unjoin', 'admin', 'founder', 'setting'],
         view_mode: ['SA' ,'member', 'unjoin', 'admin', 'founder', 'setting'],
         created_at: ['SA' ,'member', 'admin', 'founder' , 'member'],
-
         group_member : {
           role : ['member', 'admin', 'founder' ]
-        }
+        },
+
       },
       dataBases: {
         _main : Group,
@@ -164,6 +164,7 @@ export class GroupService {
         'CASE WHEN gm.id IS NOT NULL THEN true ELSE false END',
         'is_joined',
       )
+      .addSelect('gm.role', 'role')
       .where('g.slug = :slug', { slug })
       .andWhere('g.deleted_at IS NULL')
       .getRawOne();
@@ -171,6 +172,53 @@ export class GroupService {
     if (!result) throw new NotFoundException({ errorCode: 'group_not_found' });
     return result;
   }
+
+  async getOneById(input: {
+    group_id: string;
+    requester_id: string;
+  }) {
+    const { group_id, requester_id } = input;
+
+    const selectArray = [
+      'g.id AS id',          // ⬅️ đổi g_id → id
+      'g.name AS name',      // ⬅️ đổi g_name → name
+      'g.slug AS slug',
+      'g.description AS description',
+      'g.join_mode AS join_mode',
+      'g.view_mode AS view_mode',
+    ];
+
+    const result = await this.groupRepo
+        .createQueryBuilder('g')
+        .leftJoin(
+            'g.group_member',
+            'gm',
+            'gm.user_id = :requester_id AND gm.deleted_at IS NULL',
+            { requester_id },
+        )
+        .select(selectArray)
+        .addSelect(
+            'CASE WHEN gm.id IS NOT NULL THEN true ELSE false END',
+            'is_joined',
+        )
+        .addSelect('gm.role', 'role')
+        .where('g.id = :group_id', { group_id })
+        .andWhere('g.deleted_at IS NULL')
+        .getRawOne();
+
+    if (!result) throw new NotFoundException({ errorCode: 'group_not_found' });
+
+    const role = (result.role ?? 'unjoin').toLowerCase();
+    const permission = this.filterByLabels.getLabelPermission(role);
+    const final_group = this.filterByLabels.filterDataOfQueryResult({
+      object: result,
+      label: role,
+    });
+    console.log(result)
+    console.log(final_group)
+    return { ...final_group , permission };
+  }
+
 
   // ==================== Read - Many ====================
 
@@ -185,8 +233,8 @@ export class GroupService {
 
 
     const selectArray = [
-      'g.id AS g_id',
-      'g.name AS g_name',
+      'g.id AS id',          // ⬅️ đổi g_id → id
+      'g.name AS name',      // ⬅️ đổi g_name → name
       'g.slug AS slug',
       'g.description AS description',
       'g.join_mode AS join_mode',
@@ -259,7 +307,8 @@ export class GroupService {
 
       const role = group.group_member.role
       const permission = this.filterByLabels.getLabelPermission(role)
-      return {...group, permission};
+      const final_group = this.filterByLabels.filterDataOfQueryResult({ object : group , label: role })
+      return {...final_group, permission};
     })
   }
 

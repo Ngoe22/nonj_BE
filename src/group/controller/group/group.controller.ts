@@ -39,6 +39,20 @@ export class GroupController {
     });
   }
 
+  @Get('id_search/:group_id')
+  getOneById(
+      @GetRequesterInfo() requester: RequesterInfo,
+      @Param('group_id') group_id: string,
+  ) {
+    return this.groupService.getOneById({
+      group_id,
+      requester_id: requester.id,
+    });
+  }
+
+
+  //
+
   @Get('name_search/:name')
   searchManyByName(
     @Param('name') name: string,

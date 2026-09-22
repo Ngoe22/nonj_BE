@@ -214,8 +214,6 @@ export class GroupService {
       object: result,
       label: role,
     });
-    console.log(result)
-    console.log(final_group)
     return { ...final_group , permission };
   }
 

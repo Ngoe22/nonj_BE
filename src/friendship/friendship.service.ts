@@ -30,6 +30,7 @@ export class FriendshipService {
       labels : [ 'SA' , 'me' , 'friend' ] ,
       fieldAndLabels: {
         id: ['SA', 'me'],
+        beFriendAt : ['SA', 'me'] ,
         user: ['SA',],
         user_friend: {
           id : ['SA', 'me'],

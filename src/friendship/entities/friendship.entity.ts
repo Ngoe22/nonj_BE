@@ -1,4 +1,6 @@
 import {
+  Column,
+  CreateDateColumn,
   Entity,
   Index,
   JoinColumn,
@@ -18,6 +20,9 @@ import {BaseEntity} from "../../_common/entities/base.entity.js";
 export class Friendship extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ type: "timestamp" })
+  beFriendAt :Date
 
   @ManyToOne(() => User, (user) => user.friend_user)
   @JoinColumn({ name: 'user_id', referencedColumnName: 'id' })

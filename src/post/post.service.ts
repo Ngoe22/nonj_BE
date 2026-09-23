@@ -44,13 +44,13 @@ export class PostService {
         question_type: ['SA' ,'founder', 'member', 'admin'],
         question_content: ['SA' ,'founder', 'member', 'admin'],
         deadline_at: ['SA' , 'founder', 'member', 'admin'],
-        retake: ['SA' , 'member', 'admin'],
+        retake: ['SA' , 'founder' ,'member', 'admin'],
         view_each_other_answer: ['SA' ,'founder', 'member', 'admin'],
         user: {
-          id : ['founder', 'member', 'admin'] ,
-          nickname : ['founder', 'member', 'admin'],
-          user_name : ['founder', 'member', 'admin'] ,
-          avatar_url : ['founder', 'member', 'admin'],
+          id : ['founder', 'member', 'admin' , 'founder'] ,
+          nickname : ['founder', 'member', 'admin' , 'founder'],
+          user_name : ['founder', 'member', 'admin' , 'founder'] ,
+          avatar_url : ['founder', 'member', 'admin' , 'founder'],
         },
         group: {
           id : ['SA'] ,

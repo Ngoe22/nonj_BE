@@ -22,41 +22,40 @@ export class GroupService {
     private readonly groupRepo: Repository<Group>,
     private readonly groupMemberService: GroupMemberService,
   ) {
-    this.filterByLabels =  FilterDbField.create({
-      labels : [ 'SA' , 'founder' , 'admin' , 'member' , 'unjoin' , 'setting' ]     ,
+    this.filterByLabels = FilterDbField.create({
+      labels: ['SA', 'founder', 'admin', 'member', 'unjoin', 'setting'],
       fieldAndLabels: {
-        id: [  'SA' , 'member', 'unjoin', 'admin', 'founder', 'setting'],
+        id: ['SA', 'member', 'unjoin', 'admin', 'founder', 'setting'],
         founder: {
-          id : ['SA' ],
-          nickname : ['SA'],
-          user_name : ['SA' ],
-          avatar_url : []
+          id: ['SA'],
+          nickname: ['SA'],
+          user_name: ['SA'],
+          avatar_url: [],
         },
-        slug: ['SA' ,'member', 'unjoin', 'admin', 'founder'],
-        name: ['SA' ,'member', 'unjoin', 'admin', 'founder'],
-        description: ['SA' ,'member', 'unjoin', 'admin', 'founder'],
-        join_mode: ['SA' ,'member', 'unjoin', 'admin', 'founder', 'setting'],
-        view_mode: ['SA' ,'member', 'unjoin', 'admin', 'founder', 'setting'],
-        created_at: ['SA' ,'member', 'admin', 'founder' , 'member'],
-        group_member : {
-          role : ['member', 'admin', 'founder' ]
+        slug: ['SA', 'member', 'unjoin', 'admin', 'founder'],
+        name: ['SA', 'member', 'unjoin', 'admin', 'founder'],
+        description: ['SA', 'member', 'unjoin', 'admin', 'founder'],
+        join_mode: ['SA', 'member', 'unjoin', 'admin', 'founder', 'setting'],
+        view_mode: ['SA', 'member', 'unjoin', 'admin', 'founder', 'setting'],
+        created_at: ['SA', 'member', 'admin', 'founder', 'member'],
+        group_member: {
+          role: ['member', 'admin', 'founder'],
         },
-
       },
       dataBases: {
-        _main : Group,
-        founder : User ,
-        group_member : GroupMember
+        _main: Group,
+        founder: User,
+        group_member: GroupMember,
       },
-      dataSource : this.dataSource ,
-      FE_permission : {
-        view_setting: [ 'founder' ],
-        view_join_req : [ 'founder' ],
-        view_member : [ 'founder' ,'admin' ],
-        edit_setting: [ 'founder' ],
-        able_to_leave : [ 'member' ,'admin' ],
-        able_to_delete : [ 'founder' ],
-      }
+      dataSource: this.dataSource,
+      FE_permission: {
+        view_setting: ['founder'],
+        view_join_req: ['founder'],
+        view_member: ['founder', 'admin'],
+        edit_setting: ['founder'],
+        able_to_leave: ['member', 'admin'],
+        able_to_delete: ['founder'],
+      },
     });
   }
 
@@ -66,14 +65,19 @@ export class GroupService {
     where: any,
     label: 'founder' | 'admin' | 'member' | 'unjoin',
   ) {
-    const { relations , select } = this.filterByLabels.buildQueryObject({ label });
+    const { relations, select } = this.filterByLabels.buildQueryObject({
+      label,
+    });
     const group = await this.groupRepo.findOne({
       where,
       relations,
       select,
     });
     if (!group) throw new NotFoundException({ errorCode: 'group_not_found' });
-    return this.filterByLabels.filterDataOfQueryResult({ object: group, label });
+    return this.filterByLabels.filterDataOfQueryResult({
+      object: group,
+      label,
+    });
   }
 
   private async findMany(input: {
@@ -83,7 +87,9 @@ export class GroupService {
     page: number;
   }) {
     const { where, label, limit, page } = input;
-    const {select , relations} = this.filterByLabels.buildQueryObject({ label });
+    const { select, relations } = this.filterByLabels.buildQueryObject({
+      label,
+    });
 
     return await this.groupRepo.find({
       where,
@@ -97,20 +103,20 @@ export class GroupService {
 
   // ==================== Helper ====================
 
-  async getSetting ( group_id: string ) {
-    const {select , relations} = this.filterByLabels.buildQueryObject({ label:'setting' });
+  async getSetting(group_id: string) {
+    const { select, relations } = this.filterByLabels.buildQueryObject({
+      label: 'setting',
+    });
 
-      const  result = await this.groupRepo.findOne({
-        where: { id: group_id },
-        relations ,
-        select,
-      });
+    const result = await this.groupRepo.findOne({
+      where: { id: group_id },
+      relations,
+      select,
+    });
 
     if (!result) throw new NotFoundException({ errorCode: 'group_not_found' });
     return result;
   }
-
-
 
   // ==================== Create ====================
 
@@ -136,10 +142,7 @@ export class GroupService {
 
   // ==================== Read - One ====================
 
-  async searchOneBySlug(input: {
-    slug: string;
-    requester_id: string;
-  }) {
+  async searchOneBySlug(input: { slug: string; requester_id: string }) {
     const { slug, requester_id } = input;
 
     const selectArray = [
@@ -173,15 +176,12 @@ export class GroupService {
     return result;
   }
 
-  async getOneById(input: {
-    group_id: string;
-    requester_id: string;
-  }) {
+  async getOneById(input: { group_id: string; requester_id: string }) {
     const { group_id, requester_id } = input;
 
     const selectArray = [
-      'g.id AS id',          // ⬅️ đổi g_id → id
-      'g.name AS name',      // ⬅️ đổi g_name → name
+      'g.id AS id', // ⬅️ đổi g_id → id
+      'g.name AS name', // ⬅️ đổi g_name → name
       'g.slug AS slug',
       'g.description AS description',
       'g.join_mode AS join_mode',
@@ -189,22 +189,22 @@ export class GroupService {
     ];
 
     const result = await this.groupRepo
-        .createQueryBuilder('g')
-        .leftJoin(
-            'g.group_member',
-            'gm',
-            'gm.user_id = :requester_id AND gm.deleted_at IS NULL',
-            { requester_id },
-        )
-        .select(selectArray)
-        .addSelect(
-            'CASE WHEN gm.id IS NOT NULL THEN true ELSE false END',
-            'is_joined',
-        )
-        .addSelect('gm.role', 'role')
-        .where('g.id = :group_id', { group_id })
-        .andWhere('g.deleted_at IS NULL')
-        .getRawOne();
+      .createQueryBuilder('g')
+      .leftJoin(
+        'g.group_member',
+        'gm',
+        'gm.user_id = :requester_id AND gm.deleted_at IS NULL',
+        { requester_id },
+      )
+      .select(selectArray)
+      .addSelect(
+        'CASE WHEN gm.id IS NOT NULL THEN true ELSE false END',
+        'is_joined',
+      )
+      .addSelect('gm.role', 'role')
+      .where('g.id = :group_id', { group_id })
+      .andWhere('g.deleted_at IS NULL')
+      .getRawOne();
 
     if (!result) throw new NotFoundException({ errorCode: 'group_not_found' });
 
@@ -214,9 +214,8 @@ export class GroupService {
       object: result,
       label: role,
     });
-    return { ...final_group , permission };
+    return { ...final_group, permission };
   }
-
 
   // ==================== Read - Many ====================
 
@@ -229,40 +228,37 @@ export class GroupService {
   }) {
     const { name, requester_id, page, limit } = input;
 
-
     const selectArray = [
-      'g.id AS id',          // ⬅️ đổi g_id → id
-      'g.name AS name',      // ⬅️ đổi g_name → name
+      'g.id AS id', // ⬅️ đổi g_id → id
+      'g.name AS name', // ⬅️ đổi g_name → name
       'g.slug AS slug',
       'g.description AS description',
       'g.join_mode AS join_mode',
       'g.view_mode AS view_mode',
     ];
 
-
     return this.groupRepo
-        .createQueryBuilder('g')
-        .leftJoin(
-            'g.group_member',
-            'gm',
-            'gm.user_id = :requester_id AND gm.deleted_at IS NULL',
-            { requester_id },
-        )
-        .select(selectArray)
-        .addSelect(
-            'CASE WHEN gm.id IS NOT NULL THEN true ELSE false END',
-            'is_joined',
-        )
-        .where('g.name ILIKE :name', { name: `%${name}%` })
-        .andWhere('g.deleted_at IS NULL')
-        .orderBy('g.created_at', 'DESC')
-        .offset((page - 1) * limit)
-        .limit(limit)
-        .getRawMany();
+      .createQueryBuilder('g')
+      .leftJoin(
+        'g.group_member',
+        'gm',
+        'gm.user_id = :requester_id AND gm.deleted_at IS NULL',
+        { requester_id },
+      )
+      .select(selectArray)
+      .addSelect(
+        'CASE WHEN gm.id IS NOT NULL THEN true ELSE false END',
+        'is_joined',
+      )
+      .where('g.name ILIKE :name', { name: `%${name}%` })
+      .andWhere('g.deleted_at IS NULL')
+      .orderBy('g.created_at', 'DESC')
+      .offset((page - 1) * limit)
+      .limit(limit)
+      .getRawMany();
   }
 
   // personal
-
 
   async findMyOwnMany(input: {
     requester_id: string;
@@ -271,18 +267,21 @@ export class GroupService {
   }) {
     const { requester_id, page, limit } = input;
 
-    const  { select , relations } = this.filterByLabels.buildQueryObject({ label:'founder' })
+    const { select, relations } = this.filterByLabels.buildQueryObject({
+      label: 'founder',
+    });
     const result = await this.groupRepo.find({
       where: { founder: { id: requester_id } },
-      relations ,
-      select ,
+      relations,
+      select,
       skip: (page - 1) * limit,
       take: limit,
     });
 
-    const permission = this.filterByLabels.getLabelPermission('founder')
-    return result.map((group)=>  { return {...group , permission} } )
-
+    const permission = this.filterByLabels.getLabelPermission('founder');
+    return result.map((group) => {
+      return { ...group, permission };
+    });
   }
 
   async findManyJoined(input: {
@@ -292,22 +291,39 @@ export class GroupService {
   }) {
     const { requester_id, page, limit } = input;
 
-    const  { select , relations } = this.filterByLabels.buildQueryObject({ label:'founder' })
-    const result = await this.groupRepo.find({
-      where: { founder: { id: requester_id } },
-      relations ,
-      select ,
-      skip: (page - 1) * limit,
-      take: limit,
+    const qb = this.groupRepo
+      .createQueryBuilder('g')
+      .innerJoin(
+        'g.group_member',
+        'gm',
+        'gm.user_id = :requester_id AND gm.deleted_at IS NULL',
+        { requester_id },
+      )
+      .select([
+        'g.id AS id',
+        'g.name AS name',
+        'g.slug AS slug',
+        'g.description AS description',
+        'g.join_mode AS join_mode',
+        'g.view_mode AS view_mode',
+        'gm.role AS role',
+      ])
+      .where('g.deleted_at IS NULL')
+      .orderBy('g.created_at', 'DESC')
+      .offset((page - 1) * limit)
+      .limit(limit);
+
+    const rows = await qb.getRawMany();
+
+    return rows.map((row) => {
+      const role = (row.role ?? 'unjoin').toLowerCase();
+      const permission = this.filterByLabels.getLabelPermission(role);
+      const final_group = this.filterByLabels.filterDataOfQueryResult({
+        object: row,
+        label: role,
+      });
+      return { ...final_group, permission };
     });
-
-    return result.map((group) => {
-
-      const role = group.group_member.role
-      const permission = this.filterByLabels.getLabelPermission(role)
-      const final_group = this.filterByLabels.filterDataOfQueryResult({ object : group , label: role })
-      return {...final_group, permission};
-    })
   }
 
   // ==================== Update ====================
@@ -351,28 +367,31 @@ export class GroupService {
   //   =========================================================================
 
   async adminFindById(group_id: string) {
+    const { select, relations } = this.filterByLabels.buildQueryObject({
+      label: 'SA',
+    });
 
-    const  { select , relations } = this.filterByLabels.buildQueryObject({label : 'SA'})
-
-    return this.groupRepo.findOne( {
-      where: { id :  group_id },relations , select
-    } );
+    return this.groupRepo.findOne({
+      where: { id: group_id },
+      relations,
+      select,
+    });
   }
 
   async adminFindMany(input: { page: number; limit: number }) {
-
     const { page, limit } = input;
-    const  { select , relations } = this.filterByLabels.buildQueryObject({label : 'SA'})
+    const { select, relations } = this.filterByLabels.buildQueryObject({
+      label: 'SA',
+    });
 
-
-    return this.groupRepo.find( {
-      where: {} ,
-      relations ,
-      select ,
+    return this.groupRepo.find({
+      where: {},
+      relations,
+      select,
       skip: (page - 1) * limit,
       take: limit,
       order: { created_at: 'DESC' },
-    } );
+    });
   }
 
   async adminUpdate(input: {

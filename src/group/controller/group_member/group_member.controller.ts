@@ -74,7 +74,7 @@ export class GroupMemberController {
   // @Delete('me/:group_id')     // route cụ thể — khai TRƯỚC
   // leave(...) { ... }
 
-  @Delete(':group_id/:user_id')
+  @Delete('kick/:group_id/:user_id')
   delete(
     @Param('group_id') group_id: string,
     @Param('user_id') user_id: string,
@@ -86,4 +86,16 @@ export class GroupMemberController {
       target_id: user_id,
     });
   }
+
+  @Delete('quit/:group_id')
+  leaveGroup(
+    @Param('group_id') group_id: string,
+    @GetRequesterInfo() requester: RequesterInfo,
+  ) {
+    return this.groupMemberService.leaveGroup({
+      group_id,
+      user_id: requester.id,
+    });
+  }
+
 }

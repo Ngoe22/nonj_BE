@@ -41,15 +41,14 @@ export class GroupController {
 
   @Get('id_search/:group_id')
   getOneById(
-      @GetRequesterInfo() requester: RequesterInfo,
-      @Param('group_id') group_id: string,
+    @GetRequesterInfo() requester: RequesterInfo,
+    @Param('group_id') group_id: string,
   ) {
     return this.groupService.getOneById({
       group_id,
       requester_id: requester.id,
     });
   }
-
 
   //
 
@@ -75,8 +74,9 @@ export class GroupController {
     @Query('limit', new DefaultValuePipe(10), ParseLimitPipe) limit: number,
   ) {
     return this.groupService.findMyOwnMany({
-      requester_id : requester.id,
-      page , limit,
+      requester_id: requester.id,
+      page,
+      limit,
     });
   }
 
@@ -113,4 +113,6 @@ export class GroupController {
   ) {
     return this.groupService.softDelete({ group_id, founder_id: requester.id });
   }
+
+
 }

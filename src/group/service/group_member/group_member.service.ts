@@ -46,6 +46,7 @@ export class GroupMemberService {
         },
         role: ['SA', 'founder', 'admin','member'],
         updated_at: ['SA' ,'founder', 'admin'],
+        created_at: ['SA' ,'founder', 'admin','member'],
       },
       dataBases: {
         _main : GroupMember ,

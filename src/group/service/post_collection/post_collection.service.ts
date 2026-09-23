@@ -33,23 +33,24 @@ export class PostCollectionService {
     //
 
     // SA == SYSTEM ADMIN
-    this.filterByLabels =  FilterDbField.create({
-      labels : ['SA', 'admin' , 'founder','member', 'unjoin'] ,
+    this.filterByLabels = FilterDbField.create({
+      labels: ['SA', 'admin', 'founder', 'member', 'unjoin'],
       fieldAndLabels: {
-        id: ['SA','member', 'unjoin', 'admin' , 'founder'],
-        title: ['SA','member', 'unjoin', 'admin' , 'founder'],
-        desc :  ['SA','member', 'unjoin', 'admin' , 'founder'],
+        id: ['SA', 'member', 'unjoin', 'admin', 'founder'],
+        title: ['SA', 'member', 'unjoin', 'admin', 'founder'],
+        desc: ['SA', 'member', 'unjoin', 'admin', 'founder'],
+        created_at: ['SA', 'founder', 'admin', 'member', 'unjoin'],
         group: {
-          id : [ 'SA' ] ,
-          name : [ 'SA' ] ,
-          slug : [ 'SA' ] ,
+          id: ['SA'],
+          name: ['SA'],
+          slug: ['SA'],
         },
       },
-      dataBases:  {
-        _main : PostCollection ,
-        group : Group ,
+      dataBases: {
+        _main: PostCollection,
+        group: Group,
       },
-      dataSource : this.dataSource
+      dataSource: this.dataSource,
     });
   }
 

@@ -29,6 +29,8 @@ export class GroupCollectionController {
     @Body() body: CreatePostCollectionDto,
     @GetRequesterInfo() requester: RequesterInfo,
   ) {
+    console.log('here');
+
     return this.collectionService.create({
       group_id,
       requester_id: requester.id,

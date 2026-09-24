@@ -22,35 +22,32 @@ export class FriendshipService {
     @InjectRepository(Friendship)
     private readonly friendshipRepo: Repository<Friendship>,
     private readonly userService: UserService,
-    @Inject(forwardRef(() => FriendRequestService))
-    private readonly friendRequestService: any,
   ) {
-    this.friendShipFilterByRole =  FilterDbField.create({
-
-      labels : [ 'SA' , 'me' , 'friend' ] ,
+    this.friendShipFilterByRole = FilterDbField.create({
+      labels: ['SA', 'me', 'friend'],
       fieldAndLabels: {
         id: ['SA', 'me'],
-        beFriendAt : ['SA', 'me'] ,
-        user: ['SA',],
+        be_friend_at: ['SA', 'me'],
+        user: ['SA'],
         user_friend: {
-          id : ['SA', 'me'],
-          nickname : ['SA', 'me'],
-          user_name : ['SA', 'me'],
-          avatar_url : [ 'me'],
-        } ,
-        created_at: ['SA' , 'me'],
+          id: ['SA', 'me'],
+          nickname: ['SA', 'me'],
+          user_name: ['SA', 'me'],
+          avatar_url: ['me'],
+        },
+        created_at: ['SA', 'me'],
         updated_at: ['SA', 'me'],
         deleted_at: ['SA'],
       },
       dataBases: {
-        _main: Friendship ,
-        user : User ,
-        user_friend : User
+        _main: Friendship,
+        user: User,
+        user_friend: User,
       },
       dataSource: this.dataSource,
-      FE_permission : {
-        undefined : ['me']
-      }
+      FE_permission: {
+        undefined: ['me'],
+      },
     });
   }
 
@@ -58,54 +55,21 @@ export class FriendshipService {
 
   async getMany(input: { user_id: string; page: number; limit: number }) {
     const { user_id, page, limit } = input;
-    const { select , relations } = this.friendShipFilterByRole.buildQueryObject({label:'me'})
+    const { select, relations } = this.friendShipFilterByRole.buildQueryObject({
+      label: 'me',
+    });
 
     return this.friendshipRepo.find({
       where: { user: { id: user_id } },
-      relations ,
-      select ,
+      relations,
+      select,
       order: { created_at: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
     });
   }
 
-  // ================= Search friend
 
-  async searchUserName(input: {  // search One
-    requester_id: string;
-    search_target_username: string;
-  }){
-
-    const { info , is_friend } = await this.userService.getOtherInfoByUserName(input);
-
-    const permission = {
-      add_friend: false,
-      cancel_request_friend: false,
-      accept_request_friend: false,
-      unfriend: false,
-    }
-
-
-    if (!is_friend) {
-      const amISending = await this.friendRequestService.isPending(input.requester_id, info.id);
-      const amIReceiving = await this.friendRequestService.isPending(info.id, input.requester_id);
-
-
-      if (amISending) {
-        permission.cancel_request_friend = true
-      }  else if (amIReceiving) {
-        permission.accept_request_friend = true
-      } else {
-          permission.add_friend = true;
-      }
-    } else  {
-      permission.unfriend = true;
-    }
-
-    return { ...info , is_friend , permission  };
-
-  };
 
   // ==================== Create ====================
 
@@ -130,18 +94,19 @@ export class FriendshipService {
     friend_id: string;
     source_request: string;
   }) {
-
-    const  {  user_id, friend_id , source_request } = body;
+    const { user_id, friend_id, source_request } = body;
 
     await this.friendshipRepo.save({
-      user :  { id : user_id } ,
-      user_friend : { id  : friend_id } ,
-      source_request : { id : source_request },
+      user: { id: user_id },
+      user_friend: { id: friend_id },
+      source_request: { id: source_request },
+      be_friend_at : Date.now(),
     });
     await this.friendshipRepo.save({
-      user :  { id : friend_id } ,
-      user_friend : { id  : user_id } ,
-      source_request : { id : source_request },
+      user: { id: friend_id },
+      user_friend: { id: user_id },
+      source_request: { id: source_request },
+      be_friend_at : Date.now(),
     });
 
     return true;
@@ -160,6 +125,7 @@ export class FriendshipService {
         deleted_at: null,
         deleted_by: null,
         source_request: { id: source_request },
+        be_friend_at : Date.now(),
       },
       'add_friend_info_not_found',
     );

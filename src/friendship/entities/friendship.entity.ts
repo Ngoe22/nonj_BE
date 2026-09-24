@@ -21,8 +21,8 @@ export class Friendship extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: "timestamp" })
-  beFriendAt :Date
+  @Column({ type: 'timestamp' })
+  be_friend_at: Date;
 
   @ManyToOne(() => User, (user) => user.friend_user)
   @JoinColumn({ name: 'user_id', referencedColumnName: 'id' })
@@ -32,7 +32,10 @@ export class Friendship extends BaseEntity {
   @JoinColumn({ name: 'friend_id', referencedColumnName: 'id' })
   user_friend: Relation<User>;
 
-  @ManyToOne(() => FriendRequest, (request) => request.friendship,{ nullable: true  , onDelete: 'SET NULL' } )
-  @JoinColumn({ name: 'source_request_id', referencedColumnName: 'id'  })
+  @ManyToOne(() => FriendRequest, (request) => request.friendship, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'source_request_id', referencedColumnName: 'id' })
   source_request: Relation<FriendRequest>;
 }

@@ -18,40 +18,39 @@ export class FriendRequestService {
   private filterByLabels: FilterDbField<FriendRequest, string>;
 
   constructor(
-      @InjectDataSource()
-      private readonly dataSource: DataSource,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
     @InjectRepository(FriendRequest)
     private readonly requestRepo: Repository<FriendRequest>,
     private readonly userService: UserService,
-      @Inject(forwardRef(() => FriendshipService))
-    private readonly friendshipService: any,
+    private readonly friendshipService: FriendshipService,
   ) {
-    this.filterByLabels =  FilterDbField.create({
-      labels :[  'SA' , 'outgoing_requests', 'ingoing_requests'] ,
+    this.filterByLabels = FilterDbField.create({
+      labels: ['SA', 'outgoing_requests', 'ingoing_requests'],
       fieldAndLabels: {
         id: ['SA', 'outgoing_requests', 'ingoing_requests'],
         sender: {
-          id :['SA', 'ingoing_requests'],
-          nickname : ['SA', 'ingoing_requests'],
-          user_name : ['SA', 'ingoing_requests'],
-          avatar_url : [ 'ingoing_requests']
-        } ,
-        receiver:  {
-          id :['SA', 'outgoing_requests'],
-          nickname : ['SA', 'outgoing_requests'],
-          user_name : ['SA', 'outgoing_requests'],
-          avatar_url : [ 'outgoing_requests']
+          id: ['SA', 'ingoing_requests'],
+          nickname: ['SA', 'ingoing_requests'],
+          user_name: ['SA', 'ingoing_requests'],
+          avatar_url: ['ingoing_requests'],
+        },
+        receiver: {
+          id: ['SA', 'outgoing_requests'],
+          nickname: ['SA', 'outgoing_requests'],
+          user_name: ['SA', 'outgoing_requests'],
+          avatar_url: ['outgoing_requests'],
         },
         status: ['SA', 'outgoing_requests', 'ingoing_requests'],
         created_at: ['SA', 'outgoing_requests', 'ingoing_requests'],
         updated_at: ['SA', 'outgoing_requests', 'ingoing_requests'],
       },
       dataBases: {
-        _main : FriendRequest ,
-        sender: User ,
-        receiver: User ,
+        _main: FriendRequest,
+        sender: User,
+        receiver: User,
       },
-      dataSource : this.dataSource ,
+      dataSource: this.dataSource,
     });
   }
 
@@ -65,15 +64,14 @@ export class FriendRequestService {
   }) {
     const { user_id, page, limit, type } = input;
 
-    const { relations , select } =
-      this.filterByLabels.buildQueryObject({
-        label: type,
-      });
+    const { relations, select } = this.filterByLabels.buildQueryObject({
+      label: type,
+    });
 
     const where =
       type === 'outgoing_requests'
-        ? { sender: { id: user_id } , status : Friend_Request_Status.PENDING }
-        : { receiver: { id: user_id } ,  status : Friend_Request_Status.PENDING };
+        ? { sender: { id: user_id }, status: Friend_Request_Status.PENDING }
+        : { receiver: { id: user_id }, status: Friend_Request_Status.PENDING };
 
     return await this.requestRepo.find({
       where,
@@ -84,16 +82,11 @@ export class FriendRequestService {
     });
   }
 
-
   // =========== Helper =================
-
 
   //
 
-  async isPending(
-      requestId: string,
-      receiverId: string,
-  ): Promise<boolean> {
+  async isPending(requestId: string, receiverId: string): Promise<boolean> {
     return this.requestRepo.exists({
       where: {
         receiver: { id: receiverId },
@@ -103,11 +96,9 @@ export class FriendRequestService {
     });
   }
 
-
-
   // =========== Create =================
 
-  async add_request(input : { sender_id : string  , receiver_id : string } ) {
+  async add_request(input: { sender_id: string; receiver_id: string }) {
     const { sender_id, receiver_id } = input;
 
     // isPending
@@ -129,8 +120,8 @@ export class FriendRequestService {
 
     // create request
     await this.requestRepo.save({
-      sender : { id: sender_id },
-      receiver : { id: receiver_id },
+      sender: { id: sender_id },
+      receiver: { id: receiver_id },
     });
 
     return true;
@@ -192,38 +183,29 @@ export class FriendRequestService {
   //              ADMIN
   // ================================================
 
-  async admin_get_one_request(input: {
-    request_id: string;
-  }) {
-    const {request_id } = input;
+  async admin_get_one_request(input: { request_id: string }) {
+    const { request_id } = input;
 
-    const { relations , select } =
-        this.filterByLabels.buildQueryObject({
-          label: 'SA',
-        });
+    const { relations, select } = this.filterByLabels.buildQueryObject({
+      label: 'SA',
+    });
 
     return await this.requestRepo.findOne({
-      where : { id : request_id },
+      where: { id: request_id },
       relations,
       select,
     });
   }
 
+  async admin_get_many_request(input: { page: number; limit: number }) {
+    const { page, limit } = input;
 
-
-  async admin_get_many_request(input: {
-    page: number;
-    limit: number;
-  }) {
-    const {  page, limit } = input;
-
-    const { relations , select } =
-        this.filterByLabels.buildQueryObject({
-          label: 'SA',
-        });
+    const { relations, select } = this.filterByLabels.buildQueryObject({
+      label: 'SA',
+    });
 
     return await this.requestRepo.find({
-      where : {},
+      where: {},
       relations,
       select,
       skip: (page - 1) * limit,
@@ -238,13 +220,12 @@ export class FriendRequestService {
   }) {
     const { sender_id, page, limit } = input;
 
-    const { relations , select } =
-        this.filterByLabels.buildQueryObject({
-          label: 'SA',
-        });
+    const { relations, select } = this.filterByLabels.buildQueryObject({
+      label: 'SA',
+    });
 
     return await this.requestRepo.find({
-      where : { sender : { id : sender_id}  },
+      where: { sender: { id: sender_id } },
       relations,
       select,
       skip: (page - 1) * limit,
@@ -259,13 +240,12 @@ export class FriendRequestService {
   }) {
     const { receiver_id, page, limit } = input;
 
-    const { relations , select } =
-        this.filterByLabels.buildQueryObject({
-          label: 'SA',
-        });
+    const { relations, select } = this.filterByLabels.buildQueryObject({
+      label: 'SA',
+    });
 
     return await this.requestRepo.find({
-      where : { receiver : { id : receiver_id}  },
+      where: { receiver: { id: receiver_id } },
       relations,
       select,
       skip: (page - 1) * limit,
@@ -273,21 +253,14 @@ export class FriendRequestService {
     });
   }
 
-
-
   async admin_soft_delete(request_id: string) {
     const result = await this.requestRepo.update(
-        { id: request_id },
-        { deleted_at: new Date() },
+      { id: request_id },
+      { deleted_at: new Date() },
     );
     if (result.affected === 0) {
       throw new NotFoundException({ errorCode: 'request_not_found' });
     }
     return true;
   }
-
-
-
-
-
 }

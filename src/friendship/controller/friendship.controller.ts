@@ -8,16 +8,16 @@ import {ParseLimitPipe} from "../../_common/pipe/ParseLimitPipe.js";
 export class FriendshipController {
   constructor(private readonly friendshipService: FriendshipService) {}
 
-  @Get('search/:user_name')
-  findByUsername(
-      @GetRequesterInfo() requester: RequesterInfo,
-      @Param('user_name') user_name: string
-  ) {
-    return this.friendshipService.searchUserName({
-      requester_id: requester.id,
-      search_target_username: user_name,
-    });
-  }
+  // @Get('search/:user_name')
+  // findByUsername(
+  //     @GetRequesterInfo() requester: RequesterInfo,
+  //     @Param('user_name') user_name: string
+  // ) {
+  //   return this.friendshipService.searchUserName({
+  //     requester_id: requester.id,
+  //     search_target_username: user_name,
+  //   });
+  // }
 
   // add_friend be called from friend quest service
 

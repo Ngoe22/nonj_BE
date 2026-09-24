@@ -12,6 +12,8 @@ import { UserSetting } from './entities/user_setting.entity.js';
 import { UpdateUserSettingDto } from './dto/update-setting.dto.js';
 import { projectBcrypt } from '../_common/helper/customBcrypt.js';
 import { FilterDbField } from '../_common/helper/filterQueryForRole.js';
+import { FriendRequest } from '../friend_request/entities/friend_request.entity.js';
+import { FriendRequestService } from '../friend_request/friend_request.service.js';
 
 // ==========================================
 
@@ -22,12 +24,13 @@ export class UserService {
   private settingFilterByRole: FilterDbField<UserSetting, string>;
 
   constructor(
-      @InjectDataSource()
-      private readonly dataSource: DataSource,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     @InjectRepository(UserSetting)
     private readonly userSettingRepository: Repository<UserSetting>,
+    private readonly friendRequestService: FriendRequestService,
   ) {
     // ============================== Filter DB & QueryField
 
@@ -43,7 +46,7 @@ export class UserService {
         role: ['SA', 'for_auth'],
         status: ['SA', 'for_auth'],
         created_at: ['SA'],
-        password : [ 'for_auth' ]
+        password: ['for_auth'],
       },
       dataBases: {
         _main: User,
@@ -65,30 +68,32 @@ export class UserService {
     // ==============================
   }
 
+  private async checkPermissionBeforeGetOthersInfo(input: {
+    requester_id: string;
+    search_target_id?: string;
+    search_target_username?: string;
+  }) {}
 
+  // ==============================
 
-  private async checkPermissionBeforeGetOthersInfo (
-      input : { requester_id :string , search_target_id ?: string , search_target_username ?: string }
-  ) {
-
+  async creatUser(body: CreateUserDto) {
+    const result = await this.userRepository.save(body);
+    return this.filterByLabels.filterDataOfQueryResult({
+      object: result,
+      label: 'me',
+    });
   }
 
   // ==============================
 
-  async creatUser ( body : CreateUserDto ) {
-     const result= await this.userRepository.save(body);
-     return this.filterByLabels.filterDataOfQueryResult({ object : result , label:'me' });
-  }
-
-  // ==============================
-
-  async getInfoForEmailLogin( email : string ) {
-    const { select , relations }
-      = this.filterByLabels.buildQueryObject({ label: 'for_auth' });
+  async getInfoForEmailLogin(email: string) {
+    const { select, relations } = this.filterByLabels.buildQueryObject({
+      label: 'for_auth',
+    });
 
     return await this.userRepository.findOne({
       where: { email: email },
-      select
+      select,
     });
   }
 
@@ -96,61 +101,106 @@ export class UserService {
 
   // =============== SEARCH =====================
 
-  async getOtherInfoByUserName(input: { requester_id: string; search_target_username: string }) {
-    return this.getOtherInfo({
+  async getOtherInfoByUserName(input: {
+    requester_id: string;
+    search_target_username: string;
+  }) {
+    const { is_friend, info } = await this.getOtherInfo({
       requester_id: input.requester_id,
       condition: { username: input.search_target_username },
     });
+
+    const permission = {
+      add_friend: false,
+      cancel_request_friend: false,
+      accept_request_friend: false,
+      unfriend: false,
+    };
+
+    if (!is_friend) {
+      const amISending = await this.friendRequestService.isPending(
+        input.requester_id,
+        info.id,
+      );
+      const amIReceiving = await this.friendRequestService.isPending(
+        info.id,
+        input.requester_id,
+      );
+
+      if (amISending) {
+        permission.cancel_request_friend = true;
+      } else if (amIReceiving) {
+        permission.accept_request_friend = true;
+      } else {
+        permission.add_friend = true;
+      }
+    } else {
+      permission.unfriend = true;
+    }
+
+    return { ...info, is_friend, permission };
   }
 
-  async getOtherInfoById(input: { requester_id: string; search_target_id: string }) {
+  async getOtherInfoById(input: {
+    requester_id: string;
+    search_target_id: string;
+  }) {
     return this.getOtherInfo({
       requester_id: input.requester_id,
       condition: { id: input.search_target_id },
     });
   }
 
-
-  private async getOtherInfo(input: { requester_id: string; condition: { id?: string; username?: string } }) {
+  private async getOtherInfo(input: {
+    requester_id: string;
+    condition: { id?: string; username?: string };
+  }) {
     const { requester_id, condition } = input;
 
     const qb = this.userRepository
-        .createQueryBuilder('u')
-        .leftJoin(
-            'friendship', 'f',
-            'f.user_id = :requester_id AND f.friend_id = u.id AND f.deleted_at IS NULL',
-            { requester_id },
-        )
-        .addSelect('CASE WHEN f.id IS NOT NULL THEN true ELSE false END', 'is_friend');
+      .createQueryBuilder('u')
+      .leftJoin(
+        'friendship',
+        'f',
+        'f.user_id = :requester_id AND f.friend_id = u.id AND f.deleted_at IS NULL',
+        { requester_id },
+      )
+      .addSelect(
+        'CASE WHEN f.id IS NOT NULL THEN true ELSE false END',
+        'is_friend',
+      );
 
     if (condition.id) qb.where('u.id = :id', { id: condition.id });
-    if (condition.username) qb.where('u.user_name = :username', { username: condition.username });
+    if (condition.username)
+      qb.where('u.user_name = :username', { username: condition.username });
     const user = await qb.getRawOne();
 
     if (!user) throw new NotFoundException({ errorCode: 'user_not_found' });
 
     const isFriend = user.is_friend === 'true';
-    const label = isFriend ? 'friend' : 'not_friend'
-    const output = this.filterByLabels.filterDataOfQueryResult( {object : user , label } );
-    output.is_firend = isFriend
+    const label = isFriend ? 'friend' : 'not_friend';
+    const output = this.filterByLabels.filterDataOfQueryResult({
+      object: user,
+      label,
+    });
+    output.is_firend = isFriend;
 
-    return {  info : output , is_friend: isFriend }
+    return { info: output, is_friend: isFriend };
   }
 
-  async getMyInfo( user_id : string ) {
+  async getMyInfo(user_id: string) {
+    const role = 'me';
+    const { select, relations } = this.filterByLabels.buildQueryObject({
+      label: role,
+    });
 
-    const role = 'me'
-    const {select ,relations} =
-      this.filterByLabels.buildQueryObject({ label: role });
-
-    const user =  await this.userRepository.findOne({
-      where: { id : user_id },
+    const user = await this.userRepository.findOne({
+      where: { id: user_id },
       select,
     });
     if (!user) return new NotFoundException({ error: 'user_not_found' });
     return user;
   }
-
 
   // ----------------- Create -----------------
 
@@ -178,11 +228,12 @@ export class UserService {
 
   // ----------------- Update -----------------
 
-  async updateInfo( input: { user_id : string, body: UpdateUserDto } ) {
-    const { user_id , body } = input;
+  async updateInfo(input: { user_id: string; body: UpdateUserDto }) {
+    const { user_id, body } = input;
 
-    if ( body.password ) body.password = await projectBcrypt.encode(body.password);
-    const result = await this.userRepository.update( { id : user_id } , body);
+    if (body.password)
+      body.password = await projectBcrypt.encode(body.password);
+    const result = await this.userRepository.update({ id: user_id }, body);
     if (result.affected === 0)
       throw new NotFoundException({ errorCode: 'update_setting_failed' });
     return body;
@@ -190,14 +241,14 @@ export class UserService {
 
   // ========================= Setting =========================
 
-  async getSetting(id: string, role: 'SA' | 'me' ) {
-    const {  select ,relations } = this.filterByLabels.buildQueryObject({
+  async getSetting(id: string, role: 'SA' | 'me') {
+    const { select, relations } = this.filterByLabels.buildQueryObject({
       label: role,
     });
     return await this.userSettingRepository.findOne({
-      where: { user: { id }} ,
-      select
-    })
+      where: { user: { id } },
+      select,
+    });
   }
 
   async updateSetting(user_id: string, body: UpdateUserSettingDto) {
@@ -210,26 +261,24 @@ export class UserService {
     return body;
   }
 
-
   // =======================================================
   //                       ADMIN
   // =======================================================
 
-
-  adminGetOne ( user_id : string ) {
-    const { select ,relations } = this.filterByLabels.buildQueryObject({ label: 'SA' });
+  adminGetOne(user_id: string) {
+    const { select, relations } = this.filterByLabels.buildQueryObject({
+      label: 'SA',
+    });
     return this.userRepository.findOne({
-      where: {id  : user_id },
-      select
-    })
+      where: { id: user_id },
+      select,
+    });
   }
 
-  async adminGetInfoMany(
-      page = 1,
-      limit = 20,
-  ) {
-    const { select , relations }
-      = this.filterByLabels.buildQueryObject({ label: 'SA' });
+  async adminGetInfoMany(page = 1, limit = 20) {
+    const { select, relations } = this.filterByLabels.buildQueryObject({
+      label: 'SA',
+    });
 
     return await this.userRepository.find({
       where: {},
@@ -240,42 +289,38 @@ export class UserService {
     });
   }
 
-  async adminUpdateInfo( input: { user_id : string, body: UpdateUserDto } ) {
-    const { user_id , body } = input;
+  async adminUpdateInfo(input: { user_id: string; body: UpdateUserDto }) {
+    const { user_id, body } = input;
 
-    if ( body.password ) body.password = await projectBcrypt.encode(body.password);
-    const result = await this.userRepository.update( { id : user_id } , body);
+    if (body.password)
+      body.password = await projectBcrypt.encode(body.password);
+    const result = await this.userRepository.update({ id: user_id }, body);
     if (result.affected === 0)
       throw new NotFoundException({ errorCode: 'update_setting_failed' });
     return body;
   }
 
-
   // ================= Setting =========================
 
   async adminGetSetting(id: string) {
-    const {select , relations}
-      = this.filterByLabels.buildQueryObject({
-      label: "SA",
+    const { select, relations } = this.filterByLabels.buildQueryObject({
+      label: 'SA',
     });
     return await this.userSettingRepository.findOne({
-      where: { user: { id }} ,
-      select
-    })
+      where: { user: { id } },
+      select,
+    });
   }
 
   async adminUpdateSetting(user_id: string, body: UpdateUserSettingDto) {
     const result = await this.userSettingRepository.update(
-        { user: { id: user_id } },
-        body,
+      { user: { id: user_id } },
+      body,
     );
     if (result.affected === 0)
       throw new NotFoundException({ errorCode: 'update_setting_no_affected' });
     return body;
   }
-
-
-
 }
 
 

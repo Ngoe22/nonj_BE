@@ -18,7 +18,16 @@ export class UserController {
   //   return this.userService.create(body);
   // }
 
-
+  @Get('search/:user_name')
+  findByUsername(
+    @GetRequesterInfo() requester: RequesterInfo,
+    @Param('user_name') user_name: string,
+  ) {
+    return this.userService.getOtherInfoByUserName({
+      requester_id: requester.id,
+      search_target_username: user_name,
+    });
+  }
 
   // @Get('user_name/:user_name')
   // findByUsername(
@@ -33,7 +42,7 @@ export class UserController {
   @Get('me')
   getProfile(@GetRequesterInfo() requester: RequesterInfo) {
     // console.log(requester);
-    return this.userService.getMyInfo(requester.id );
+    return this.userService.getMyInfo(requester.id);
   }
 
   @Patch('me')
@@ -41,13 +50,10 @@ export class UserController {
     @Body() body: UpdateUserDto,
     @GetRequesterInfo() requester: RequesterInfo,
   ) {
-    return this.userService.updateInfo({ user_id: requester.id , body });
+    return this.userService.updateInfo({ user_id: requester.id, body });
   }
 
-
   //======================================
-
-
 
   @Get('me/setting')
   getMySetting(@GetRequesterInfo() requester: RequesterInfo) {

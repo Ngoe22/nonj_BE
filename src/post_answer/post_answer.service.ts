@@ -11,7 +11,7 @@ import {InjectDataSource, InjectRepository} from "@nestjs/typeorm";
 import {DataSource, Repository} from "typeorm";
 import {GroupMemberService} from "../group/service/group_member/group_member.service.js";
 import { CreatePostAnswerDto, GradePostAnswerDto } from "./dto/post_answer.dto.js";
-import {Exercise_Type, Post_Type, View_Each_Other_Answer } from "../post/enum/post.enum.js";
+import { Question_Type, Retake, View_Each_Other_Answer} from "../post/enum/post.enum.js";
 import { Post_Answer_Status } from "./enum/post_answer.enum.js";
 import { Group_Member_Role } from "../group/enum/group.enum.js";
 import {Post} from "../post/entities/post.entity.js";
@@ -103,18 +103,21 @@ export class PostAnswerService {
     if (!check)
       throw new NotFoundException({ errorCode: 'post_not_found_in_scope' });
 
-    if (check.post_type === Post_Type.EXAM) {
-      if (check.deadline_at && new Date() > new Date(check.deadline_at)) {
-        throw new ConflictException({ errorCode: 'post_deadline_passed' });
-      }
-      if (
+
+    if (check.deadline_at && new Date() > new Date(check.deadline_at)) {
+      throw new ConflictException({ errorCode: 'post_deadline_passed' });
+    }
+
+    if (
         check.already_answered === 'true' ||
         check.already_answered === true
-      ) {
+    ) {
+      if  ( check.retake === Retake.NEVER )
         throw new ConflictException({ errorCode: 'already_answered' });
-      }
     }
-    const isAutoGraded = check.question_type === Exercise_Type.MULTIPLE_CHOICE;
+
+
+    const isAutoGraded = check.question_type === Question_Type.MULTIPLE_CHOICE;
 
     const answer = await this.answerRepo.save({
       user: { id: requester_id },
@@ -311,7 +314,7 @@ export class PostAnswerService {
 
     const post = await this.isPostExist({ post_id, group_id, collection_id });
 
-    if (post.question_type === Exercise_Type.MULTIPLE_CHOICE) {
+    if (post.question_type === Question_Type.MULTIPLE_CHOICE) {
       throw new ConflictException({
         errorCode: 'multiple_choice_auto_graded_cannot_manual_grade',
       });
@@ -439,7 +442,6 @@ export class PostAnswerService {
       relations: { group: true, post_collection: true },
       select: {
         id: true,
-        post_type: true,
         question_type: true,
         deadline_at: true,
         view_each_other_answer: true,
@@ -468,8 +470,11 @@ export class PostAnswerService {
         return false;
       }
       case View_Each_Other_Answer.AFTER_DEADLINE: {
-        return !!deadline_at && new Date() > deadline_at;
+        if ( deadline_at )
+          return new Date() > deadline_at;
       }
+      default:
+        return true;
     }
   }
 

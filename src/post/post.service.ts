@@ -11,8 +11,8 @@ import {DataSource, Repository} from "typeorm";
 import {PostCollectionService} from "../group/service/post_collection/post_collection.service.js";
 import {GroupMemberService} from "../group/service/group_member/group_member.service.js";
 import {Group_Member_Role, Group_View_Mode} from "../group/enum/group.enum.js";
-import {CreateExamPostDto, CreateExercisePostDto, UpdatePostDto} from "./dto/post.dto.js";
-import {Post_Type, View_Each_Other_Answer} from "./enum/post.enum.js";
+import { UpdatePostDto} from "./dto/post.dto.js";
+
 import { PostCollection } from '../group/entities/post_collection.entity.js';
 import {Group} from "../group/entities/group.entity.js";
 import {User} from "../user/entities/user.entity.js";
@@ -38,7 +38,6 @@ export class PostService {
       labels :  [ 'SA' , 'me', 'member', 'admin', 'founder']  ,
       fieldAndLabels: {
         id: ['founder', 'member', 'admin'],
-        post_type: ['SA' ,'founder', 'member', 'admin'],
         title: ['SA' ,'founder', 'member', 'admin'],
         description: ['SA' ,'founder', 'member', 'admin'],
         question_type: ['SA' ,'founder', 'member', 'admin'],
@@ -76,7 +75,6 @@ export class PostService {
   // ==================== Private ====================
 
   private buildRelationFields(
-    body: any,
     requester_id: string,
     group_id: string,
     collection_id: string,
@@ -96,16 +94,8 @@ export class PostService {
     requester_id: string;
   }) {
     const { group_id, collection_id, requester_id } = input;
-    //
-    // const poster_role =   await this.groupMemberService.checkActorRoleBeforeAction({
-    //   actor_id: requester_id,
-    //   group_id,
-    //   actor_allow_roles: [Group_Member_Role.ADMIN, Group_Member_Role.FOUNDER],
-    // });
-    //
-    // const belongs = await this.collectionService.isCollectionBelongToGroup({ collection_id, group_id });
-    // if (!belongs) throw new NotFoundException({ errorCode: 'collection_not_found_in_group' });
-    //
+
+
     const result = await this.dataSource
       .createQueryBuilder()
       .select('gm.role', 'role')
@@ -144,11 +134,11 @@ export class PostService {
 
   // ==================== Create ====================
 
-  async createExercise(input: {
+  async createPost(input: {
     group_id: string;
     collection_id: string;
     requester_id: string;
-    body: CreateExercisePostDto;
+    body: CreatePostDto;
   }) {
     const { group_id, collection_id, requester_id, body } = input;
 
@@ -158,46 +148,9 @@ export class PostService {
       requester_id,
     });
 
-    // EXERCISE = no deadline + never view Other answer + always allow to retake
-
     const post = await this.postRepo.save({
-      ...this.buildRelationFields(body, requester_id, group_id, collection_id),
-      post_type: Post_Type.EXERCISE,
       ...body,
-      deadline_at: null,
-      retake: true,
-      view_each_other_answer: View_Each_Other_Answer.NEVER,
-    });
-
-    return this.filterByLabels.filterDataOfQueryResult({
-      object: post,
-      label: poster_role.toLowerCase(),
-    });
-  }
-
-  async createExam(input: {
-    group_id: string;
-    collection_id: string;
-    requester_id: string;
-    body: CreateExamPostDto;
-  }) {
-    const { group_id, collection_id, requester_id, body } = input;
-
-    const poster_role = await this.checkBeforeCreate({
-      group_id,
-      collection_id,
-      requester_id,
-    });
-
-    // EXERCISE =  deadline + view Other answer depend on setting + not allow to retake
-
-    const post = await this.postRepo.save({
-      ...this.buildRelationFields(body, requester_id, group_id, collection_id),
-      post_type: Post_Type.EXAM,
-      ...body,
-      deadline_at: new Date(body.deadline_at),
-      retake: false,
-      view_each_other_answer: body.view_each_other_answer,
+      ...this.buildRelationFields( requester_id, group_id, collection_id),
     });
 
     return this.filterByLabels.filterDataOfQueryResult({
@@ -290,6 +243,7 @@ export class PostService {
       group_id,
       actor_allow_roles: [Group_Member_Role.ADMIN, Group_Member_Role.FOUNDER],
     });
+
 
     const result = await this.postRepo.update(
       {

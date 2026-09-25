@@ -5,7 +5,7 @@ import {UserExerciseTemplate} from "../../user_exercise_template/entities/user_e
 import {PostCollection} from "../../group/entities/post_collection.entity.js";
 import {Group} from "../../group/entities/group.entity.js";
 import {PostAnswer} from "../../post_answer/entities/post_answer.entity.js";
-import {Exercise_Type, Post_Type, View_Each_Other_Answer} from "../enum/post.enum.js";
+import {Question_Type , Retake, View_Each_Other_Answer} from "../enum/post.enum.js";
 
 
 @Index(['post_collection', 'created_at'])
@@ -14,17 +14,14 @@ export class Post extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'enum', enum: Post_Type })
-  post_type: Post_Type;
-
   @Column({ type: 'varchar', length: 50 })
   title: string;
 
   @Column({ type: 'text', nullable: true })
   description: string | null;
 
-  @Column({ type: 'enum', enum: Exercise_Type })
-  question_type: Exercise_Type;
+  @Column({ type: 'enum', enum: Question_Type })
+  question_type: Question_Type;
 
   @Column({ type: 'jsonb' })
   question_content: object;
@@ -32,8 +29,8 @@ export class Post extends BaseEntity {
   @Column({ type: 'timestamp', nullable: true })
   deadline_at: Date | null;
 
-  @Column({ type: 'bool' })
-  retake: boolean;
+  @Column({ type: 'enum', enum: Retake, default: Retake.NEVER })
+  retake: Retake;
 
   @Column({ type: 'enum', enum: View_Each_Other_Answer, default: View_Each_Other_Answer.NEVER })
   view_each_other_answer: View_Each_Other_Answer;

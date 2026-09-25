@@ -1,6 +1,6 @@
 import {Controller, Get, Post, Body, Patch, Param, Delete, Query, DefaultValuePipe, ParseIntPipe} from '@nestjs/common';
 import { PostService } from '../post.service.js';
-import {CreateExamPostDto, CreateExercisePostDto, UpdatePostDto} from "../dto/post.dto.js";
+import { CreatePostDto, UpdatePostDto} from "../dto/post.dto.js";
 import {GetRequesterInfo} from "../../_common/decorators/param/request_payload.decorator.js";
 import type {RequesterInfo} from "../../_common/types/request.js";
 import {ParseLimitPipe} from "../../_common/pipe/ParseLimitPipe.js";
@@ -13,21 +13,21 @@ export class PostController {
   createExercise(
       @Param('group_id') group_id: string,
       @Param('collection_id') collection_id: string,
-      @Body() body: CreateExercisePostDto,
+      @Body() body: CreatePostDto,
       @GetRequesterInfo() requester: RequesterInfo,
   ) {
-    return this.postService.createExercise({ group_id, collection_id, requester_id: requester.id, body });
+    return this.postService.createPost({ group_id, collection_id, requester_id: requester.id, body });
   }
 
-  @Post('exam')
-  createExam(
-      @Param('group_id') group_id: string,
-      @Param('collection_id') collection_id: string,
-      @Body() body: CreateExamPostDto,
-      @GetRequesterInfo() requester: RequesterInfo,
-  ) {
-    return this.postService.createExam({ group_id, collection_id, requester_id: requester.id, body });
-  }
+  // @Post('exam')
+  // createExam(
+  //     @Param('group_id') group_id: string,
+  //     @Param('collection_id') collection_id: string,
+  //     @Body() body: CreateExamPostDto,
+  //     @GetRequesterInfo() requester: RequesterInfo,
+  // ) {
+  //   return this.postService.createExam({ group_id, collection_id, requester_id: requester.id, body });
+  // }
 
   @Get()
   getMany(

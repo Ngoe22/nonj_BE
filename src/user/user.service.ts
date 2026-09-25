@@ -30,6 +30,7 @@ export class UserService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(UserSetting)
     private readonly userSettingRepository: Repository<UserSetting>,
+    //
     private readonly friendRequestService: FriendRequestService,
   ) {
     // ============================== Filter DB & QueryField

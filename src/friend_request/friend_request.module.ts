@@ -8,7 +8,7 @@ import {AdminFriendReqController} from "./controller/admin-friend_request.contro
 import {FriendshipModule} from "../friendship/friendship.module.js";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([FriendRequest]), UserModule ,forwardRef(() => FriendshipModule)   ] ,
+  imports: [TypeOrmModule.forFeature([FriendRequest]) , FriendshipModule   ] ,
   controllers: [FriendRequestController,AdminFriendReqController],
   providers: [FriendRequestService],
   exports: [FriendRequestService],

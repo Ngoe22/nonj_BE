@@ -21,7 +21,6 @@ export class FriendshipService {
     private readonly dataSource: DataSource,
     @InjectRepository(Friendship)
     private readonly friendshipRepo: Repository<Friendship>,
-    private readonly userService: UserService,
   ) {
     this.friendShipFilterByRole = FilterDbField.create({
       labels: ['SA', 'me', 'friend'],
@@ -63,7 +62,7 @@ export class FriendshipService {
       where: { user: { id: user_id } },
       relations,
       select,
-      order: { created_at: 'DESC' },
+      order: { be_friend_at: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
     });

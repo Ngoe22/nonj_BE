@@ -5,9 +5,10 @@ import {TypeOrmModule} from "@nestjs/typeorm";
 import { User} from "./entities/user.entity.js";
 import {UserSetting} from "./entities/user_setting.entity.js";
 import { AdminUserController } from './controller/admin-user.controller.js';
+import {FriendRequestModule} from "../friend_request/friend_request.module.js";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, UserSetting])],
+  imports: [TypeOrmModule.forFeature([User, UserSetting]) , FriendRequestModule],
   controllers: [UserController, AdminUserController],
   providers: [UserService],
   exports: [UserService],

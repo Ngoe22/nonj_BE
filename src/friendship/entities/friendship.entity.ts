@@ -15,7 +15,7 @@ import {BaseEntity} from "../../_common/entities/base.entity.js";
 
 
 
-@Index(['user', 'user_friend'])
+@Index(['user', 'user_friend' , 'be_friend_at'])
 @Entity('friendship')
 export class Friendship extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')

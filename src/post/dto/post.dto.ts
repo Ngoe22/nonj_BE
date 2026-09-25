@@ -9,7 +9,7 @@ import {
     MaxLength,
     MinLength
 } from "class-validator";
-import {Exercise_Type, Post_Type, Retake, View_Each_Other_Answer} from "../enum/post.enum.js";
+import {Retake, View_Each_Other_Answer} from "../enum/post.enum.js";
 export class CreatePostDto {
     @IsString() @MinLength(1) @MaxLength(50)
     title: string;

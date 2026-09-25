@@ -7,7 +7,7 @@ import {UserModule} from "../user/user.module.js";
 import {FriendRequestModule} from "../friend_request/friend_request.module.js";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Friendship]) , UserModule , forwardRef(() => FriendRequestModule)] ,
+  imports: [TypeOrmModule.forFeature([Friendship])  ] ,
   controllers: [FriendshipController],
   providers: [FriendshipService],
   exports: [FriendshipService],

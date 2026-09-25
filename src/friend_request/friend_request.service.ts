@@ -22,7 +22,6 @@ export class FriendRequestService {
     private readonly dataSource: DataSource,
     @InjectRepository(FriendRequest)
     private readonly requestRepo: Repository<FriendRequest>,
-    private readonly userService: UserService,
     private readonly friendshipService: FriendshipService,
   ) {
     this.filterByLabels = FilterDbField.create({

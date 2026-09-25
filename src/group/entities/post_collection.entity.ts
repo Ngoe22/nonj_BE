@@ -13,7 +13,7 @@ export class PostCollection extends BaseEntity {
   @Column({ type: 'varchar', length: 50 })
   title: string;
 
-  @Column({ type: 'varchar', length: 100 })
+  @Column({ type: 'varchar', length: 100  ,nullable: true })
   desc: string;
 
   @Index()

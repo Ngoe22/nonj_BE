@@ -8,7 +8,6 @@ export enum GroupMemberUpdateAction {
 }
 
 export class UpdateGroupMemberDto {
-  @IsIn(Object.values(GroupMemberUpdateAction))
   action: GroupMemberUpdateAction;
 }
 

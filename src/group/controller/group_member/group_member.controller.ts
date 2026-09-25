@@ -41,7 +41,7 @@ export class GroupMemberController {
     });
   }
 
-  @Patch('founder/:group_id/:target_id')
+  @Patch(':group_id/:target_id')
   update(
     @Param('group_id') group_id: string,
     @Param('target_id') target_id: string,

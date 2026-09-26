@@ -21,13 +21,15 @@ export class UserExerciseTemplateController {
 
   // ================== EXERCISE TEMPLATE ==================
 
-  @Get('me')
+  @Get('me/:collection_id')
   getManyMine(
     @GetRequesterInfo() requester: RequesterInfo,
+    @Param('collection_id') collection_id: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(20), ParseLimitPipe) limit: number,
   ) {
     return this.exerciseTemplateService.findManyMine({
+      collection_id ,
       user_id: requester.id,
       page,
       limit,

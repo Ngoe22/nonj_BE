@@ -100,6 +100,16 @@ export class UserService {
 
   //
 
+  async getOtherInfoById(input: {
+    requester_id: string;
+    search_target_id: string;
+  }) {
+    return this.getOtherInfo({
+      requester_id: input.requester_id,
+      condition: { id: input.search_target_id },
+    });
+  }
+
   // =============== SEARCH =====================
 
   async getOtherInfoByUserName(input: {
@@ -142,21 +152,20 @@ export class UserService {
     return { ...info, is_friend, permission };
   }
 
-  async getOtherInfoById(input: {
-    requester_id: string;
-    search_target_id: string;
-  }) {
-    return this.getOtherInfo({
-      requester_id: input.requester_id,
-      condition: { id: input.search_target_id },
-    });
-  }
 
   private async getOtherInfo(input: {
     requester_id: string;
     condition: { id?: string; username?: string };
   }) {
     const { requester_id, condition } = input;
+
+    const selectArray = [
+      'u.id AS id',
+      'u.nickname AS nickname',
+      'u.user_name AS user_name',
+      'u.bio AS bio',
+      'u.avatar_url AS avatar_url',
+    ]
 
     const qb = this.userRepository
       .createQueryBuilder('u')
@@ -165,7 +174,7 @@ export class UserService {
         'f',
         'f.user_id = :requester_id AND f.friend_id = u.id AND f.deleted_at IS NULL',
         { requester_id },
-      )
+      ).select(selectArray)
       .addSelect(
         'CASE WHEN f.id IS NOT NULL THEN true ELSE false END',
         'is_friend',

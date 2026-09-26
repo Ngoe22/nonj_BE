@@ -38,13 +38,15 @@ export class AdminUserExerciseTemplateController {
         return this.exerciseTemplateService.adminGetOne( {template_id} );
     }
 
-    @Get('users/:user_id')
+    @Get('users/:user_id/:collection_id')
     adminGetMany(
+        @Param('collection_id') collection_id: string,
         @Param('user_id') user_id: string,
         @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
         @Query('limit', new DefaultValuePipe(20), ParseLimitPipe) limit: number,
     ) {
         return this.exerciseTemplateService.adminGetMany( {
+            collection_id ,
             user_id,
             page,
             limit,

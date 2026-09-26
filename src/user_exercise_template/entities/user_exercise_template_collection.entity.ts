@@ -40,6 +40,7 @@ export class UserExerciseTemplateCollection extends BaseEntity {
   @Column({
     type: 'varchar',
     length: 100,
+    nullable: true,
   })
   desc: string;
 

@@ -8,6 +8,8 @@ import {Transactional} from 'typeorm-transactional';
 import {Injectable, NotFoundException} from '@nestjs/common';
 import {User} from "../../../user/entities/user.entity.js";
 import {GroupMember} from "../../entities/group_member.entity.js";
+import {Group_Join_Request_Status} from "../../enum/group.enum.js";
+import {map} from "rxjs/operators";
 
 //====================================================================
 
@@ -55,6 +57,7 @@ export class GroupService {
         edit_setting: ['founder'],
         able_to_leave: ['member', 'admin'],
         able_to_delete: ['founder'],
+        create_collection : ['founder'],
       },
     });
   }
@@ -142,39 +145,6 @@ export class GroupService {
 
   // ==================== Read - One ====================
 
-  async searchOneBySlug(input: { slug: string; requester_id: string }) {
-    const { slug, requester_id } = input;
-
-    const selectArray = [
-      'g.id AS g_id',
-      'g.name AS g_name',
-      'g.slug AS slug',
-      'g.description AS description',
-      'g.join_mode AS join_mode',
-      'g.view_mode AS view_mode',
-    ];
-
-    const result = await this.groupRepo
-      .createQueryBuilder('g')
-      .leftJoin(
-        'g.group_member',
-        'gm',
-        'gm.user_id = :requester_id AND gm.deleted_at IS NULL',
-        { requester_id },
-      )
-      .select(selectArray)
-      .addSelect(
-        'CASE WHEN gm.id IS NOT NULL THEN true ELSE false END',
-        'is_joined',
-      )
-      .addSelect('gm.role', 'role')
-      .where('g.slug = :slug', { slug })
-      .andWhere('g.deleted_at IS NULL')
-      .getRawOne();
-
-    if (!result) throw new NotFoundException({ errorCode: 'group_not_found' });
-    return result;
-  }
 
   async getOneById(input: { group_id: string; requester_id: string }) {
     const { group_id, requester_id } = input;
@@ -217,7 +187,52 @@ export class GroupService {
     return { ...final_group, permission };
   }
 
-  // ==================== Read - Many ====================
+  // ==================== Search ====================
+
+  async searchOneBySlug(input: { slug: string; requester_id: string }) {
+    const { slug, requester_id } = input;
+
+    const selectArray = [
+      'g.id AS g_id',
+      'g.name AS g_name',
+      'g.slug AS slug',
+      'g.description AS description',
+      'g.join_mode AS join_mode',
+      'g.view_mode AS view_mode',
+    ];
+
+    const result = await this.groupRepo
+        .createQueryBuilder('g')
+        .leftJoin(
+            'g.group_member',
+            'gm',
+            'gm.user_id = :requester_id AND gm.deleted_at IS NULL',
+            { requester_id },
+        )
+        .leftJoin(
+            'group_join_request', 'jr',
+            'jr.group_id = g.id AND jr.sender_id = :requester_id AND jr.status = :pending',
+            { requester_id, pending: Group_Join_Request_Status.PENDING },
+        )
+        .select(selectArray)
+        .addSelect('CASE WHEN gm.id IS NOT NULL THEN true ELSE false END', 'is_joined')
+        .addSelect('CASE WHEN jr.id IS NOT NULL THEN true ELSE false END', 'has_pending_request')
+        .addSelect('gm.role', 'role')
+        .where('g.slug = :slug', { slug })
+        .andWhere('g.deleted_at IS NULL')
+        .getRawOne();
+
+    if (!result) throw new NotFoundException({ errorCode: 'group_not_found' });
+
+    return {
+      ...result,
+      is_joined: result.is_joined === true || result.is_joined === 'true',
+      has_pending_request: result.has_pending_request === true || result.has_pending_request === 'true',
+    };
+  }
+
+
+
 
   //  Pending for optimize
   async searchManyByName(input: {
@@ -229,33 +244,50 @@ export class GroupService {
     const { name, requester_id, page, limit } = input;
 
     const selectArray = [
-      'g.id AS id', // ⬅️ đổi g_id → id
-      'g.name AS name', // ⬅️ đổi g_name → name
+      'g.id AS id',
+      'g.name AS name',
       'g.slug AS slug',
       'g.description AS description',
       'g.join_mode AS join_mode',
       'g.view_mode AS view_mode',
     ];
 
-    return this.groupRepo
-      .createQueryBuilder('g')
-      .leftJoin(
-        'g.group_member',
-        'gm',
-        'gm.user_id = :requester_id AND gm.deleted_at IS NULL',
-        { requester_id },
-      )
-      .select(selectArray)
-      .addSelect(
-        'CASE WHEN gm.id IS NOT NULL THEN true ELSE false END',
-        'is_joined',
-      )
-      .where('g.name ILIKE :name', { name: `%${name}%` })
-      .andWhere('g.deleted_at IS NULL')
-      .orderBy('g.created_at', 'DESC')
-      .offset((page - 1) * limit)
-      .limit(limit)
-      .getRawMany();
+    const results = await this.groupRepo
+        .createQueryBuilder('g')
+        .leftJoin(
+            'g.group_member', 'gm',
+            'gm.user_id = :requester_id AND gm.deleted_at IS NULL',
+            { requester_id },
+        )
+        .leftJoin(
+            'group_join_request', 'jr',
+            'jr.group_id = g.id AND jr.sender_id = :requester_id AND jr.status = :pending',
+            { requester_id, pending: Group_Join_Request_Status.PENDING },
+        )
+        .select(selectArray)
+        .addSelect('CASE WHEN gm.id IS NOT NULL THEN true ELSE false END', 'is_joined')
+        .addSelect('CASE WHEN jr.id IS NOT NULL THEN true ELSE false END', 'has_pending_request')
+        .addSelect('gm.role', 'role')
+        .where('g.name ILIKE :name', { name: `%${name}%` })
+        .andWhere('g.deleted_at IS NULL')
+        .orderBy('g.created_at', 'DESC')
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .getRawMany();
+
+    return results.map((item) => {
+      const role = (item.role ?? 'unjoin').toLowerCase();
+      const permission = this.filterByLabels.getLabelPermission(role);
+      const final_group = this.filterByLabels.filterDataOfQueryResult({ object: item, label: role });
+
+      return {
+        ...final_group,
+        id: item.id,
+        is_joined: item.is_joined === true || item.is_joined === 'true',
+        has_pending_request: item.has_pending_request === true || item.has_pending_request === 'true',
+        permission,
+      };
+    });
   }
 
   // personal
@@ -447,3 +479,37 @@ export class GroupService {
 //   .take(limit)
 //   .getRawMany();
 // if false return []
+
+// async searchOneBySlug(input: { slug: string; requester_id: string }) {
+//   const { slug, requester_id } = input;
+//
+//   const selectArray = [
+//     'g.id AS g_id',
+//     'g.name AS g_name',
+//     'g.slug AS slug',
+//     'g.description AS description',
+//     'g.join_mode AS join_mode',
+//     'g.view_mode AS view_mode',
+//   ];
+//
+//   const result = await this.groupRepo
+//     .createQueryBuilder('g')
+//     .leftJoin(
+//       'g.group_member',
+//       'gm',
+//       'gm.user_id = :requester_id AND gm.deleted_at IS NULL',
+//       { requester_id },
+//     )
+//     .select(selectArray)
+//     .addSelect(
+//       'CASE WHEN gm.id IS NOT NULL THEN true ELSE false END',
+//       'is_joined',
+//     )
+//     .addSelect('gm.role', 'role')
+//     .where('g.slug = :slug', { slug })
+//     .andWhere('g.deleted_at IS NULL')
+//     .getRawOne();
+//
+//   if (!result) throw new NotFoundException({ errorCode: 'group_not_found' });
+//   return result;
+// }

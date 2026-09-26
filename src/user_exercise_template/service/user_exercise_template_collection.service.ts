@@ -35,13 +35,13 @@ export class UserExerciseTemplateCollectionService {
                 id: ['SA', 'me' ],
                 title: ['SA', 'me' ],
                 desc : ['SA', 'me'],
+                created_at :  ['SA', 'me'],
             },
             dataBases: {
                 _main : UserExerciseTemplateCollection
             },
             dataSource : this.dataSource ,
             FE_permission : {
-                create : [ 'me' ] ,
                 update : [ 'me' ] ,
                 delete : [ 'me' ] ,
             }

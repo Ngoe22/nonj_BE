@@ -34,8 +34,8 @@ export class FriendshipService {
           user_name: ['SA', 'me'],
           avatar_url: ['me'],
         },
-        created_at: ['SA', 'me'],
-        updated_at: ['SA', 'me'],
+        created_at: ['SA', ],
+        updated_at: ['SA', ],
         deleted_at: ['SA'],
       },
       dataBases: {

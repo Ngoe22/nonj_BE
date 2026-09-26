@@ -50,7 +50,7 @@ export class UserExerciseTemplate extends BaseEntity {
   @Column({
     type: 'jsonb',
   })
-  exercise_content: object;
+  preparation_content: object;
 
   // ==============================================
 

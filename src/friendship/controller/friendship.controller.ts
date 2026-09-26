@@ -8,16 +8,6 @@ import {ParseLimitPipe} from "../../_common/pipe/ParseLimitPipe.js";
 export class FriendshipController {
   constructor(private readonly friendshipService: FriendshipService) {}
 
-  // @Get('search/:user_name')
-  // findByUsername(
-  //     @GetRequesterInfo() requester: RequesterInfo,
-  //     @Param('user_name') user_name: string
-  // ) {
-  //   return this.friendshipService.searchUserName({
-  //     requester_id: requester.id,
-  //     search_target_username: user_name,
-  //   });
-  // }
 
   // add_friend be called from friend quest service
 
@@ -34,7 +24,8 @@ export class FriendshipController {
     });
   }
 
-  @Patch()
+  // unfriend
+  @Patch(':friend_id')
   async delete(
     @Param('friend_id') friend_id: string,
     @GetRequesterInfo() userInfo: RequesterInfo,
@@ -45,3 +36,16 @@ export class FriendshipController {
     });
   }
 }
+
+
+// @Get('search/:user_name')
+// findByUsername(
+//     @GetRequesterInfo() requester: RequesterInfo,
+//     @Param('user_name') user_name: string
+// ) {
+//   return this.friendshipService.searchUserName({
+//     requester_id: requester.id,
+//     search_target_username: user_name,
+//   });
+// }
+

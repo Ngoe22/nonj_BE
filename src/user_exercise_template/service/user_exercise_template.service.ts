@@ -43,8 +43,7 @@ export class UserExerciseTemplateService {
     private readonly templateRepo: Repository<UserExerciseTemplate>,
     //
     private readonly collectionService: UserExerciseTemplateCollectionService,
-    private readonly userService: UserService,
-    private readonly friendshipService: FriendshipService,
+
   ) {
     // ============================== Filter DB & QueryField
 
@@ -53,7 +52,7 @@ export class UserExerciseTemplateService {
       fieldAndLabels: {
         id: ['SA', 'me'],
         title: ['SA', 'me'],
-        exercise_content: ['SA', 'me'],
+        preparation_content: ['SA', 'me'],
         collection: {
           id: ['SA'],
           title: ['SA'],
@@ -62,6 +61,7 @@ export class UserExerciseTemplateService {
           id :['SA'],
           user_name :['SA']
         },
+        created_at : ['SA', 'me'],
         deleted_at: ['SA'],
       },
       dataBases: {
@@ -100,6 +100,7 @@ export class UserExerciseTemplateService {
   }
 
   private async findMany(input: {
+    collection_id : string;
     user_id: string;
     data_for: string;
     page: number;
@@ -138,9 +139,10 @@ export class UserExerciseTemplateService {
     });
   }
 
-  async findManyMine(input: { user_id: string; page: number; limit: number }) {
-    const { user_id, page, limit } = input;
+  async findManyMine(input: {  collection_id :string,  user_id: string; page: number; limit: number }) {
+    const {collection_id, user_id, page, limit } = input;
     return this.findMany({
+      collection_id,
       user_id,
       data_for: 'me',
       page,
@@ -222,9 +224,10 @@ export class UserExerciseTemplateService {
     });
   }
 
-  async adminGetMany(input: { user_id: string; page: number; limit: number }) {
-    const { user_id, page, limit } = input;
-    return this.findMany({ user_id, data_for: 'SA', limit, page });
+  async adminGetMany(input: {  collection_id : string , user_id: string; page: number; limit: number }) {
+    const {collection_id , user_id, page, limit } = input;
+
+    return this.findMany({collection_id , user_id, data_for: 'SA', limit, page });
   }
 
   // update share with user

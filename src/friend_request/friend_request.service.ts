@@ -42,7 +42,7 @@ export class FriendRequestService {
         },
         status: ['SA', 'outgoing_requests', 'ingoing_requests'],
         created_at: ['SA', 'outgoing_requests', 'ingoing_requests'],
-        updated_at: ['SA', 'outgoing_requests', 'ingoing_requests'],
+        updated_at: ['SA',],
       },
       dataBases: {
         _main: FriendRequest,

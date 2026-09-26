@@ -32,7 +32,6 @@ export class FriendRequestController {
     @GetRequesterInfo() user: RequesterInfo,
   ) {
     return this.friendRequestService.add_request({
-
       sender_id: user.id,
       receiver_id,
     });

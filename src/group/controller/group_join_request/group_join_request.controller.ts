@@ -10,7 +10,7 @@ import {
 import { GroupJoinRequestService } from '../../service/group_join_request/group_join_request.service.js';
 import { GetRequesterInfo } from '../../../_common/decorators/param/request_payload.decorator.js';
 import type { RequesterInfo } from '../../../_common/types/request.js';
-import { CreateGroupJoinRequest, UpdateGroupJoinRequest } from '../../dto/join_group_request.dto.js';
+import {  UpdateGroupJoinRequest } from '../../dto/join_group_request.dto.js';
 import { ParseLimitPipe } from '../../../_common/pipe/ParseLimitPipe.js';
 
 @Controller('group_join_request')

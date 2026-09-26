@@ -17,6 +17,20 @@ export const REFRESH_COOKIE_NAME = 'refresh_token';
 export const ACCESS_COOKIE_PATH = '/';
 export const REFRESH_COOKIE_PATH = '/auth';
 
+// Quên mật khẩu (OTP)
+export const FORGET_PASSWORD_OTP_LENGTH = 6;
+export const FORGET_PASSWORD_OTP_TTL_MINUTES = 5;
+export const FORGET_PASSWORD_OTP_TTL_MS =
+  FORGET_PASSWORD_OTP_TTL_MINUTES * 60 * 1000;
+
+/** Chặn gửi lại OTP quá nhanh: 1 phút / lần */
+export const FORGET_PASSWORD_OTP_COOLDOWN_MINUTES = 1;
+export const FORGET_PASSWORD_OTP_COOLDOWN_MS =
+  FORGET_PASSWORD_OTP_COOLDOWN_MINUTES * 60 * 1000;
+
+/** Độ dài mật khẩu mới do server sinh ra và gửi qua email */
+export const GENERATED_PASSWORD_LENGTH = 12;
+
 
 
 

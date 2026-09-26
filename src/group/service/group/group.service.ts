@@ -308,6 +308,7 @@ export class GroupService {
       select,
       skip: (page - 1) * limit,
       take: limit,
+      order: { created_at: 'DESC' },
     });
 
     const permission = this.filterByLabels.getLabelPermission('founder');
@@ -338,6 +339,7 @@ export class GroupService {
         'g.description AS description',
         'g.join_mode AS join_mode',
         'g.view_mode AS view_mode',
+        'g.created_at AS created_at',
         'gm.role AS role',
       ])
       .where('g.deleted_at IS NULL')

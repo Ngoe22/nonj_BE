@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { randomInt } from 'node:crypto';
 import {CreateUserDto} from './dto/create-user.dto.js';
 import {UpdateUserDto} from './dto/update-user.dto.js';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
@@ -247,6 +248,100 @@ export class UserService {
     if (result.affected === 0)
       throw new NotFoundException({ errorCode: 'update_setting_failed' });
     return body;
+  }
+
+  // ================= Password (dùng cho luồng quên/đổi mật khẩu) =================
+
+  async getAuthInfoById(user_id: string) {
+    return await this.userRepository.findOne({
+      where: { id: user_id },
+      select: { id: true, email: true, status: true },
+    });
+  }
+
+  async setPassword(input: { user_id: string; password_hash: string }) {
+    const result = await this.userRepository.update(
+      { id: input.user_id },
+      { password: input.password_hash },
+    );
+
+    if (result.affected === 0)
+      throw new NotFoundException({ errorCode: 'user_not_found' });
+    return true;
+  }
+
+  // ================= Google (GIS) =================
+
+  /**
+   * Đăng nhập / đăng ký bằng Google — dùng CHUNG cho cả 2 nút ở FE:
+   *
+   *  1. đã có `google_id`               → trả user (đăng nhập)
+   *  2. đã có tài khoản cùng `email`    → liên kết `google_id` rồi trả user (đăng nhập)
+   *  3. chưa có gì                      → tạo tài khoản mới (đăng ký)
+   *
+   * ⇒ Bấm "Đăng ký" bằng tài khoản Google đã tồn tại sẽ KHÔNG bị lỗi trùng,
+   *   mà chạy đúng luồng đăng nhập.
+   */
+  async findOrCreateGoogleUser(input: {
+    google_id: string;
+    email: string;
+    nickname?: string;
+    avatar_url?: string;
+  }) {
+    const { google_id, email, nickname, avatar_url } = input;
+
+    // 1. tài khoản Google đã từng đăng nhập
+    const byGoogleId = await this.userRepository.findOne({
+      where: { google_id },
+    });
+    if (byGoogleId) return byGoogleId;
+
+    // 2. có tài khoản email/mật khẩu cùng email -> liên kết Google vào luôn
+    const byEmail = await this.userRepository.findOne({ where: { email } });
+    if (byEmail) {
+      await this.userRepository.update(
+        { id: byEmail.id },
+        { google_id, updated_by: byEmail.id },
+      );
+      byEmail.google_id = google_id;
+      return byEmail;
+    }
+
+    // 3. tạo tài khoản mới (không có password -> chỉ đăng nhập được bằng Google)
+    const fallbackNickname = nickname?.trim() || email.split('@')[0] || 'user';
+
+    return await this.userRepository.save({
+      google_id,
+      email,
+      user_name: await this.generateUniqueUserName(email),
+      nickname: fallbackNickname.slice(0, 50),
+      avatar_url: avatar_url ?? null,
+    });
+  }
+
+  /** user_name phải là [a-z0-9]+ và duy nhất → sinh từ phần trước @ của email */
+  private async generateUniqueUserName(email: string) {
+    const base =
+      email
+        .split('@')[0]
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '')
+        .slice(0, 45) || 'user';
+
+    let candidate = base;
+
+    for (let i = 1; i <= 20; i++) {
+      const taken = await this.userRepository.exists({
+        where: { user_name: candidate },
+      });
+      if (!taken) return candidate;
+
+      const tail = String(i);
+      candidate = `${base.slice(0, 50 - tail.length)}${tail}`;
+    }
+
+    // cực hiếm mới tới đây — thêm hậu tố ngẫu nhiên cho chắc
+    return `user${randomInt(100000, 1000000)}`;
   }
 
   // ========================= Setting =========================

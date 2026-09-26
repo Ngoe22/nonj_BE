@@ -11,7 +11,11 @@ import {
 import type { Request, Response } from 'express';
 
 import { AuthService } from './auth.service.js';
-import { LoginDto } from './dto/login.dto.js';
+import { GoogleAuthDto, LoginDto } from './dto/login.dto.js';
+import {
+  ConfirmForgetPasswordOtpDto,
+  ForgetPasswordOtpDto,
+} from './dto/forget_password_otp.dto.js';
 import { CreateUserDto } from '../user/dto/create-user.dto.js';
 import { LogoutRange } from './enum/auth.enum.js';
 
@@ -68,6 +72,28 @@ export class AuthController {
     return { info }; // ⬅️ KHÔNG trả token
   }
 
+  // ============================ Google (GIS) ============================
+
+  /**
+   * FE (GIS) lấy ID token rồi gửi lên đây.
+   * Dùng CHUNG cho cả nút "Đăng nhập bằng Google" và "Đăng ký bằng Google":
+   * tài khoản đã tồn tại → đăng nhập luôn, không báo lỗi trùng.
+   */
+  @Public()
+  @Post('google')
+  async googleAuth(
+      @Body() body: GoogleAuthDto,
+      @Res({ passthrough: true }) res: Response,
+  ) {
+    const { info, accessToken, refreshToken } =
+        await this.authService.googleAuth(body);
+
+    setAccessCookie(res, accessToken);
+    setRefreshCookie(res, refreshToken);
+
+    return { info }; // ⬅️ KHÔNG trả token
+  }
+
   // ============================ logout ============================
 
   @Post('logout/:range')
@@ -104,8 +130,27 @@ export class AuthController {
     return { success: true }; // ⬅️ KHÔNG trả token
   }
 
+  // ============================ quên mật khẩu (OTP) ============================
+
+  /** Bước 1 — gửi OTP về email. Giới hạn 1 phút / lần. */
+  @Public()
+  @Post('forget_password_otp')
+  async forgetPasswordOtp(@Body() body: ForgetPasswordOtpDto) {
+    return await this.authService.forgetPasswordOtp(body);
+  }
+
+  /** Bước 2 — xác thực OTP, server đổi mật khẩu mới và gửi về email. */
+  @Public()
+  @Post('confirm_forget_password_otp')
+  async confirmForgetPasswordOtp(@Body() body: ConfirmForgetPasswordOtpDto) {
+    return await this.authService.confirmForgetPasswordOtp(body);
+  }
+
+  // ============================ đổi mật khẩu (cần đăng nhập) ============================
+
+  /** KHÔNG @Public -> đi qua AccessTokenGuard, bắt buộc đang đăng nhập. */
   @Post('reset_password')
-  async resetPassword(@Req() _req: Request) {
-    // TODO
+  async resetPassword(@GetRequesterInfo() requester: RequesterInfo) {
+    return await this.authService.resetPassword(requester.id);
   }
 }

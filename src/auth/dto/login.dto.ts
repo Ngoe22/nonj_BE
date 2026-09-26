@@ -1,5 +1,6 @@
 import {
   IsEmail,
+  IsNotEmpty,
   IsOptional,
   IsString,
   Matches,
@@ -16,4 +17,11 @@ export class LoginDto {
   @MaxLength(50)
   password: string;
 
+}
+
+/** Body của POST /auth/google — `credential` là ID token do GIS trả về ở FE */
+export class GoogleAuthDto {
+  @IsString()
+  @IsNotEmpty()
+  credential: string;
 }

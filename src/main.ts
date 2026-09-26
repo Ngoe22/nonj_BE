@@ -22,12 +22,16 @@ import cookieParser from 'cookie-parser';
 ///
 
 
+// PHẢI gọi TRƯỚC NestFactory.create():
+// typeorm-transactional patch DataSource ngay lúc nó được khởi tạo, nếu gọi sau
+// thì @Transactional() sẽ KHÔNG rollback (bug: write vẫn persist dù request fail).
+initializeTransactionalContext();
+
 async function bootstrap() {
 
   const app = await NestFactory.create(AppModule);
 
   // database
-  initializeTransactionalContext();
   const dataSource = app.get(DataSource);
 
   // data validate

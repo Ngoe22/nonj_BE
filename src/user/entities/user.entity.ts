@@ -27,6 +27,7 @@ import {Report} from "../../report/entities/report.entity.js";
 import {Post} from "../../post/entities/post.entity.js";
 import {PostAnswer} from "../../post_answer/entities/post_answer.entity.js";
 import { RefreshToken } from '../../refresh_token/entities/refresh_token.entity.js';
+import { ForgetPasswordOtp } from '../../auth/entities/forget_password_otp.entity.js';
 
 
 @Index( ['created_at'] )
@@ -57,6 +58,10 @@ export class User extends BaseEntity {
 
   @Column('text', { nullable: true })
   password: string | null;
+
+  /** 'sub' trong ID token Google — dùng để nhận diện tài khoản Google */
+  @Column({ type: 'varchar', length: 64, nullable: true, unique: true })
+  google_id: string | null;
 
   @Column({
     type: 'varchar',
@@ -192,5 +197,8 @@ export class User extends BaseEntity {
 
   @OneToMany(() => RefreshToken, (refresh_token) => refresh_token.user)
   refresh_token: RefreshToken;
+
+  @OneToMany(() => ForgetPasswordOtp, (otp) => otp.user)
+  forget_password_otp: ForgetPasswordOtp;
 }
 

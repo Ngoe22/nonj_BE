@@ -91,7 +91,7 @@ export class AuthController {
     setAccessCookie(res, accessToken);
     setRefreshCookie(res, refreshToken);
 
-    return { info }; // ⬅️ KHÔNG trả token
+    return  info ;
   }
 
   // ============================ logout ============================
@@ -103,7 +103,7 @@ export class AuthController {
       @GetRequesterInfo() requester: RequesterInfo,
   ) {
     await this.authService.logout(requester, range);
-    clearAuthCookies(res); // ⬅️ xoá cả 2 cookie
+    clearAuthCookies(res);
     return { success: true };
   }
 

@@ -68,11 +68,9 @@ class MailHelper {
       subject: '[NONJ] Mã xác thực quên mật khẩu',
       html: `
         <div style="font-family: sans-serif; line-height: 1.6; color: #111">
-          <h2>Mã xác thực quên mật khẩu</h2>
-          <p>Mã OTP của bạn là:</p>
+          <h2>OTP code :</h2>
           <p style="font-size:32px;font-weight:bold;letter-spacing:8px;margin:16px 0">${otp}</p>
-          <p>Mã chỉ dùng được 1 lần và hết hạn sau <b>${expired_minutes} phút</b>.</p>
-          <p>Nếu bạn không yêu cầu, hãy bỏ qua email này — mật khẩu của bạn vẫn an toàn.</p>
+          <p>Expire after <b>${expired_minutes} minute</b>.</p>
         </div>
       `,
     });
@@ -87,12 +85,8 @@ class MailHelper {
       subject: '[NONJ] Mật khẩu mới của bạn',
       html: `
         <div style="font-family: sans-serif; line-height: 1.6; color: #111">
-          <h2>Mật khẩu mới</h2>
-          <p>Mật khẩu NONJ của bạn vừa được đổi. Mật khẩu mới:</p>
+          <h2>New password</h2>
           <p style="font-size:20px;font-weight:bold;background:#f4f4f4;padding:10px 14px;border-radius:6px;display:inline-block">${password}</p>
-          <p>Hãy đăng nhập lại bằng mật khẩu này rồi đổi sang mật khẩu bạn tự nhớ.</p>
-          <p>Toàn bộ phiên đăng nhập trên các thiết bị khác đã bị đăng xuất.</p>
-          <p>Nếu bạn không yêu cầu, hãy đổi mật khẩu ngay.</p>
         </div>
       `,
     });
@@ -102,3 +96,9 @@ class MailHelper {
 const mailHelper = new MailHelper();
 export { mailHelper };
 export type { SendMailInput };
+
+
+
+// <p>Hãy đăng nhập lại bằng mật khẩu này rồi đổi sang mật khẩu bạn tự nhớ.</p>
+// <p>Toàn bộ phiên đăng nhập trên các thiết bị khác đã bị đăng xuất.</p>
+// <p>Nếu bạn không yêu cầu, hãy đổi mật khẩu ngay.</p>

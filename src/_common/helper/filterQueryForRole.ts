@@ -87,6 +87,8 @@ export class FilterDbField<T extends ObjectLiteral, L extends string> {
   // public
 
   getLabelPermission(label: L): Record<string, boolean> {
+
+
     if (!this.permission) return {};
 
     const output: Record<string, boolean> = {};

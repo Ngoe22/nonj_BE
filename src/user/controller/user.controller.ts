@@ -11,13 +11,23 @@ import { GetRequesterInfo } from '../../_common/decorators/param/request_payload
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
+  // ==================== Check ====================
+
+  @Public()
+  @Post('check_existing/:user_name')
+  check_existing (
+    @Param('user_name') user_name: string,
+
+  ) {
+    return this.userService.checkUserNameExist(user_name);
+  };
+
   // ==================== Public ====================
 
   // @Post()
   // register(@Body() body: CreateUserDto) {
   //   return this.userService.create(body);
   // }
-
   @Get('search/:user_name')
   findByUsername(
     @GetRequesterInfo() requester: RequesterInfo,

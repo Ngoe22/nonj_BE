@@ -29,32 +29,36 @@ export class GroupJoinRequestService {
     private readonly groupService: GroupService,
 
   ) {
-    this.filterByLabels =  FilterDbField.create({
-      labels : ['SA' , 'founder', 'admin',  'pending'] ,
+    this.filterByLabels = FilterDbField.create({
+      labels: ['SA', 'founder', 'admin', 'pending'],
       fieldAndLabels: {
-        id: ['SA' , 'founder', 'admin' , 'pending'],
+        id: ['SA', 'founder', 'admin', 'pending'],
         sender: {
-          id : ['SA' , 'founder', 'admin'],
-          user_name : ['SA' , 'founder', 'admin'],
-          nickname : ['SA' , 'founder', 'admin'],
-          avatar_url : [ 'founder', 'admin'],
+          id: ['SA', 'founder', 'admin', 'pending'],
+          user_name: ['SA', 'founder', 'admin'],
+          nickname: ['SA', 'founder', 'admin'],
+          avatar_url: ['founder', 'admin'],
         },
         group: {
-          id : ['SA' ,'pending'],
-          slug : ['SA' ,'pending'],
-          name : ['SA' ,'pending'],
+          id: ['SA', 'pending', 'founder', 'admin'],
+          slug: ['SA', 'pending'],
+          name: ['SA', 'pending'],
         },
-        status: ['SA' ,'founder', 'admin',  'pending'],
-        reviewer: ['SA' ],
-        reviewed_at: ['SA' ],
-        created_at : ['SA' ,'founder', 'admin',  'pending'],
+        status: ['SA', 'founder', 'admin', 'pending'],
+        reviewer: ['SA'],
+        reviewed_at: ['SA'],
+        created_at: ['SA', 'founder', 'admin', 'pending'],
       },
       dataBases: {
-        _main : GroupJoinRequest ,
-        sender : User ,
-        group : Group
+        _main: GroupJoinRequest,
+        sender: User,
+        group: Group,
       },
-      dataSource : this.dataSource
+      dataSource: this.dataSource,
+      FE_permission: {
+        approve: ['founder', 'admin'],
+        reject: ['founder', 'admin'],
+      },
     });
   }
 
@@ -65,7 +69,7 @@ export class GroupJoinRequestService {
       const isMem = await  this.groupMemberService.isMember({
          group_id , user_id
        })
-       if ( isMem === 'is' ) return new ConflictException({ errorCode : 'already_in_group' });
+       if ( isMem === 'is' ) throw new ConflictException({ errorCode : 'already_in_group' });
        return isMem
     }
 
@@ -90,7 +94,7 @@ export class GroupJoinRequestService {
     const role = actor_role.toLowerCase()
     const { select , relations } = this.filterByLabels.buildQueryObject({ label: role });
 
-    return await this.groupJoinRequestRepo.find({
+    const result =  await this.groupJoinRequestRepo.find({
       where: { group: { id: group_id  }  , status : Group_Join_Request_Status.PENDING},
       relations  ,
       select ,
@@ -98,6 +102,14 @@ export class GroupJoinRequestService {
       take: limit,
       order: { created_at: 'DESC' },
     });
+
+    const permission = this.filterByLabels.getLabelPermission(role);
+
+
+    return result.map((item) => ({
+      ...item,
+      permission, // ⬅️ thêm vào mỗi item
+    }));
   }
 
   async getManyForUser(input: {

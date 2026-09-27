@@ -68,7 +68,7 @@ export class GroupMemberService {
     const { group_id, user_id , error_msg } = input;
     const member = await this.groupMemberRepo.findOne({
       where: { group: { id: group_id }, user: { id: user_id } ,deleted_at : IsNull() },
-      select: { role: true },
+      select: { role: true, id : true },
     });
 
     if (!member)
@@ -84,7 +84,7 @@ export class GroupMemberService {
     const { group_id, user_id } = input;
     const member = await this.groupMemberRepo.findOne({
       where: { group: { id: group_id }, user: { id: user_id } },
-      select: { deleted_at: true },
+      select: { deleted_at: true , id : true },
       withDeleted: true,
     });
     if (!member) return 'never';

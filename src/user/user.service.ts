@@ -78,6 +78,13 @@ export class UserService {
 
   // ==============================
 
+
+  async  checkUserNameExist(user_name:string){
+    return await this.userRepository.exists({ where: { user_name: user_name } });
+  }
+
+
+
   async creatUser(body: CreateUserDto) {
     const result = await this.userRepository.save(body);
     return this.filterByLabels.filterDataOfQueryResult({

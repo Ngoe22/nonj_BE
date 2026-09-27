@@ -137,7 +137,10 @@ export class FriendRequestService {
         receiver: { id: receiver_id },
         status: Friend_Request_Status.PENDING,
       },
-      select: { sender: true },
+      // phải khai báo relations, nếu chỉ `select: { sender: true }` thì
+      // request.sender là undefined -> TypeError khi đọc request.sender.id
+      select: { id: true, sender: { id: true } },
+      relations: { sender: true },
     });
     if (!request) {
       throw new NotFoundException({

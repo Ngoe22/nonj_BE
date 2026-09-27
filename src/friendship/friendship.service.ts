@@ -99,13 +99,13 @@ export class FriendshipService {
       user: { id: user_id },
       user_friend: { id: friend_id },
       source_request: { id: source_request },
-      be_friend_at : Date.now(),
+      be_friend_at: new Date(),
     });
     await this.friendshipRepo.save({
       user: { id: friend_id },
       user_friend: { id: user_id },
       source_request: { id: source_request },
-      be_friend_at : Date.now(),
+      be_friend_at: new Date(),
     });
 
     return true;
@@ -124,7 +124,7 @@ export class FriendshipService {
         deleted_at: null,
         deleted_by: null,
         source_request: { id: source_request },
-        be_friend_at : Date.now(),
+        be_friend_at: new Date(),
       },
       'add_friend_info_not_found',
     );
@@ -158,7 +158,9 @@ export class FriendshipService {
 
     const result = await this.friendshipRepo.findOne({
       where: { user: { id: user_id }, user_friend: { id: friend_id } },
-      select: { deleted_at: true },
+      // PHẢI select cả khoá chính: where có relation mà select thiếu `id` thì
+      // TypeORM sinh subquery alias sai -> 'column distinctAlias.Friendship_id does not exist'
+      select: { id: true, deleted_at: true },
       withDeleted: true,
     });
 

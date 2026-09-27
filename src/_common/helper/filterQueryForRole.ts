@@ -87,13 +87,13 @@ export class FilterDbField<T extends ObjectLiteral, L extends string> {
   // public
 
   getLabelPermission(label: L): Record<string, boolean> {
-
-
     if (!this.permission) return {};
 
+    // Trả ĐỦ mọi key (false nếu không được phép) để FE luôn có object boolean
+    // đúng shape, không phải optional-chaining / check `undefined`.
     const output: Record<string, boolean> = {};
     Object.entries(this.permission).forEach(([key, labels]) => {
-      if (labels.has(label)) output[key] = true;
+      output[key] = labels.has(label);
     });
     return output;
   }

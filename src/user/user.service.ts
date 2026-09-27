@@ -201,8 +201,8 @@ export class UserService {
       object: user,
       label,
     });
-    output.is_firend = isFriend;
 
+    // KHÔNG thêm key `is_firend` (lỗi typo cũ) — chỉ trả `is_friend` ở ngoài
     return { info: output, is_friend: isFriend };
   }
 
@@ -254,7 +254,8 @@ export class UserService {
     const result = await this.userRepository.update({ id: user_id }, body);
     if (result.affected === 0)
       throw new NotFoundException({ errorCode: 'update_setting_failed' });
-    return body;
+    // trả FULL profile (cùng shape GET /user/me) để FE cập nhật cache không cần refetch
+    return this.getMyInfo(user_id);
   }
 
   // ================= Password (dùng cho luồng quên/đổi mật khẩu) =================
@@ -354,12 +355,16 @@ export class UserService {
   // ========================= Setting =========================
 
   async getSetting(id: string, role: 'SA' | 'me') {
-    const { select, relations } = this.filterByLabels.buildQueryObject({
+    // PHẢI dùng settingFilterByRole: filterByLabels là của User (có `email`)
+    // -> 'Property "email" was not found in "UserSetting"'
+    const { select } = this.settingFilterByRole.buildQueryObject({
       label: role,
     });
     return await this.userSettingRepository.findOne({
       where: { user: { id } },
-      select,
+      // + id: TypeORM lỗi 'column distinctAlias.UserSetting_id does not exist'
+      // khi select thiếu khoá chính mà where lại dùng relation
+      select: { ...select, id: true },
     });
   }
 

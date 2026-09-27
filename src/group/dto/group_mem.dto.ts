@@ -8,6 +8,7 @@ export enum GroupMemberUpdateAction {
 }
 
 export class UpdateGroupMemberDto {
+  @IsEnum(GroupMemberUpdateAction)
   action: GroupMemberUpdateAction;
 }
 

@@ -177,7 +177,7 @@ export class GroupJoinRequestService {
   }) {
     const { body, user_id, group_admin_id, join_request_id ,group_id } = input;
 
-     await this.groupMemberService.checkActorRoleBeforeAction({
+     const actor_role = await this.groupMemberService.checkActorRoleBeforeAction({
       actor_id: group_admin_id,
       group_id,
       actor_allow_roles: [Group_Member_Role.FOUNDER, Group_Member_Role.ADMIN],
@@ -208,7 +208,26 @@ export class GroupJoinRequestService {
         errorCode: 'user_or_join_group_request_not_found',
       });
 
-    return body.status;
+    // trả request đã update đúng shape list (kèm permission) để FE cache đúng
+    const label = actor_role.toLowerCase();
+    const { select, relations } = this.filterByLabels.buildQueryObject({
+      label,
+    });
+
+    const updated = await this.groupJoinRequestRepo.findOne({
+      where: { id: join_request_id },
+      select,
+      relations,
+    });
+    if (!updated)
+      throw new NotFoundException({
+        errorCode: 'user_or_join_group_request_not_found',
+      });
+
+    return {
+      ...updated,
+      permission: this.filterByLabels.getLabelPermission(label),
+    };
   }
 
   // ============ Delete ============

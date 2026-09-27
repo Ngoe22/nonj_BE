@@ -1,5 +1,4 @@
-import { IS_OPTIONAL, IsString, MaxLength, MinLength } from 'class-validator';
-import { Optional } from '@nestjs/common';
+import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class CreatePostCollectionDto {
   @IsString()
@@ -7,19 +6,20 @@ export class CreatePostCollectionDto {
   @MaxLength(50)
   title: string;
 
-  @Optional()
+  @IsOptional()
   @IsString()
   @MaxLength(50)
-  desc: string;
+  desc?: string;
 }
 
 export class UpdatePostCollectionDto {
+  @IsOptional()
   @IsString()
   @MaxLength(50)
-  title: string;
+  title?: string;
 
-  @Optional()
+  @IsOptional()
   @IsString()
   @MaxLength(50)
-  desc: string;
+  desc?: string;
 }

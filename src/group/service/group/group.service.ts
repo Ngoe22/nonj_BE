@@ -137,10 +137,14 @@ export class GroupService {
       user_id: founder_id,
     });
 
-    return this.filterByLabels.filterDataOfQueryResult({
-      object: group,
-      label: 'founder',
-    });
+    return {
+      ...this.filterByLabels.filterDataOfQueryResult({
+        object: group,
+        label: 'founder',
+      }),
+      // trả kèm permission như GET /group/id_search để FE dùng được ngay (khỏi refetch)
+      permission: this.filterByLabels.getLabelPermission('founder'),
+    };
   }
 
   // ==================== Read - One ====================
@@ -156,6 +160,7 @@ export class GroupService {
       'g.description AS description',
       'g.join_mode AS join_mode',
       'g.view_mode AS view_mode',
+      'g.created_at AS created_at', // FE Group.created_at
     ];
 
     const result = await this.groupRepo
@@ -193,8 +198,8 @@ export class GroupService {
     const { slug, requester_id } = input;
 
     const selectArray = [
-      'g.id AS g_id',
-      'g.name AS g_name',
+      'g.id AS id', // ⬅️ FE SearchGroup.id (trước đây là g_id)
+      'g.name AS name', // ⬅️ FE SearchGroup.name (trước đây là g_name)
       'g.slug AS slug',
       'g.description AS description',
       'g.join_mode AS join_mode',
@@ -224,10 +229,19 @@ export class GroupService {
 
     if (!result) throw new NotFoundException({ errorCode: 'group_not_found' });
 
+    const role = (result.role ?? 'unjoin').toLowerCase();
+    const final_group = this.filterByLabels.filterDataOfQueryResult({
+      object: result,
+      label: role,
+    });
+
     return {
-      ...result,
+      ...final_group,
+      id: result.id,
       is_joined: result.is_joined === true || result.is_joined === 'true',
       has_pending_request: result.has_pending_request === true || result.has_pending_request === 'true',
+      // object boolean đầy đủ (mọi key) — FE không phải check undefined
+      permission: this.filterByLabels.getLabelPermission(role),
     };
   }
 
@@ -377,7 +391,8 @@ export class GroupService {
     if (result.affected === 0) {
       throw new NotFoundException({ errorCode: 'group_or_founder_not_found' });
     }
-    return true;
+    // trả group đã update (kèm permission) thay vì `true` để FE cache đúng ngay
+    return this.getOneById({ group_id, requester_id: founder_id });
   }
 
   // ==================== Delete ====================

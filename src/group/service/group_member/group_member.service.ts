@@ -40,9 +40,9 @@ export class GroupMemberService {
           avatar_url : ['founder', 'admin', 'member']
         },
         group: {
-          id : ['SA'] ,
-          slug : ['SA'] ,
-          name : ['SA'] ,
+          id: ['SA', 'founder', 'admin', 'member'],
+          slug: ['SA'],
+          name: ['SA'],
         },
         role: ['SA', 'founder', 'admin','member'],
         updated_at: ['SA' ,'founder', 'admin'],
@@ -155,7 +155,51 @@ export class GroupMemberService {
         errorCode: 'target_role_not_allowed_in_group',
       });
 
-    return true;
+    return { actor_role, target_role };
+  }
+
+  /**
+   * Quyền thao tác của ACTOR lên member khác — khớp đúng với các check ở
+   * promoteToAdmin / demoteToMember / kickMember / founderRemoveAdmin.
+   */
+  private getActorPermission(actor_role: Group_Member_Role) {
+    const isFounder = actor_role === Group_Member_Role.FOUNDER;
+    const isAdmin = actor_role === Group_Member_Role.ADMIN;
+
+    return {
+      kick_admin: isFounder, // founderRemoveAdmin: actor FOUNDER → target ADMIN
+      kick_mem: isFounder || isAdmin, // kickMember: FOUNDER|ADMIN → target MEMBER
+      promote_mem: isFounder, // promoteToAdmin: FOUNDER → MEMBER
+      demote_admin: isFounder, // demoteToMember: FOUNDER → ADMIN
+    };
+  }
+
+  /** Đọc 1 member theo đúng shape list (kèm `_permission`) để trả sau mutation */
+  private async viewOne(input: {
+    group_id: string;
+    user_id: string;
+    actor_role: Group_Member_Role;
+  }) {
+    const { group_id, user_id, actor_role } = input;
+
+    const label = (actor_role ?? Group_Member_Role.MEMBER).toLowerCase() as
+      | 'founder'
+      | 'admin'
+      | 'member';
+
+    const { select, relations } = this.filterByLabels.buildQueryObject({
+      label,
+    });
+
+    const member = await this.groupMemberRepo.findOne({
+      where: { group: { id: group_id }, user: { id: user_id } },
+      select,
+      relations,
+    });
+
+    if (!member) throw new NotFoundException({ errorCode: 'member_not_found' });
+
+    return { ...member, _permission: this.getActorPermission(actor_role) };
   }
 
   // ==================== Join / Rejoin —  ====================
@@ -210,7 +254,7 @@ export class GroupMemberService {
       label: requesterRole.toLowerCase(),
     });
 
-    return this.groupMemberRepo.find({
+    const rows = await this.groupMemberRepo.find({
       where: { group: { id: group_id } },
       select,
       relations ,
@@ -218,6 +262,10 @@ export class GroupMemberService {
       take: limit,
       order: { created_at: 'DESC' },
     });
+
+    // _permission là quyền của ACTOR (FE tự chọn cờ theo role của từng row)
+    const _permission = this.getActorPermission(requesterRole);
+    return rows.map((member) => ({ ...member, _permission }));
   }
 
   // ==================== Promote / Demote —  FOUNDER ONLY ====================
@@ -227,16 +275,22 @@ export class GroupMemberService {
     actor_id: string;
     target_id: string;
   }) {
-    await this.checkBothSideRoleBeforeAction({
+    const { actor_role } = await this.checkBothSideRoleBeforeAction({
       ...input,
       actor_allow_roles: [Group_Member_Role.FOUNDER],
       target_allow_roles: [Group_Member_Role.MEMBER],
     });
 
-    return this.setRole({
+    await this.setRole({
       group_id: input.group_id,
       user_id: input.target_id,
       role: Group_Member_Role.ADMIN,
+    });
+
+    return this.viewOne({
+      group_id: input.group_id,
+      user_id: input.target_id,
+      actor_role,
     });
   }
 
@@ -245,16 +299,22 @@ export class GroupMemberService {
     actor_id: string;
     target_id: string;
   }) {
-    await this.checkBothSideRoleBeforeAction({
+    const { actor_role } = await this.checkBothSideRoleBeforeAction({
       ...input,
       actor_allow_roles: [Group_Member_Role.FOUNDER],
       target_allow_roles: [Group_Member_Role.ADMIN],
     });
 
-    return this.setRole({
+    await this.setRole({
       group_id: input.group_id,
       user_id: input.target_id,
       role: Group_Member_Role.MEMBER,
+    });
+
+    return this.viewOne({
+      group_id: input.group_id,
+      user_id: input.target_id,
+      actor_role,
     });
   }
 
@@ -282,17 +342,26 @@ export class GroupMemberService {
     target_id: string;
   }) {
     const { group_id, actor_id, target_id } = input;
-    await this.checkBothSideRoleBeforeAction({
+    const { actor_role } = await this.checkBothSideRoleBeforeAction({
       ...input,
       actor_allow_roles: [Group_Member_Role.FOUNDER, Group_Member_Role.ADMIN],
       target_allow_roles: [Group_Member_Role.MEMBER],
     });
 
-    return this.softRemove({
+    // đọc view TRƯỚC khi xoá (sau khi soft remove thì không find thấy nữa)
+    const view = await this.viewOne({
+      group_id,
+      user_id: target_id,
+      actor_role,
+    });
+
+    await this.softRemove({
       group_id,
       user_id: target_id,
       removed_by: actor_id,
     });
+
+    return view;
   }
 
   async founderRemoveAdmin(input: {
@@ -301,16 +370,25 @@ export class GroupMemberService {
     target_id: string;
   }) {
     const { group_id, actor_id, target_id } = input;
-    await this.checkBothSideRoleBeforeAction({
+    const { actor_role } = await this.checkBothSideRoleBeforeAction({
       ...input,
       actor_allow_roles: [Group_Member_Role.FOUNDER],
       target_allow_roles: [Group_Member_Role.ADMIN],
     });
-    return this.softRemove({
+
+    const view = await this.viewOne({
+      group_id,
+      user_id: target_id,
+      actor_role,
+    });
+
+    await this.softRemove({
       group_id,
       user_id: target_id,
       removed_by: actor_id,
     });
+
+    return view;
   }
 
   async leaveGroup(input: { group_id: string; user_id: string }) {

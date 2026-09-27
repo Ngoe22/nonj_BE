@@ -52,7 +52,9 @@ export class UserExerciseTemplateController {
   update(
     @Body() body: UpdateExerciseTemplateDto,
     @GetRequesterInfo() requester: RequesterInfo,
-    @Param('template_id') template_id: string,
+    // param trên URL tên là `exercise_template_id` (trước đây đọc 'template_id'
+    // -> undefined -> TypeORM nổ 'Undefined value ... id')
+    @Param('exercise_template_id') template_id: string,
     @Param('collection_id') collection_id: string,
   ) {
     return this.exerciseTemplateService.update({

@@ -153,9 +153,18 @@ export class UserExerciseTemplateCollectionService {
 
     async create(input: { user_id: string; body: CreateCollectionDto }) {
         const { user_id, body } = input;
-        return this.collectionRepo.save({
+
+        const saved = await this.collectionRepo.save({
             title: body.title,
+            desc: body.desc, // ⬅️ trước đây bỏ rơi desc -> luôn null
             user: { id: user_id },
+        });
+
+        // trả đúng shape list (id/title/desc/created_at) — không lộ created_by,
+        // deleted_by, updated_by... như khi trả raw entity
+        return this.filterByLabels.filterDataOfQueryResult({
+            object: saved,
+            label: 'me',
         });
     }
 
@@ -171,7 +180,8 @@ export class UserExerciseTemplateCollectionService {
         if (result.affected === 0)
             throw new NotFoundException({ errorCode: 'collection_or_owner_not_found' });
 
-        return true;
+        // trả collection đã update (cùng shape list) thay vì `true`
+        return this.findMine({ collection_id, user_id });
     }
 
 

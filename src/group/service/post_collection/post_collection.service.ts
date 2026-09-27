@@ -51,6 +51,12 @@ export class PostCollectionService {
         group: Group,
       },
       dataSource: this.dataSource,
+      // Quyền trên 1 collection — khớp đúng các check ở update/softDelete
+      // (actor_allow_roles: FOUNDER, ADMIN)
+      FE_permission: {
+        edit: ['founder', 'admin'],
+        delete: ['founder', 'admin'],
+      },
     });
   }
 
@@ -79,14 +85,20 @@ export class PostCollectionService {
 
     const collection = await this.collectionRepo.save({
       title: body.title,
+      desc: body.desc, // ⬅️ trước đây bị bỏ rơi -> desc luôn null
       group: { id: group_id },
       created_by: requester_id,
     });
 
-    return this.filterByLabels.filterDataOfQueryResult({
-      object: collection,
-      label: role.toLowerCase(),
-    });
+    const label = role.toLowerCase();
+
+    return {
+      ...this.filterByLabels.filterDataOfQueryResult({
+        object: collection,
+        label,
+      }),
+      permission: this.filterByLabels.getLabelPermission(label),
+    };
   }
 
   // ==================== Read - Many ====================
@@ -115,7 +127,7 @@ export class PostCollectionService {
 
     const { select ,relations } = this.filterByLabels.buildQueryObject({ label });
 
-    return this.collectionRepo.find({
+    const rows = await this.collectionRepo.find({
       where: { group: { id: group_id } },
       relations ,
       select,
@@ -123,6 +135,10 @@ export class PostCollectionService {
       take: limit,
       order: { created_at: 'DESC' },
     });
+
+    // list đọc được bởi cả member/unjoin → permission gắn vào từng item
+    const permission = this.filterByLabels.getLabelPermission(label);
+    return rows.map((collection) => ({ ...collection, permission }));
   }
 
   // ==================== Update ====================
@@ -135,7 +151,7 @@ export class PostCollectionService {
   }) {
     const { group_id, collection_id, requester_id, body } = input;
 
-    await this.groupMemberService.checkActorRoleBeforeAction({
+    const actor_role = await this.groupMemberService.checkActorRoleBeforeAction({
       actor_id: requester_id,
       group_id,
       actor_allow_roles: [Group_Member_Role.FOUNDER, Group_Member_Role.ADMIN],
@@ -147,7 +163,23 @@ export class PostCollectionService {
     );
     if (result.affected === 0)
       throw new NotFoundException({ errorCode: 'collection_not_found' });
-    return true;
+
+    // trả collection đã update (kèm permission) thay vì `true`
+    const label = actor_role.toLowerCase();
+    const { select, relations } = this.filterByLabels.buildQueryObject({ label });
+
+    const updated = await this.collectionRepo.findOne({
+      where: { id: collection_id },
+      select,
+      relations,
+    });
+    if (!updated)
+      throw new NotFoundException({ errorCode: 'collection_not_found' });
+
+    return {
+      ...updated,
+      permission: this.filterByLabels.getLabelPermission(label),
+    };
   }
 
   // ==================== Delete ====================

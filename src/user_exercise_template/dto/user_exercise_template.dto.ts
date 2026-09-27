@@ -1,4 +1,4 @@
-import {IS_UUID, IsDateString, IsObject, IsString, IsUUID, MaxLength, MinLength} from 'class-validator';
+import { IsDateString, IsObject, IsOptional, IsString, IsUUID, MaxLength, MinLength} from 'class-validator';
 
 export class CreateExerciseTemplateDto {
 
@@ -10,25 +10,22 @@ export class CreateExerciseTemplateDto {
   @IsUUID()
   collection: string //id
 
+  // FE chưa có UI nhập nội dung → cho phép thiếu, service sẽ lưu `{}`
+  @IsOptional()
   @IsObject()
-  exercise_content :object ;
-
+  exercise_content?: object;
 }
 
 export class UpdateExerciseTemplateDto {
-
-  //
-  // @IsUUID()
-  // collection: string //id
-
+  @IsOptional()
   @IsString()
   @MinLength(1)
   @MaxLength(50)
-  title: string
+  title?: string;
 
+  @IsOptional()
   @IsObject()
-  exercise_content :object ;
-
+  exercise_content?: object;
 }
 
 export class DeleteExerciseTemplateDto {

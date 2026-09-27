@@ -96,7 +96,42 @@ export class UserExerciseTemplateService {
     });
     if (!template)
       throw new NotFoundException({ errorCode: 'template_not_found' });
-    return template;
+    return this.toClientShape(template, data_for);
+  }
+
+  /**
+   * Cột DB là `preparation_content` nhưng API/FE dùng tên `exercise_content`
+   * → chuẩn hoá ở tầng service, khỏi phải migrate DB. Đồng thời lọc lại field
+   * theo label để response không lộ created_by/updated_by/deleted_by...
+   */
+  private toClientShape(template: Record<string, any>, label = 'me') {
+    const shaped = this.filterByLabels.filterDataOfQueryResult({
+      object: template,
+      label,
+    });
+    const { preparation_content, ...rest } = shaped;
+    return { ...rest, exercise_content: preparation_content ?? null };
+  }
+
+  private toDbShape(body: { title?: string; exercise_content?: object }) {
+    const { exercise_content, ...rest } = body;
+    return {
+      ...rest,
+      ...(exercise_content !== undefined
+        ? { preparation_content: exercise_content }
+        : {}),
+    };
+  }
+
+  /** Cột `preparation_content` là NOT NULL → mặc định {} khi client không gửi */
+  private toDbShapeForCreate(body: {
+    title?: string;
+    exercise_content?: object;
+  }) {
+    return {
+      ...this.toDbShape(body),
+      preparation_content: body.exercise_content ?? {},
+    };
   }
 
   private async findMany(input: {
@@ -112,7 +147,7 @@ export class UserExerciseTemplateService {
       label: data_for,
     });
 
-    return this.templateRepo.find({
+    const rows = await this.templateRepo.find({
       where: { user: { id: user_id } },
       relations,
       select,
@@ -120,6 +155,8 @@ export class UserExerciseTemplateService {
       take: limit,
       order: { created_at: 'DESC' },
     });
+
+    return rows.map((row) => this.toClientShape(row, data_for));
   }
 
   //===============================================
@@ -153,16 +190,23 @@ export class UserExerciseTemplateService {
   // ----------------- Create -----------------
 
   async create(input: CreateExerciseTemplateInput) {
-    await this.collectionService.isCollectionBelongToUser({
+    // collection phải thuộc chính user này (trước đây bỏ qua kết quả check → tạo
+    // template vào collection của người khác được)
+    const isMine = await this.collectionService.isCollectionBelongToUser({
       collection_id: input.collection,
       user_id: input.user,
     });
+    if (!isMine)
+      throw new NotFoundException({
+        errorCode: 'collection_not_belong_to_user',
+      });
 
-    const saveInfo = FilterDbField.turnObjInfoToRelationObjToSave(input, [
-      'user',
-      'collection',
-    ]);
-    return this.templateRepo.save(saveInfo);
+    const saveInfo = FilterDbField.turnObjInfoToRelationObjToSave(
+      this.toDbShapeForCreate(input) as any,
+      ['user', 'collection'],
+    );
+    const saved = await this.templateRepo.save(saveInfo as any);
+    return this.toClientShape(saved);
   }
 
   // ----------------- Update -----------------
@@ -189,12 +233,16 @@ export class UserExerciseTemplateService {
     }
     const result = await this.templateRepo.update(
       { user: { id: user_id }, id: template_id },
-      body,
+      this.toDbShape(body),
     );
     if (result.affected === 0) {
       throw new NotFoundException({ errorCode: 'template_or_owner_not_found' });
     }
-    return body;
+    // trả template đã update (exercise_content đúng tên FE) thay vì `body`
+    return this.findOne({
+      condition: { id: template_id, user: { id: user_id } },
+      data_for: 'me',
+    });
   }
 
   // ----------------- Delete -----------------

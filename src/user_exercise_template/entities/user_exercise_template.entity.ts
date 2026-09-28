@@ -33,7 +33,7 @@ export class UserExerciseTemplate extends BaseEntity {
   @Index()
   @ManyToOne(
     () => UserExerciseTemplateCollection,
-    (collection) => collection.template,
+    (collection) => collection.template, {onDelete: 'CASCADE'}
   )
   @JoinColumn({
     name: 'collection_id',

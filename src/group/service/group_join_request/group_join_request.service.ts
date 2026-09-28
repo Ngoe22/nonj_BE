@@ -208,26 +208,26 @@ export class GroupJoinRequestService {
         errorCode: 'user_or_join_group_request_not_found',
       });
 
-    // trả request đã update đúng shape list (kèm permission) để FE cache đúng
-    const label = actor_role.toLowerCase();
-    const { select, relations } = this.filterByLabels.buildQueryObject({
-      label,
-    });
+    return { success: true };
 
-    const updated = await this.groupJoinRequestRepo.findOne({
-      where: { id: join_request_id },
-      select,
-      relations,
-    });
-    if (!updated)
-      throw new NotFoundException({
-        errorCode: 'user_or_join_group_request_not_found',
-      });
-
-    return {
-      ...updated,
-      permission: this.filterByLabels.getLabelPermission(label),
-    };
+    // const label = actor_role.toLowerCase();
+    // const { select, relations } = this.filterByLabels.buildQueryObject({
+    //   label,
+    // });
+    // const updated = await this.groupJoinRequestRepo.findOne({
+    //   where: { id: join_request_id },
+    //   select,
+    //   relations,
+    // });
+    // if (!updated)
+    //   throw new NotFoundException({
+    //     errorCode: 'user_or_join_group_request_not_found',
+    //   });
+    //
+    // return {
+    //   ...updated,
+    //   permission: this.filterByLabels.getLabelPermission(label),
+    // };
   }
 
   // ============ Delete ============

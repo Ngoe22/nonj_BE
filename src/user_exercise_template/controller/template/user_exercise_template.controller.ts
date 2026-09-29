@@ -29,13 +29,25 @@ export class UserExerciseTemplateController {
     @Query('limit', new DefaultValuePipe(20), ParseLimitPipe) limit: number,
   ) {
     return this.exerciseTemplateService.findManyMine({
-      collection_id ,
+      collection_id,
       user_id: requester.id,
       page,
       limit,
     });
   }
 
+  @Get('me/:collection_id/:template_id')
+  getOneMine(
+    @GetRequesterInfo() requester: RequesterInfo,
+    @Param('collection_id') collection_id: string,
+    @Param('template_id') template_id: string,
+  ) {
+    return this.exerciseTemplateService.findOneMine({
+      template_id,
+      collection_id,
+      user_id: requester.id,
+    });
+  }
 
   @Post()
   create(
@@ -60,7 +72,7 @@ export class UserExerciseTemplateController {
     return this.exerciseTemplateService.update({
       body,
       user_id: requester.id,
-      collection_id ,
+      collection_id,
       template_id,
     });
   }

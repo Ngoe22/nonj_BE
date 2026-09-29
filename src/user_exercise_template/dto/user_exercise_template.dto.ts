@@ -1,19 +1,30 @@
-import { IsDateString, IsObject, IsOptional, IsString, IsUUID, MaxLength, MinLength} from 'class-validator';
+import {
+  IsArray,
+  IsDateString,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
+import { Column } from 'typeorm';
 
 export class CreateExerciseTemplateDto {
-
   @IsString()
   @MinLength(1)
   @MaxLength(50)
-  title: string
+  title: string;
 
   @IsUUID()
-  collection: string //id
+  collection: string; //id
 
-  // FE chưa có UI nhập nội dung → cho phép thiếu, service sẽ lưu `{}`
+  @IsArray()
+  preparation_content: object;
+
+  @IsArray()
   @IsOptional()
-  @IsObject()
-  exercise_content?: object;
+  correct_answer: object | null;
 }
 
 export class UpdateExerciseTemplateDto {
@@ -25,7 +36,11 @@ export class UpdateExerciseTemplateDto {
 
   @IsOptional()
   @IsObject()
-  exercise_content?: object;
+  preparation_content?: object;
+
+  @IsOptional()
+  @IsObject()
+  correct_answer?: object;
 }
 
 export class DeleteExerciseTemplateDto {

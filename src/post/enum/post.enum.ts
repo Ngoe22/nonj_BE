@@ -15,6 +15,6 @@ export enum View_Each_Other_Answer {
 }
 
 export enum Retake {
-    BEFORE_DATELINE = 'BEFORE', // if no date like retake unlimited
+    BEFORE_DATELINE = 'BEFORE', // if no dateline like retake unlimited
     NEVER = 'NEVER',
 }

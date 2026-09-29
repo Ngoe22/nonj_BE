@@ -96,43 +96,9 @@ export class UserExerciseTemplateService {
     });
     if (!template)
       throw new NotFoundException({ errorCode: 'template_not_found' });
-    return this.toClientShape(template, data_for);
+    return template;
   }
 
-  /**
-   * Cột DB là `preparation_content` nhưng API/FE dùng tên `exercise_content`
-   * → chuẩn hoá ở tầng service, khỏi phải migrate DB. Đồng thời lọc lại field
-   * theo label để response không lộ created_by/updated_by/deleted_by...
-   */
-  private toClientShape(template: Record<string, any>, label = 'me') {
-    const shaped = this.filterByLabels.filterDataOfQueryResult({
-      object: template,
-      label,
-    });
-    const { preparation_content, ...rest } = shaped;
-    return { ...rest, exercise_content: preparation_content ?? null };
-  }
-
-  private toDbShape(body: { title?: string; exercise_content?: object }) {
-    const { exercise_content, ...rest } = body;
-    return {
-      ...rest,
-      ...(exercise_content !== undefined
-        ? { preparation_content: exercise_content }
-        : {}),
-    };
-  }
-
-  /** Cột `preparation_content` là NOT NULL → mặc định {} khi client không gửi */
-  private toDbShapeForCreate(body: {
-    title?: string;
-    exercise_content?: object;
-  }) {
-    return {
-      ...this.toDbShape(body),
-      preparation_content: body.exercise_content ?? {},
-    };
-  }
 
   private async findMany(input: {
     collection_id : string;
@@ -147,7 +113,7 @@ export class UserExerciseTemplateService {
       label: data_for,
     });
 
-    const rows = await this.templateRepo.find({
+    return  await this.templateRepo.find({
       where: { user: { id: user_id } },
       relations,
       select,
@@ -156,7 +122,6 @@ export class UserExerciseTemplateService {
       order: { created_at: 'DESC' },
     });
 
-    return rows.map((row) => this.toClientShape(row, data_for));
   }
 
   //===============================================
@@ -168,10 +133,14 @@ export class UserExerciseTemplateService {
 
   // -------------------- get many --------------------------------
 
-  async findOneMine(input: { user_id: string , template_id: string }) {
-    const { user_id ,  template_id} = input;
+  async findOneMine(input: { user_id: string , template_id: string , collection_id : string }) {
+    const { user_id, template_id, collection_id } = input;
     return this.findOne({
-      condition : {  id : template_id , user : {id : user_id} } ,
+      condition: {
+        id: template_id,
+        user: { id: user_id },
+        collection: { id: collection_id },
+      },
       data_for: 'me',
     });
   }
@@ -190,8 +159,7 @@ export class UserExerciseTemplateService {
   // ----------------- Create -----------------
 
   async create(input: CreateExerciseTemplateInput) {
-    // collection phải thuộc chính user này (trước đây bỏ qua kết quả check → tạo
-    // template vào collection của người khác được)
+
     const isMine = await this.collectionService.isCollectionBelongToUser({
       collection_id: input.collection,
       user_id: input.user,
@@ -202,11 +170,15 @@ export class UserExerciseTemplateService {
       });
 
     const saveInfo = FilterDbField.turnObjInfoToRelationObjToSave(
-      this.toDbShapeForCreate(input) as any,
-      ['user', 'collection'],
+      input ,  ['user', 'collection'],
     );
     const saved = await this.templateRepo.save(saveInfo as any);
-    return this.toClientShape(saved);
+
+
+    return this.filterByLabels.filterDataOfQueryResult({
+      object :saved,
+      label :'me'
+    });
   }
 
   // ----------------- Update -----------------
@@ -233,12 +205,12 @@ export class UserExerciseTemplateService {
     }
     const result = await this.templateRepo.update(
       { user: { id: user_id }, id: template_id },
-      this.toDbShape(body),
+      body,
     );
     if (result.affected === 0) {
       throw new NotFoundException({ errorCode: 'template_or_owner_not_found' });
     }
-    // trả template đã update (exercise_content đúng tên FE) thay vì `body`
+
     return this.findOne({
       condition: { id: template_id, user: { id: user_id } },
       data_for: 'me',

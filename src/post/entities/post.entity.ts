@@ -26,19 +26,30 @@ export class Post extends BaseEntity {
   @Column({ type: 'jsonb' })
   question_content: object;
 
+  /**  if multiple_choice require correct_answer */
+  @Column({ type: 'jsonb', nullable: true })
+  correct_answer: object | null;
+
+  // ================
+
   @Column({ type: 'timestamp', nullable: true })
   deadline_at: Date | null;
 
   @Column({ type: 'enum', enum: Retake, default: Retake.NEVER })
   retake: Retake;
 
-  @Column({ type: 'enum', enum: View_Each_Other_Answer, default: View_Each_Other_Answer.NEVER })
+  @Column({
+    type: 'enum',
+    enum: View_Each_Other_Answer,
+    default: View_Each_Other_Answer.NEVER,
+  })
   view_each_other_answer: View_Each_Other_Answer;
+
+  //  ======================
 
   @ManyToOne(() => User, (user) => user.post)
   @JoinColumn({ name: 'user_id', referencedColumnName: 'id' })
   user: Relation<User>;
-
 
   @ManyToOne(() => Group)
   @JoinColumn({ name: 'group_id', referencedColumnName: 'id' })

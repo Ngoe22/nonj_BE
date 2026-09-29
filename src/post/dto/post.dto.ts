@@ -11,24 +11,29 @@ import {
 } from "class-validator";
 import {Retake, View_Each_Other_Answer} from "../enum/post.enum.js";
 export class CreatePostDto {
-    @IsString() @MinLength(1) @MaxLength(50)
-    title: string;
+  @IsString()
+  @MinLength(1)
+  @MaxLength(50)
+  title: string;
 
-    @IsOptional() @IsString()
-    description?: string;
+  @IsOptional()
+  @IsString()
+  description?: string;
 
-    @IsObject()
-    question_content: any;   // hoàn thiện sau
+  @IsObject()
+  question_content: any; // hoàn thiện sau
 
-    @IsEnum(Retake)
-    Retake: Retake;
+  @IsObject()
+  correct_answer?: any; // hoàn thiện sau
 
-    @IsDateString()   // bắt buộc với EXAM
-    deadline_at: string;
+  @IsEnum(Retake)
+  Retake: Retake;
 
-    @IsEnum(View_Each_Other_Answer)
-    view_each_other_answer: View_Each_Other_Answer;
+  @IsDateString() // bắt buộc với EXAM
+  deadline_at: string;
 
+  @IsEnum(View_Each_Other_Answer)
+  view_each_other_answer: View_Each_Other_Answer;
 }
 
 export class UpdatePostDto {
@@ -41,7 +46,8 @@ export class UpdatePostDto {
     @IsEnum(Retake)
     Retake: Retake;
 
-    @IsOptional() @IsDateString()
+    @IsOptional()
+    @IsDateString()
     deadline_at?: string;
 
     @IsEnum(View_Each_Other_Answer)

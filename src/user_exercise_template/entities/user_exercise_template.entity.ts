@@ -13,13 +13,13 @@ import {BaseEntity} from "../../_common/entities/base.entity.js";
 import {User} from "../../user/entities/user.entity.js";
 import {UserExerciseTemplateCollection} from "./user_exercise_template_collection.entity.js";
 import {Post} from "../../post/entities/post.entity.js";
+import { Question_Type } from '../../post/enum/post.enum.js';
 
 
 
 @Index(['created_by'])
 @Entity('user_exercise_template')
 export class UserExerciseTemplate extends BaseEntity {
-
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -33,7 +33,8 @@ export class UserExerciseTemplate extends BaseEntity {
   @Index()
   @ManyToOne(
     () => UserExerciseTemplateCollection,
-    (collection) => collection.template, {onDelete: 'CASCADE'}
+    (collection) => collection.template,
+    { onDelete: 'CASCADE' },
   )
   @JoinColumn({
     name: 'collection_id',
@@ -47,12 +48,17 @@ export class UserExerciseTemplate extends BaseEntity {
   })
   title: string;
 
+  @Column({ type: 'enum', enum: Question_Type })
+  question_type: Question_Type;
+
   @Column({
     type: 'jsonb',
   })
   preparation_content: object;
 
+  /**  if multiple require correct_answer */
+  @Column({ type: 'jsonb' , nullable: true })
+  correct_answer: object | null ;
+
   // ==============================================
-
-
 }

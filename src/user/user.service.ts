@@ -5,12 +5,11 @@ import {
 import { randomInt } from 'node:crypto';
 import {CreateUserDto} from './dto/create-user.dto.js';
 import {UpdateUserDto} from './dto/update-user.dto.js';
+import {AdminUpdateUserDto} from './dto/admin-update-user.dto.js';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import {User} from "./entities/user.entity.js";
 import { Transactional } from 'typeorm-transactional';
-import { UserSetting } from './entities/user_setting.entity.js';
-import { UpdateUserSettingDto } from './dto/update-setting.dto.js';
 import { projectBcrypt } from '../_common/helper/customBcrypt.js';
 import { FilterDbField } from '../_common/helper/filterQueryForRole.js';
 import { FriendRequest } from '../friend_request/entities/friend_request.entity.js';
@@ -22,15 +21,12 @@ import { FriendRequestService } from '../friend_request/friend_request.service.j
 @Injectable()
 export class UserService {
   filterByLabels: FilterDbField<User, string>;
-  private settingFilterByRole: FilterDbField<UserSetting, string>;
 
   constructor(
     @InjectDataSource()
     private readonly dataSource: DataSource,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    @InjectRepository(UserSetting)
-    private readonly userSettingRepository: Repository<UserSetting>,
     //
     private readonly friendRequestService: FriendRequestService,
   ) {
@@ -45,24 +41,14 @@ export class UserService {
         nickname: ['SA', 'for_auth', 'me', 'friend', 'not_friend'],
         bio: ['SA', 'for_auth', 'me', 'friend'],
         avatar_url: ['SA', 'for_auth', 'me', 'friend', 'not_friend'],
-        role: ['SA', 'for_auth'],
+        // 'me' để FE biết mình là SYSTEM_ADMIN mà hiện trang admin
+        role: ['SA', 'for_auth', 'me'],
         status: ['SA', 'for_auth'],
         created_at: ['SA'],
         password: ['for_auth'],
       },
       dataBases: {
         _main: User,
-      },
-      dataSource: this.dataSource,
-    });
-
-    this.settingFilterByRole = FilterDbField.create({
-      labels: ['SA', 'for_auth', 'me', 'friend', 'not_friend'],
-      fieldAndLabels: {
-        who_can_see_my_template: ['SA', 'me', 'friend', 'not_friend'],
-      },
-      dataBases: {
-        _main: UserSetting,
       },
       dataSource: this.dataSource,
     });
@@ -227,18 +213,10 @@ export class UserService {
     const label = 'me';
     body.password = await projectBcrypt.encode(body.password);
     const user = await this.userRepository.save(body);
-    const setting = await this.userSettingRepository.save({
-      user: { id: user.id },
-      created_by: user.id,
-    });
 
     return {
       info: this.filterByLabels.filterDataOfQueryResult({
         object: user,
-        label,
-      }),
-      setting: this.settingFilterByRole.filterDataOfQueryResult({
-        object: setting,
         label,
       }),
     };
@@ -352,32 +330,6 @@ export class UserService {
     return `user${randomInt(100000, 1000000)}`;
   }
 
-  // ========================= Setting =========================
-
-  async getSetting(id: string, role: 'SA' | 'me') {
-    // PHẢI dùng settingFilterByRole: filterByLabels là của User (có `email`)
-    // -> 'Property "email" was not found in "UserSetting"'
-    const { select } = this.settingFilterByRole.buildQueryObject({
-      label: role,
-    });
-    return await this.userSettingRepository.findOne({
-      where: { user: { id } },
-      // + id: TypeORM lỗi 'column distinctAlias.UserSetting_id does not exist'
-      // khi select thiếu khoá chính mà where lại dùng relation
-      select: { ...select, id: true },
-    });
-  }
-
-  async updateSetting(user_id: string, body: UpdateUserSettingDto) {
-    const result = await this.userSettingRepository.update(
-      { user: { id: user_id } },
-      body,
-    );
-    if (result.affected === 0)
-      throw new NotFoundException({ errorCode: 'update_setting_no_affected' });
-    return body;
-  }
-
   // =======================================================
   //                       ADMIN
   // =======================================================
@@ -406,37 +358,30 @@ export class UserService {
     });
   }
 
-  async adminUpdateInfo(input: { user_id: string; body: UpdateUserDto }) {
-    const { user_id, body } = input;
+  async adminUpdateInfo(input: {
+    user_id: string;
+    body: AdminUpdateUserDto;
+    admin_id?: string;
+  }) {
+    const { user_id, body, admin_id } = input;
 
     if (body.password)
       body.password = await projectBcrypt.encode(body.password);
-    const result = await this.userRepository.update({ id: user_id }, body);
+
+    const patch: Record<string, any> = { ...body };
+
+    // đổi status (BAN / mở khoá) -> ghi vết ai đổi và lúc nào
+    if (body.status) {
+      patch.status_changed_at = new Date();
+      if (admin_id) patch.status_changed_by = admin_id;
+    }
+
+    const result = await this.userRepository.update({ id: user_id }, patch);
     if (result.affected === 0)
-      throw new NotFoundException({ errorCode: 'update_setting_failed' });
-    return body;
-  }
+      throw new NotFoundException({ errorCode: 'user_not_found' });
 
-  // ================= Setting =========================
-
-  async adminGetSetting(id: string) {
-    const { select, relations } = this.filterByLabels.buildQueryObject({
-      label: 'SA',
-    });
-    return await this.userSettingRepository.findOne({
-      where: { user: { id } },
-      select,
-    });
-  }
-
-  async adminUpdateSetting(user_id: string, body: UpdateUserSettingDto) {
-    const result = await this.userSettingRepository.update(
-      { user: { id: user_id } },
-      body,
-    );
-    if (result.affected === 0)
-      throw new NotFoundException({ errorCode: 'update_setting_no_affected' });
-    return body;
+    // trả user đã update để FE cache đúng ngay
+    return this.adminGetOne(user_id);
   }
 }
 

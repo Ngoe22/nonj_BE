@@ -3,10 +3,8 @@ export enum Post_Type {
     EXAM = 'EXAM',
 }
 
-export enum Question_Type {
-    MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',
-    ESSAY = 'ESSAY',
-}
+// Question_Type đã bỏ: loại câu hỏi giờ do TỪNG SECTION trong `content` mang,
+// xem Question_Section_Type ở _common/helper/question_content.helper.ts
 
 export enum View_Each_Other_Answer {
     AFTER_ANSWER = 'AFTER_ANSWER',

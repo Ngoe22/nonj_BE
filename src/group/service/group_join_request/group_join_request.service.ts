@@ -15,6 +15,8 @@ import {Group} from "../../entities/group.entity.js";
 //======================================
 
 
+import { UserNotifService } from '../../../user_notif/user_notif.service.js';
+import { User_Notif_Type } from '../../../user_notif/enum/user_notif.enum.js';
 @Injectable()
 export class GroupJoinRequestService {
   private filterByLabels: FilterDbField<GroupJoinRequest | User | Group, string>;
@@ -27,7 +29,7 @@ export class GroupJoinRequestService {
     //
     private readonly groupMemberService: GroupMemberService,
     private readonly groupService: GroupService,
-
+    private readonly notifService: UserNotifService,
   ) {
     this.filterByLabels = FilterDbField.create({
       labels: ['SA', 'founder', 'admin', 'pending'],
@@ -150,11 +152,19 @@ export class GroupJoinRequestService {
       }
       case Group_Join_Mode.BY_REQUEST  :{
         await this.blockExistedMemRequest( { group_id , user_id:requester_id } )
-        await this.groupJoinRequestRepo.save({
+        const saved = await this.groupJoinRequestRepo.save({
           sender: { id : requester_id } ,
           group : { id : group_id },
           created_by : requester_id,
         });
+
+        // báo cho founder + admin của nhóm để họ vào duyệt
+        await this.notifyStaff({
+          group_id,
+          requester_id,
+          join_request_id: saved.id,
+        });
+
         return 'pending';
       }
       default: {
@@ -208,6 +218,22 @@ export class GroupJoinRequestService {
         errorCode: 'user_or_join_group_request_not_found',
       });
 
+    const approved =
+      body.status === Group_Join_Request_Status_UPDATE.APPROVED;
+
+    await this.notifService
+      .send({
+        user_id,
+        type: approved
+          ? User_Notif_Type.GROUP_JOIN_APPROVED
+          : User_Notif_Type.GROUP_JOIN_REJECTED,
+        content: {
+          group_id,
+          group_name: await this.getGroupName(group_id),
+        },
+      })
+      .catch(() => undefined);
+
     return { success: true };
 
     // const label = actor_role.toLowerCase();
@@ -228,6 +254,56 @@ export class GroupJoinRequestService {
     //   ...updated,
     //   permission: this.filterByLabels.getLabelPermission(label),
     // };
+  }
+
+  // ============ Notify helpers ============
+
+  private async getGroupName(group_id: string): Promise<string> {
+    const group = await this.dataSource.getRepository(Group).findOne({
+      where: { id: group_id },
+      select: { id: true, name: true },
+    });
+    return group?.name ?? '';
+  }
+
+  private async notifyStaff(input: {
+    group_id: string;
+    requester_id: string;
+    join_request_id: string;
+  }) {
+    try {
+      const staffIds = await this.groupMemberService.getStaffUserIds(
+        input.group_id,
+      );
+      if (staffIds.length === 0) return;
+
+      const requester = await this.dataSource.getRepository(User).findOne({
+        where: { id: input.requester_id },
+        select: {
+          id: true,
+          user_name: true,
+          nickname: true,
+          avatar_url: true,
+        },
+      });
+
+      await this.notifService.sendMany({
+        user_ids: staffIds,
+        exclude_user_id: input.requester_id,
+        type: User_Notif_Type.GROUP_JOIN_REQUEST,
+        content: {
+          group_id: input.group_id,
+          group_name: await this.getGroupName(input.group_id),
+          join_request_id: input.join_request_id,
+          user_id: input.requester_id,
+          user_name: requester?.user_name ?? '',
+          nickname: requester?.nickname ?? '',
+          avatar_url: requester?.avatar_url ?? null,
+        },
+      });
+    } catch {
+      // không để lỗi thông báo làm hỏng việc gửi đơn
+    }
   }
 
   // ============ Delete ============

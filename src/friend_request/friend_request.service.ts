@@ -12,6 +12,8 @@ import { Transactional } from 'typeorm-transactional';
 import { UserService } from '../user/user.service.js';
 import {FriendshipService} from "../friendship/friendship.service.js";
 import {User} from "../user/entities/user.entity.js";
+import { UserNotifService } from '../user_notif/user_notif.service.js';
+import { User_Notif_Type } from '../user_notif/enum/user_notif.enum.js';
 
 @Injectable()
 export class FriendRequestService {
@@ -23,6 +25,7 @@ export class FriendRequestService {
     @InjectRepository(FriendRequest)
     private readonly requestRepo: Repository<FriendRequest>,
     private readonly friendshipService: FriendshipService,
+    private readonly notifService: UserNotifService,
   ) {
     this.filterByLabels = FilterDbField.create({
       labels: ['SA', 'outgoing_requests', 'ingoing_requests'],
@@ -118,10 +121,26 @@ export class FriendRequestService {
       throw new ConflictException({ errorCode: 'already_friends' });
 
     // create request
-    await this.requestRepo.save({
+    const saved = await this.requestRepo.save({
       sender: { id: sender_id },
       receiver: { id: receiver_id },
     });
+
+    const sender = await this.getUserBrief(sender_id);
+
+    await this.notifService
+      .send({
+        user_id: receiver_id,
+        type: User_Notif_Type.FRIEND_REQUEST,
+        content: {
+          request_id: saved.id,
+          user_id: sender_id,
+          user_name: sender?.user_name ?? '',
+          nickname: sender?.nickname ?? '',
+          avatar_url: sender?.avatar_url ?? null,
+        },
+      })
+      .catch(() => undefined);
 
     return true;
   }
@@ -155,14 +174,43 @@ export class FriendRequestService {
     );
 
     // if accept run add friend from friendship service
-    if (body.status === UpdateRequestFromReceiverEnum.ACCEPTED) {
+    const accepted =
+      body.status === UpdateRequestFromReceiverEnum.ACCEPTED;
+
+    if (accepted) {
       await this.friendshipService.add_friend({
         user_id: request.sender.id,
         friend_id: receiver_id,
         source_request: request_id,
       });
     }
+
+    const responder = await this.getUserBrief(receiver_id);
+
+    await this.notifService
+      .send({
+        user_id: request.sender.id,
+        type: User_Notif_Type.FRIEND_RESPONSE,
+        content: {
+          request_id,
+          user_id: receiver_id,
+          user_name: responder?.user_name ?? '',
+          nickname: responder?.nickname ?? '',
+          avatar_url: responder?.avatar_url ?? null,
+          accepted,
+        },
+      })
+      .catch(() => undefined);
+
     return true;
+  }
+
+  /** Lấy tên/avatar tối thiểu để nhét vào nội dung thông báo */
+  private async getUserBrief(user_id: string) {
+    return this.dataSource.getRepository(User).findOne({
+      where: { id: user_id },
+      select: { id: true, user_name: true, nickname: true, avatar_url: true },
+    });
   }
 
   // =========== Delete =================

@@ -1,13 +1,30 @@
-import {Body, Controller, DefaultValuePipe, Delete, Get, Param, ParseIntPipe, Patch, Post, Query} from "@nestjs/common";
-import {PostAnswerService} from "../post_answer.service.js";
-import {CreatePostAnswerDto, GradePostAnswerDto} from "../dto/post_answer.dto.js";
-import {GetRequesterInfo} from "../../_common/decorators/param/request_payload.decorator.js";
-import type {RequesterInfo} from "../../_common/types/request.js";
-import {ParseLimitPipe} from "../../_common/pipe/ParseLimitPipe.js";
+import {
+  Body,
+  Controller,
+  DefaultValuePipe,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
+
+import { PostAnswerService } from '../post_answer.service.js';
+import {
+  CreatePostAnswerDto,
+  GradePostAnswerDto,
+} from '../dto/post_answer.dto.js';
+import { GetRequesterInfo } from '../../_common/decorators/param/request_payload.decorator.js';
+import type { RequesterInfo } from '../../_common/types/request.js';
+import { ParseLimitPipe } from '../../_common/pipe/ParseLimitPipe.js';
 
 @Controller('group/:group_id/collection/:collection_id/post/:post_id/answer')
 export class PostAnswerController {
   constructor(private readonly answerService: PostAnswerService) {}
+
+  // ---------------- Create ----------------
 
   @Post()
   create(
@@ -23,6 +40,28 @@ export class PostAnswerController {
       post_id,
       requester_id: requester.id,
       body,
+    });
+  }
+
+  // ---------------- Read ----------------
+
+  /**
+   * Bài làm CỦA MÌNH. Trả `null` khi chưa làm (không phải 404) để FE phân biệt
+   * được "chưa làm" với "lỗi thật".
+   *
+   * PHẢI khai TRƯỚC `@Get(':answer_id')`, nếu không `/me` sẽ bị nuốt bởi
+   * `:answer_id` và rơi vào nhánh xem bài của người khác.
+   */
+  @Get('me')
+  getMine(
+    @Param('group_id') group_id: string,
+    @Param('post_id') post_id: string,
+    @GetRequesterInfo() requester: RequesterInfo,
+  ) {
+    return this.answerService.findMine({
+      group_id,
+      post_id,
+      requester_id: requester.id,
     });
   }
 
@@ -62,20 +101,7 @@ export class PostAnswerController {
     });
   }
 
-  @Get('/me')
-  getMine(
-    @Param('group_id') group_id: string,
-    @Param('collection_id') collection_id: string,
-    @Param('post_id') post_id: string,
-    @Param('answer_id') answer_id: string,
-    @GetRequesterInfo() requester: RequesterInfo,
-  ) {
-    return this.answerService.findMine({
-      group_id,
-      post_id,
-      requester_id: requester.id,
-    });
-  }
+  // ---------------- Update ----------------
 
   @Patch('retake/:answer_id')
   retake(
@@ -108,6 +134,8 @@ export class PostAnswerController {
       body,
     });
   }
+
+  // ---------------- Delete ----------------
 
   @Delete(':answer_id')
   delete(

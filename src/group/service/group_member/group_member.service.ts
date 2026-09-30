@@ -6,7 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import {InjectDataSource, InjectRepository} from '@nestjs/typeorm';
-import {DataSource, IsNull, Repository} from 'typeorm';
+import {DataSource, In, IsNull, Repository} from 'typeorm';
 import { FilterDbField } from '../../../_common/helper/filterQueryForRole.js';
 import { GroupMember } from '../../entities/group_member.entity.js';
 import { Group_Member_Role } from '../../enum/group.enum.js';
@@ -19,6 +19,8 @@ import {Group} from "../../entities/group.entity.js";
 
 // ===========================================================================
 
+import { UserNotifService } from '../../../user_notif/user_notif.service.js';
+import { User_Notif_Type } from '../../../user_notif/enum/user_notif.enum.js';
 @Injectable()
 export class GroupMemberService {
   private filterByLabels: FilterDbField<GroupMember | User | Group, string>;
@@ -28,6 +30,7 @@ export class GroupMemberService {
       private readonly dataSource: DataSource,
     @InjectRepository(GroupMember)
     private groupMemberRepo: Repository<GroupMember>,
+    private readonly notifService: UserNotifService,
   ) {
     this.filterByLabels =  FilterDbField.create({
       labels : [ 'SA'  , 'founder' , 'admin' , 'member' ] ,
@@ -75,6 +78,36 @@ export class GroupMemberService {
       throw new NotFoundException({ errorCode:  error_msg ?? 'not_a_member' });
 
     return member.role;
+  }
+
+  /** Id mọi thành viên đang hoạt động — dùng để gửi thông báo hàng loạt */
+  async getMemberUserIds(group_id: string): Promise<string[]> {
+    const rows = await this.groupMemberRepo.find({
+      where: { group: { id: group_id }, deleted_at: IsNull() },
+      relations: { user: true },
+      select: { id: true, user: { id: true } },
+    });
+
+    return rows
+      .map((row) => row.user?.id)
+      .filter((id): id is string => !!id);
+  }
+
+  /** Founder + admin của nhóm — dùng cho thông báo cần duyệt */
+  async getStaffUserIds(group_id: string): Promise<string[]> {
+    const rows = await this.groupMemberRepo.find({
+      where: {
+        group: { id: group_id },
+        role: In([Group_Member_Role.FOUNDER, Group_Member_Role.ADMIN]),
+        deleted_at: IsNull(),
+      },
+      relations: { user: true },
+      select: { id: true, user: { id: true } },
+    });
+
+    return rows
+      .map((row) => row.user?.id)
+      .filter((id): id is string => !!id);
   }
 
   async isMember(input: {
@@ -174,7 +207,7 @@ export class GroupMemberService {
     };
   }
 
-  /** Đọc 1 member theo đúng shape list (kèm `_permission`) để trả sau mutation */
+  /** Đọc 1 member theo đúng shape list (kèm `permission`) để trả sau mutation */
   private async viewOne(input: {
     group_id: string;
     user_id: string;
@@ -199,7 +232,7 @@ export class GroupMemberService {
 
     if (!member) throw new NotFoundException({ errorCode: 'member_not_found' });
 
-    return { ...member, _permission: this.getActorPermission(actor_role) };
+    return { ...member, permission: this.getActorPermission(actor_role) };
   }
 
   // ==================== Join / Rejoin —  ====================
@@ -264,8 +297,8 @@ export class GroupMemberService {
     });
 
     // _permission là quyền của ACTOR (FE tự chọn cờ theo role của từng row)
-    const _permission = this.getActorPermission(requesterRole);
-    return rows.map((member) => ({ ...member, _permission }));
+    const permission = this.getActorPermission(requesterRole);
+    return rows.map((member) => ({ ...member, permission }));
   }
 
   // ==================== Promote / Demote —  FOUNDER ONLY ====================
@@ -284,6 +317,13 @@ export class GroupMemberService {
     await this.setRole({
       group_id: input.group_id,
       user_id: input.target_id,
+      role: Group_Member_Role.ADMIN,
+    });
+
+    await this.notifyMember({
+      user_id: input.target_id,
+      type: User_Notif_Type.GROUP_MEMBER_ROLE_CHANGED,
+      group_id: input.group_id,
       role: Group_Member_Role.ADMIN,
     });
 
@@ -311,6 +351,13 @@ export class GroupMemberService {
       role: Group_Member_Role.MEMBER,
     });
 
+    await this.notifyMember({
+      user_id: input.target_id,
+      type: User_Notif_Type.GROUP_MEMBER_ROLE_CHANGED,
+      group_id: input.group_id,
+      role: Group_Member_Role.MEMBER,
+    });
+
     return this.viewOne({
       group_id: input.group_id,
       user_id: input.target_id,
@@ -330,6 +377,32 @@ export class GroupMemberService {
     if (result.affected === 0)
       throw new NotFoundException({ errorCode: 'member_not_found' });
     return true;
+  }
+
+  private async notifyMember(input: {
+    user_id: string;
+    type: User_Notif_Type;
+    group_id: string;
+    role?: Group_Member_Role;
+  }) {
+    try {
+      const group = await this.dataSource.getRepository(Group).findOne({
+        where: { id: input.group_id },
+        select: { id: true, name: true },
+      });
+
+      await this.notifService.send({
+        user_id: input.user_id,
+        type: input.type,
+        content: {
+          group_id: input.group_id,
+          group_name: group?.name ?? '',
+          ...(input.role ? { role: input.role } : {}),
+        },
+      });
+    } catch {
+      // lỗi thông báo không được làm hỏng thao tác chính
+    }
   }
 
   // ==================== Remove  ====================
@@ -359,6 +432,12 @@ export class GroupMemberService {
       group_id,
       user_id: target_id,
       removed_by: actor_id,
+    });
+
+    await this.notifyMember({
+      user_id: target_id,
+      type: User_Notif_Type.GROUP_MEMBER_KICKED,
+      group_id,
     });
 
     return view;

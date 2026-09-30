@@ -1,11 +1,10 @@
 import {BaseEntity} from "../../_common/entities/base.entity.js";
 import {Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, type Relation } from "typeorm";
 import {User} from "../../user/entities/user.entity.js";
-import {UserExerciseTemplate} from "../../user_exercise_template/entities/user_exercise_template.entity.js";
 import {PostCollection} from "../../group/entities/post_collection.entity.js";
 import {Group} from "../../group/entities/group.entity.js";
 import {PostAnswer} from "../../post_answer/entities/post_answer.entity.js";
-import {Question_Type , Retake, View_Each_Other_Answer} from "../enum/post.enum.js";
+import {Retake, View_Each_Other_Answer} from "../enum/post.enum.js";
 
 
 @Index(['post_collection', 'created_at'])
@@ -20,13 +19,14 @@ export class Post extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   description: string | null;
 
-  @Column({ type: 'enum', enum: Question_Type })
-  question_type: Question_Type;
-
+  /**
+   * Nội dung đề — mảng `section`, ĐÃ TÁCH ĐÁP ÁN (giống QuestionPreparation).
+   * Bỏ `question_type` cấp post: mỗi section tự mang loại của nó.
+   */
   @Column({ type: 'jsonb' })
-  question_content: object;
+  content: object;
 
-  /**  if multiple_choice require correct_answer */
+  /** Đáp án đúng — song song với `content`, chỉ trả cho giáo viên/admin. */
   @Column({ type: 'jsonb', nullable: true })
   correct_answer: object | null;
 
@@ -60,5 +60,5 @@ export class Post extends BaseEntity {
   post_collection: Relation<PostCollection>;
 
   @OneToMany(() => PostAnswer, (a) => a.post)
-  post_answer: PostAnswer;
+  post_answer: PostAnswer[];
 }

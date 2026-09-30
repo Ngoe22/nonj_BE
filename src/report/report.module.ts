@@ -4,8 +4,10 @@ import { ReportController } from './controller/report.controller.js';
 import {Report} from "./entities/report.entity.js";
 import {TypeOrmModule} from "@nestjs/typeorm";
 
+import { UserNotifModule } from '../user_notif/user_notif.module.js';
 @Module({
-  imports: [TypeOrmModule.forFeature([Report])] ,
+  imports: [
+    UserNotifModule,TypeOrmModule.forFeature([Report])] ,
   controllers: [ReportController],
   providers: [ReportService],
 })

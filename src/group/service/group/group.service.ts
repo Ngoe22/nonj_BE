@@ -57,7 +57,9 @@ export class GroupService {
         edit_setting: ['founder'],
         able_to_leave: ['member', 'admin'],
         able_to_delete: ['founder'],
-        create_collection : ['founder'],
+        create_collection: ['founder'],
+        // giao bài trong nhóm: cả trưởng nhóm lẫn phó nhóm
+        create_post: ['founder', 'admin'],
       },
     });
   }

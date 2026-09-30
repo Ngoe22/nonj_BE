@@ -7,8 +7,10 @@ import { UserModule } from '../user/user.module.js';
 import {AdminFriendReqController} from "./controller/admin-friend_request.controller.js";
 import {FriendshipModule} from "../friendship/friendship.module.js";
 
+import { UserNotifModule } from '../user_notif/user_notif.module.js';
 @Module({
-  imports: [TypeOrmModule.forFeature([FriendRequest]) , FriendshipModule   ] ,
+  imports: [
+    UserNotifModule,TypeOrmModule.forFeature([FriendRequest]) , FriendshipModule   ] ,
   controllers: [FriendRequestController,AdminFriendReqController],
   providers: [FriendRequestService],
   exports: [FriendRequestService],

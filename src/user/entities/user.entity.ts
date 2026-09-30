@@ -6,16 +6,14 @@ import {
   JoinColumn,
   ManyToOne,
   OneToMany,
-  OneToOne,
   PrimaryColumn,
   PrimaryGeneratedColumn, Relation,
   UpdateDateColumn,
 } from 'typeorm';
 import { User_Role, User_Status } from "../enums/user.enum.js"
 import { BaseEntity } from "../../_common/entities/base.entity.js"
-import { UserSetting} from "./user_setting.entity.js";
-import {UserExerciseTemplate} from "../../user_exercise_template/entities/user_exercise_template.entity.js";
-import { UserExerciseTemplateCollection } from "../../user_exercise_template/entities/user_exercise_template_collection.entity.js";
+import { QuestionPreparation } from "../../question_preparation/entities/question_preparation.entity.js";
+import { QuestionPreparationCollection } from "../../question_preparation/entities/question_preparation_collection.entity.js";
 import {Group} from "../../group/entities/group.entity.js";
 import {GroupMember} from "../../group/entities/group_member.entity.js";
 import {Matches} from "class-validator";
@@ -109,20 +107,18 @@ export class User extends BaseEntity {
   status_changed_users: User[];
 
   // self
-  @OneToOne(() => UserSetting, (setting) => setting.user)
-  setting: UserSetting;
 
   @OneToMany(
-    () => UserExerciseTemplate,
-    (exercise_template) => exercise_template.user,
+    () => QuestionPreparation,
+    (question_preparation) => question_preparation.user,
   )
-  exercise_template: UserExerciseTemplate;
+  question_preparation: QuestionPreparation[];
 
   @OneToMany(
-    () => UserExerciseTemplateCollection,
-    (exercise_template_collection) => exercise_template_collection.user,
+    () => QuestionPreparationCollection,
+    (question_preparation_collection) => question_preparation_collection.user,
   )
-  exercise_template_collection: UserExerciseTemplateCollection;
+  question_preparation_collection: QuestionPreparationCollection[];
 
   // group
   @OneToMany(() => Group, (group) => group.founder)

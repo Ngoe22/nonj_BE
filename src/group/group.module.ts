@@ -18,10 +18,12 @@ import {AdminGroupJoinRequestController} from "./controller/group_join_request/a
 import {GroupMemberController} from "./controller/group_member/group_member.controller.js";
 import {AdminGroupMemberController} from "./controller/group_member/admin-group_member.controller.js";
 
+import { UserNotifModule } from '../user_notif/user_notif.module.js';
 @Module({
   controllers: [GroupController , AdminGroupController ,GroupCollectionController , AdminGroupCollectionController , GroupJoinRequestController,AdminGroupJoinRequestController ,GroupMemberController ,AdminGroupMemberController],
   providers: [GroupService ,GroupMemberService ,GroupJoinRequestService , PostCollectionService ],
-  imports: [ TypeOrmModule.forFeature([Group , GroupMember ,PostCollection , GroupJoinRequest])] ,
+  imports: [
+    UserNotifModule, TypeOrmModule.forFeature([Group , GroupMember ,PostCollection , GroupJoinRequest])] ,
   exports: [ GroupService ,GroupMemberService , GroupJoinRequestService , PostCollectionService ]
 })
 export class GroupModule {}

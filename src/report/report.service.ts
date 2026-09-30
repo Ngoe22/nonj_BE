@@ -10,6 +10,8 @@ import {InjectDataSource, InjectRepository} from "@nestjs/typeorm";
 import {PostAnswer} from "../post_answer/entities/post_answer.entity.js";
 
 
+import { UserNotifService } from '../user_notif/user_notif.service.js';
+import { User_Notif_Type } from '../user_notif/enum/user_notif.enum.js';
 @Injectable()
 export class ReportService {
   private filterByLabels: FilterDbField<Report | User, string>;
@@ -20,6 +22,7 @@ export class ReportService {
       @InjectRepository(Report)
       private readonly reportRepo: Repository<Report>,
 
+      private readonly notifService: UserNotifService,
   ) {
     this.filterByLabels =  FilterDbField.create({
       labels : [ 'SA' , 'me' ] ,
@@ -160,6 +163,19 @@ export class ReportService {
   async adminReview(input: { report_id: string; admin_id: string; body: ReviewReportDto }) {
     const { report_id, admin_id, body } = input;
 
+    const existing = await this.reportRepo.findOne({
+      where: { id: report_id },
+      relations: { user_report: true },
+      select: {
+        id: true,
+        target_type: true,
+        target_id: true,
+        user_report: { id: true },
+      },
+    });
+    if (!existing)
+      throw new NotFoundException({ errorCode: 'report_not_found' });
+
     const result = await this.reportRepo.update(
         { id: report_id },
         {
@@ -170,6 +186,25 @@ export class ReportService {
     );
 
     if (result.affected === 0) throw new NotFoundException({ errorCode: 'report_not_found' });
+
+    // báo cho người gửi báo cáo là đã xử lý
+    const reporterId = existing.user_report?.id;
+    if (reporterId) {
+      await this.notifService
+        .send({
+          user_id: reporterId,
+          type: User_Notif_Type.REPORT_RESOLVED,
+          content: {
+            report_id,
+            status: body.status ?? null,
+            action_taken: body.action_taken ?? null,
+            target_type: existing.target_type,
+            target_id: existing.target_id,
+          },
+        })
+        .catch(() => undefined);
+    }
+
     return true;
   }
 

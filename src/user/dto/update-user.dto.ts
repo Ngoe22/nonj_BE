@@ -1,22 +1,23 @@
-
 import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
-import { Optional } from '@nestjs/common';
 
+/**
+ * Trước đây `nickname` và `bio` dùng `@Optional()` của @nestjs/common — đó là
+ * decorator của DI, KHÔNG phải validator, nên 2 field đó thành BẮT BUỘC và
+ * `PATCH /user/me` luôn đòi `nickname`. Đổi sang `@IsOptional()`.
+ */
 export class UpdateUserDto {
-
   @IsOptional()
   @IsString()
   @MinLength(6)
   @MaxLength(50)
   password?: string;
 
-  @Optional()
+  @IsOptional()
   @IsString()
   @MinLength(1)
   @MaxLength(50)
   nickname?: string;
 
-  @Optional()
   @IsOptional()
   @IsString()
   @MaxLength(100)

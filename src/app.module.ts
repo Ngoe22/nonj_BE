@@ -11,7 +11,7 @@ import { FriendRequestModule } from './friend_request/friend_request.module.js';
 import { FriendshipModule } from './friendship/friendship.module.js';
 import { GroupModule } from './group/group.module.js';
 import { PostAnswerModule } from './post_answer/post_answer.module.js';
-import { UserExerciseTemplateModule } from './user_exercise_template/user_exercise_template.module.js';
+import { QuestionPreparationModule } from './question_preparation/question_preparation.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { APP_GUARD } from '@nestjs/core';
 import {
@@ -19,6 +19,7 @@ import {
 } from './_other_module/guards/token_guard.module.js';
 import { AccessTokenGuard } from './_other_module/guards/access_token_guard.service.js';
 import { PostModule } from './post/post.module.js';
+import { StorageModule } from './storage/storage.module.js';
 
 
 
@@ -26,10 +27,7 @@ import { PostModule } from './post/post.module.js';
 
 @Module({
   controllers: [AppController],
-  providers: [
-    AppService,
-    { provide: APP_GUARD, useClass: AccessTokenGuard },
-  ],
+  providers: [AppService, { provide: APP_GUARD, useClass: AccessTokenGuard }],
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
@@ -41,7 +39,7 @@ import { PostModule } from './post/post.module.js';
       username: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
-      // entities: [User, UserSetting, UserExerciseTemplate ],
+      // entities: [User, QuestionPreparation, QuestionPreparationCollection ],
       autoLoadEntities: true,
       synchronize: true,
     }),
@@ -54,9 +52,10 @@ import { PostModule } from './post/post.module.js';
     FriendshipModule,
     GroupModule,
     PostAnswerModule,
-    UserExerciseTemplateModule,
+    QuestionPreparationModule,
     AuthModule,
     TokenGuardModule,
+    StorageModule,
   ],
 })
 export class AppModule {}

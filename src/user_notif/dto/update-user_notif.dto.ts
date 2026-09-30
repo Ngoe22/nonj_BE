@@ -1,6 +1,8 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateUserNotifDto } from './create-user_notif.dto.js';
+import { IsArray, IsOptional, IsUUID } from 'class-validator';
 
-export class UpdateUserNotifDto extends PartialType(CreateUserNotifDto) {
-  id: number;
+export class MarkManyReadDto {
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  notif_ids?: string[];
 }

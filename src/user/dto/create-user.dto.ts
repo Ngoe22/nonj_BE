@@ -6,8 +6,6 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { Optional } from '@nestjs/common';
-import { Column } from 'typeorm';
 
 export class CreateUserDto {
 

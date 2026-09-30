@@ -6,9 +6,11 @@ import {TypeOrmModule} from "@nestjs/typeorm";
 import { GroupMemberService } from '../group/service/group_member/group_member.service.js';
 import { GroupModule } from '../group/group.module.js';
 
+import { UserNotifModule } from '../user_notif/user_notif.module.js';
 @Module({
   controllers: [PostAnswerController],
   providers: [PostAnswerService],
-  imports: [TypeOrmModule.forFeature([PostAnswer]), GroupModule],
+  imports: [
+    UserNotifModule,TypeOrmModule.forFeature([PostAnswer]), GroupModule],
 })
 export class PostAnswerModule {}

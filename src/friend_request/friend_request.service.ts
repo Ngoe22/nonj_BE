@@ -7,6 +7,15 @@ import {InjectDataSource, InjectRepository} from '@nestjs/typeorm';
 import {DataSource, Repository} from 'typeorm';
 import { FriendRequest } from './entities/friend_request.entity.js';
 import { FilterDbField } from '../_common/helper/filterQueryForRole.js';
+import { AdminFriendRequestQueryDto } from './dto/admin-friend-request-query.dto.js';
+import {
+  adminCreatedRange,
+  adminLike,
+  adminPage,
+  adminUuidLike,
+  markDeleted,
+  adminWhere,
+} from '../_common/helper/admin_query.helper.js';
 import {Friend_Request_Status, UpdateRequestFromReceiverEnum} from './enum/friend_request.enum.js';
 import { Transactional } from 'typeorm-transactional';
 import { UserService } from '../user/user.service.js';
@@ -35,17 +44,19 @@ export class FriendRequestService {
           id: ['SA', 'ingoing_requests'],
           nickname: ['SA', 'ingoing_requests'],
           user_name: ['SA', 'ingoing_requests'],
-          avatar_url: ['ingoing_requests'],
+          avatar_url: ['SA', 'ingoing_requests'],
         },
         receiver: {
           id: ['SA', 'outgoing_requests'],
           nickname: ['SA', 'outgoing_requests'],
           user_name: ['SA', 'outgoing_requests'],
-          avatar_url: ['outgoing_requests'],
+          avatar_url: ['SA', 'outgoing_requests'],
         },
         status: ['SA', 'outgoing_requests', 'ingoing_requests'],
         created_at: ['SA', 'outgoing_requests', 'ingoing_requests'],
-        updated_at: ['SA',],
+        updated_at: ['SA'],
+        // admin cần thấy trạng thái xoá mềm
+        deleted_at: ['SA'],
       },
       dataBases: {
         _main: FriendRequest,
@@ -247,20 +258,60 @@ export class FriendRequestService {
     });
   }
 
-  async admin_get_many_request(input: { page: number; limit: number }) {
-    const { page, limit } = input;
-
+  /**
+   * Danh sách QUAN HỆ cho admin, có lọc.
+   *
+   * `user_name` tìm ở CẢ HAI phía (người gửi HOẶC người nhận) — TypeORM nhận
+   * mảng `where` và hiểu đó là OR.
+   */
+  async adminFindMany(query: AdminFriendRequestQueryDto) {
     const { relations, select } = this.filterByLabels.buildQueryObject({
       label: 'SA',
     });
 
-    return await this.requestRepo.find({
-      where: {},
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+
+    const base = {
+      id: adminUuidLike(query.id),
+      status: query.status,
+      created_at: adminCreatedRange(query),
+      sender: { user_name: adminLike(query.sender_user_name) },
+      receiver: { user_name: adminLike(query.receiver_user_name) },
+    };
+
+    const byAnySide = query.user_name?.trim();
+
+    const [items, total] = await this.requestRepo.findAndCount({
+      where: adminWhere(
+        byAnySide
+          ? [
+              { ...base, sender: { user_name: adminLike(query.user_name) } },
+              { ...base, receiver: { user_name: adminLike(query.user_name) } },
+            ]
+          : base,
+      ),
       relations,
       select,
+      order: { created_at: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
+      withDeleted: query.with_deleted === true,
     });
+
+    return adminPage({ items: items.map(markDeleted), total, page, limit });
+  }
+
+  /** Khôi phục một quan hệ đã bị xoá mềm */
+  async adminRestore(request_id: string) {
+    const result = await this.requestRepo.restore({ id: request_id });
+
+    if (!result.affected)
+      throw new NotFoundException({
+        errorCode: 'friend_request_not_found_or_not_deleted',
+      });
+
+    return this.admin_get_one_request({ request_id });
   }
 
   async admin_get_many_user_sending_request(input: {

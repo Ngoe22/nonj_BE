@@ -6,6 +6,15 @@ import { randomInt } from 'node:crypto';
 import {CreateUserDto} from './dto/create-user.dto.js';
 import {UpdateUserDto} from './dto/update-user.dto.js';
 import {AdminUpdateUserDto} from './dto/admin-update-user.dto.js';
+import { AdminUserQueryDto } from './dto/admin-user-query.dto.js';
+import {
+  adminCreatedRange,
+  adminLike,
+  adminPage,
+  adminUuidLike,
+  markDeleted,
+  adminWhere,
+} from '../_common/helper/admin_query.helper.js';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import {User} from "./entities/user.entity.js";
@@ -44,6 +53,9 @@ export class UserService {
         role: ['SA', 'for_auth', 'me'],
         status: ['SA', 'for_auth'],
         created_at: ['SA'],
+        // admin cần thấy trạng thái + mốc cập nhật/xoá mềm
+        updated_at: ['SA'],
+        deleted_at: ['SA'],
         password: ['for_auth'],
       },
       dataBases: {
@@ -343,19 +355,51 @@ export class UserService {
     });
   }
 
-  async adminGetInfoMany(page = 1, limit = 20) {
+  /**
+   * Danh sách người dùng cho admin, có lọc.
+   *
+   * Mọi filter đều tùy chọn; bỏ trống thì TypeORM tự bỏ qua (giá trị undefined).
+   * `with_deleted` bật thì trả cả bản ghi đã xoá mềm kèm cờ `is_deleted`.
+   */
+  async adminFindMany(query: AdminUserQueryDto) {
     const { select, relations } = this.filterByLabels.buildQueryObject({
       label: 'SA',
     });
 
-    return await this.userRepository.find({
-      where: {},
-      relations ,
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+
+    const [items, total] = await this.userRepository.findAndCount({
+      where: adminWhere({
+        id: adminUuidLike(query.id),
+        user_name: adminLike(query.user_name),
+        email: adminLike(query.email),
+        nickname: adminLike(query.nickname),
+        role: query.role,
+        status: query.status,
+        created_at: adminCreatedRange(query),
+      }),
+      relations,
       select,
       order: { created_at: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
+      withDeleted: query.with_deleted === true,
     });
+
+    return adminPage({ items: items.map(markDeleted), total, page, limit });
+  }
+
+  /** Khôi phục một người dùng đã bị xoá mềm */
+  async adminRestore(user_id: string) {
+    const result = await this.userRepository.restore({ id: user_id });
+
+    if (!result.affected)
+      throw new NotFoundException({
+        errorCode: 'user_not_found_or_not_deleted',
+      });
+
+    return this.adminGetOne(user_id);
   }
 
   async adminUpdateInfo(input: {

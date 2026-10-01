@@ -4,6 +4,15 @@ import {DataSource, IsNull, Repository} from 'typeorm';
 import {GroupMemberService} from '../group_member/group_member.service.js';
 import {FilterDbField} from '../../../_common/helper/filterQueryForRole.js';
 import {CreateGroupDto, UpdateGroupDto} from '../../dto/group.dto.js';
+import { AdminGroupQueryDto } from '../../dto/admin-group-query.dto.js';
+import {
+  adminCreatedRange,
+  adminLike,
+  adminPage,
+  adminUuidLike,
+  markDeleted,
+  adminWhere,
+} from '../../../_common/helper/admin_query.helper.js';
 import {Transactional} from 'typeorm-transactional';
 import {Injectable, NotFoundException} from '@nestjs/common';
 import {User} from "../../../user/entities/user.entity.js";
@@ -40,6 +49,9 @@ export class GroupService {
         join_mode: ['SA', 'member', 'unjoin', 'admin', 'founder', 'setting'],
         view_mode: ['SA', 'member', 'unjoin', 'admin', 'founder', 'setting'],
         created_at: ['SA', 'member', 'admin', 'founder', 'member'],
+        // admin cần thấy trạng thái + mốc cập nhật/xoá mềm
+        updated_at: ['SA'],
+        deleted_at: ['SA'],
         group_member: {
           role: ['member', 'admin', 'founder'],
         },
@@ -433,20 +445,77 @@ export class GroupService {
     });
   }
 
-  async adminFindMany(input: { page: number; limit: number }) {
-    const { page, limit } = input;
+  /**
+   * Danh sách nhóm cho admin, có lọc + kèm TỔNG SỐ THÀNH VIÊN.
+   *
+   * Số thành viên đếm riêng bằng 1 query gộp theo `group_id` (chỉ đếm bản ghi
+   * chưa xoá mềm) rồi ghép vào kết quả — rẻ hơn nhiều so với đếm từng nhóm.
+   */
+  async adminFindMany(query: AdminGroupQueryDto) {
     const { select, relations } = this.filterByLabels.buildQueryObject({
       label: 'SA',
     });
 
-    return this.groupRepo.find({
-      where: {},
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+
+    const [items, total] = await this.groupRepo.findAndCount({
+      where: adminWhere({
+        id: adminUuidLike(query.id),
+        slug: adminLike(query.slug),
+        name: adminLike(query.name),
+        founder: { user_name: adminLike(query.founder_user_name) },
+        join_mode: query.join_mode,
+        view_mode: query.view_mode,
+        created_at: adminCreatedRange(query),
+      }),
       relations,
       select,
+      order: { created_at: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
-      order: { created_at: 'DESC' },
+      withDeleted: query.with_deleted === true,
     });
+
+    const memberCount = await this.countMembers(items.map((item) => item.id));
+
+    return adminPage({
+      items: items.map((item) => ({
+        ...markDeleted(item),
+        total_member: memberCount.get(item.id) ?? 0,
+      })),
+      total,
+      page,
+      limit,
+    });
+  }
+
+  /** Đếm số thành viên còn hiệu lực của từng nhóm */
+  private async countMembers(groupIds: string[]): Promise<Map<string, number>> {
+    if (groupIds.length === 0) return new Map();
+
+    const rows = await this.groupRepo.manager
+      .createQueryBuilder(GroupMember, 'gm')
+      .select('gm.group_id', 'group_id')
+      .addSelect('COUNT(*)::int', 'total')
+      .where('gm.group_id IN (:...groupIds)', { groupIds })
+      .andWhere('gm.deleted_at IS NULL')
+      .groupBy('gm.group_id')
+      .getRawMany<{ group_id: string; total: number }>();
+
+    return new Map(rows.map((row) => [row.group_id, Number(row.total)]));
+  }
+
+  /** Khôi phục một nhóm đã bị xoá mềm */
+  async adminRestore(group_id: string) {
+    const result = await this.groupRepo.restore({ id: group_id });
+
+    if (!result.affected)
+      throw new NotFoundException({
+        errorCode: 'group_not_found_or_not_deleted',
+      });
+
+    return this.adminFindById(group_id);
   }
 
   async adminUpdate(input: {

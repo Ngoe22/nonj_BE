@@ -3,6 +3,15 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 
 import { FilterDbField } from '../../_common/helper/filterQueryForRole.js';
+import { AdminPreparationQueryDto } from '../dto/admin-preparation-query.dto.js';
+import {
+  adminCreatedRange,
+  adminLike,
+  adminPage,
+  adminUuidLike,
+  markDeleted,
+  adminWhere,
+} from '../../_common/helper/admin_query.helper.js';
 import { QuestionPreparation } from '../entities/question_preparation.entity.js';
 import { QuestionPreparationCollection } from '../entities/question_preparation_collection.entity.js';
 import { User } from '../../user/entities/user.entity.js';
@@ -236,6 +245,49 @@ export class QuestionPreparationService {
   // ==================================================================
   //                             ADMIN
   // ==================================================================
+
+  /**
+   * Danh sách kho đề cá nhân cho admin, có lọc.
+   * Trả kèm chủ sở hữu (`user`) và bộ sưu tập (`collection`).
+   */
+  async adminFindMany(query: AdminPreparationQueryDto) {
+    const { select, relations } = this.filterByLabels.buildQueryObject({
+      label: 'SA',
+    });
+
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+
+    const [items, total] = await this.preparationRepo.findAndCount({
+      where: adminWhere({
+        id: adminUuidLike(query.id),
+        title: adminLike(query.title),
+        user: { user_name: adminLike(query.user_name) },
+        collection: { id: adminUuidLike(query.collection_id) },
+        created_at: adminCreatedRange(query),
+      }),
+      relations,
+      select,
+      order: { created_at: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+      withDeleted: query.with_deleted === true,
+    });
+
+    return adminPage({ items: items.map(markDeleted), total, page, limit });
+  }
+
+  /** Khôi phục một đề đã bị xoá mềm */
+  async adminRestore(preparation_id: string) {
+    const result = await this.preparationRepo.restore({ id: preparation_id });
+
+    if (!result.affected)
+      throw new NotFoundException({
+        errorCode: 'preparation_not_found_or_not_deleted',
+      });
+
+    return this.adminGetOne({ preparation_id });
+  }
 
   async adminGetOne(input: { preparation_id: string }) {
     // trước đây query `{ template_id }` — sai tên field nên luôn not found

@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { UserNotif } from './entities/user_notif.entity.js';
 import { UserNotifController } from './controller/user_notif.controller.js';
+import { AdminOnlineController } from './controller/admin-online.controller.js';
 import { UserNotifService } from './user_notif.service.js';
 import { NotifGateway } from './user_notif.gateway.js';
 import { RefreshTokenModule } from '../refresh_token/refresh_token.module.js';
@@ -16,7 +17,7 @@ import { RefreshTokenModule } from '../refresh_token/refresh_token.module.js';
  */
 @Module({
   imports: [TypeOrmModule.forFeature([UserNotif]), RefreshTokenModule],
-  controllers: [UserNotifController],
+  controllers: [UserNotifController, AdminOnlineController],
   providers: [UserNotifService, NotifGateway],
   exports: [UserNotifService],
 })

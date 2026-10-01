@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  DefaultValuePipe,
   Get,
   Param,
   ParseIntPipe,
@@ -12,9 +11,9 @@ import {
 
 import { UserService } from '../user.service.js';
 import { AdminUpdateUserDto } from '../dto/admin-update-user.dto.js';
+import { AdminUserQueryDto } from '../dto/admin-user-query.dto.js';
 import { UserGuard } from '../../_other_module/guards/user.guard.js';
 import { User_Role } from '../enums/user.enum.js';
-import { ParseLimitPipe } from '../../_common/pipe/ParseLimitPipe.js';
 import { GetRequesterInfo } from '../../_common/decorators/param/request_payload.decorator.js';
 import type { RequesterInfo } from '../../_common/types/request.js';
 
@@ -23,17 +22,22 @@ import type { RequesterInfo } from '../../_common/types/request.js';
 export class AdminUserController {
   constructor(private readonly userService: UserService) {}
 
+  /** Tìm kiếm người dùng: id / user_name / email / nickname / role / status /
+   *  khoảng thời gian tạo / có lấy cả bản ghi đã xoá mềm hay không */
   @Get()
-  findAll(
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(20), ParseLimitPipe) limit: number,
-  ) {
-    return this.userService.adminGetInfoMany(page, limit);
+  findAll(@Query() query: AdminUserQueryDto) {
+    return this.userService.adminFindMany(query);
   }
 
   @Get(':user_id')
   adminGetOne(@Param('user_id') user_id: string) {
     return this.userService.adminGetOne(user_id);
+  }
+
+  /** Khôi phục người dùng đã bị xoá mềm */
+  @Patch(':user_id/restore')
+  restore(@Param('user_id') user_id: string) {
+    return this.userService.adminRestore(user_id);
   }
 
   @Patch(':user_id')

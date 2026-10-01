@@ -8,6 +8,15 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 
 import { FilterDbField } from '../_common/helper/filterQueryForRole.js';
+import { AdminPostQueryDto } from './dto/admin-post-query.dto.js';
+import {
+  adminCreatedRange,
+  adminLike,
+  adminPage,
+  adminUuidLike,
+  markDeleted,
+  adminWhere,
+} from '../_common/helper/admin_query.helper.js';
 import { Post } from './entities/post.entity.js';
 import { PostCollectionService } from '../group/service/post_collection/post_collection.service.js';
 import { GroupMemberService } from '../group/service/group_member/group_member.service.js';
@@ -67,6 +76,9 @@ export class PostService {
         retake: ['SA', 'member', 'admin', 'founder'],
         view_each_other_answer: ['SA', 'member', 'admin', 'founder'],
         created_at: ['SA', 'member', 'admin', 'founder'],
+        // admin cần thấy trạng thái + mốc cập nhật/xoá mềm
+        updated_at: ['SA'],
+        deleted_at: ['SA'],
         user: {
           id: ['SA', 'member', 'admin', 'founder'],
           nickname: ['SA', 'member', 'admin', 'founder'],
@@ -527,24 +539,50 @@ export class PostService {
     return post;
   }
 
-  async adminFindMany(input: {
-    collection_id: string;
-    page: number;
-    limit: number;
-  }) {
-    const { collection_id, page, limit } = input;
+  /**
+   * Danh sách bài tập cho admin, có lọc.
+   *
+   * Trả kèm quan hệ đã join: người giao bài (`user`), nhóm (`group`),
+   * bộ sưu tập (`post_collection`) — FE hiển thị trực tiếp không cần gọi thêm.
+   */
+  async adminFindMany(query: AdminPostQueryDto) {
     const { select, relations } = this.filterByLabels.buildQueryObject({
       label: 'SA',
     });
 
-    return this.postRepo.find({
-      where: { post_collection: { id: collection_id } },
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+
+    const [items, total] = await this.postRepo.findAndCount({
+      where: adminWhere({
+        id: adminUuidLike(query.id),
+        title: adminLike(query.title),
+        group: { id: adminUuidLike(query.group_id) },
+        post_collection: { id: adminUuidLike(query.collection_id) },
+        user: { user_name: adminLike(query.user_name) },
+        created_at: adminCreatedRange(query),
+      }),
       relations,
       select,
+      order: { created_at: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
-      order: { created_at: 'DESC' },
+      withDeleted: query.with_deleted === true,
     });
+
+    return adminPage({ items: items.map(markDeleted), total, page, limit });
+  }
+
+  /** Khôi phục một bài tập đã bị xoá mềm */
+  async adminRestore(post_id: string) {
+    const result = await this.postRepo.restore({ id: post_id });
+
+    if (!result.affected)
+      throw new NotFoundException({
+        errorCode: 'post_not_found_or_not_deleted',
+      });
+
+    return this.adminFindOne({ post_id });
   }
 
   async adminUpdate(input: { post_id: string; body: UpdatePostDto }) {

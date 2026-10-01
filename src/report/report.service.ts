@@ -5,6 +5,15 @@ import {DataSource, Repository} from "typeorm";
 import {User} from "../user/entities/user.entity.js";
 import {Group} from "../group/entities/group.entity.js";
 import {FilterDbField} from "../_common/helper/filterQueryForRole.js";
+import {AdminReportQueryDto} from "./dto/admin-report-query.dto.js";
+import {
+  adminCreatedRange,
+  adminLike,
+  adminPage,
+  adminUuidLike,
+  markDeleted,
+  adminWhere,
+} from "../_common/helper/admin_query.helper.js";
 import {Report} from "./entities/report.entity.js";
 import {InjectDataSource, InjectRepository} from "@nestjs/typeorm";
 import {PostAnswer} from "../post_answer/entities/post_answer.entity.js";
@@ -46,6 +55,10 @@ export class ReportService {
         },
         reviewed_at: ['SA', 'me'],
         review_note: ['SA'],
+        // admin cần thấy mốc tạo/cập nhật + trạng thái xoá mềm
+        created_at: ['SA', 'me'],
+        updated_at: ['SA'],
+        deleted_at: ['SA'],
       },
       dataBases: {
         _main : Report ,
@@ -125,27 +138,57 @@ export class ReportService {
   //                                 ADMIN
   // ==========================================================================
 
-  async adminFindMany(input: {
-    status?: Report_Status;
-    target_type?: Target_Type;
-    page: number;
-    limit: number;
-  }) {
-    const { status, target_type, page, limit } = input;
+  /** Danh sách báo cáo cho admin, có lọc + phân trang */
+  async adminFindMany(query: AdminReportQueryDto) {
+    const { select, relations } = this.filterByLabels.buildQueryObject({
+      label: 'SA',
+    });
 
-    const {select ,relations} = this.filterByLabels.buildQueryObject({ label: 'SA' });
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
 
-    const where: any = {};
-    if (status) where.status = status;
-    if (target_type) where.target_type = target_type;
-
-    return this.reportRepo.find({
-      where,
-      select ,relations,
+    const [items, total] = await this.reportRepo.findAndCount({
+      where: adminWhere({
+        id: adminUuidLike(query.id),
+        status: query.status,
+        target_type: query.target_type,
+        user_report: { user_name: adminLike(query.user_name) },
+        created_at: adminCreatedRange(query),
+      }),
+      select,
+      relations,
       skip: (page - 1) * limit,
       take: limit,
       order: { created_at: 'DESC' },
+      withDeleted: query.with_deleted === true,
     });
+
+    return adminPage({ items: items.map(markDeleted), total, page, limit });
+  }
+
+  /** Xoá mềm một báo cáo */
+  async adminSoftDelete(input: { report_id: string; admin_id: string }) {
+    const result = await this.reportRepo.update(
+      { id: input.report_id },
+      { deleted_at: new Date(), deleted_by: input.admin_id },
+    );
+
+    if (!result.affected)
+      throw new NotFoundException({ errorCode: 'report_not_found' });
+
+    return true;
+  }
+
+  /** Khôi phục một báo cáo đã bị xoá mềm */
+  async adminRestore(report_id: string) {
+    const result = await this.reportRepo.restore({ id: report_id });
+
+    if (!result.affected)
+      throw new NotFoundException({
+        errorCode: 'report_not_found_or_not_deleted',
+      });
+
+    return this.adminFindOne({ report_id });
   }
 
   async adminFindOne(input: { report_id: string }) {

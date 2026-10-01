@@ -1,6 +1,7 @@
 import {
     Controller,
     Get,
+    Patch,
     Delete,
     Param,
     Query,
@@ -9,6 +10,7 @@ import {
     ParseIntPipe,
 } from '@nestjs/common';
 import { FriendRequestService } from '../friend_request.service.js';
+import { AdminFriendRequestQueryDto } from '../dto/admin-friend-request-query.dto.js';
 import { UserGuard } from '../../_other_module/guards/user.guard.js';
 import { User_Role } from '../../user/enums/user.enum.js';
 import { ParseLimitPipe } from '../../_common/pipe/ParseLimitPipe.js';
@@ -20,11 +22,8 @@ export class AdminFriendReqController {
 
 
     @Get('')
-    adminGetMany(
-        @Query('limit', new DefaultValuePipe(20), ParseLimitPipe) limit: number,
-        @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    ) {
-        return this.friendRequestService.admin_get_many_request({ limit, page });
+    adminGetMany(@Query() query: AdminFriendRequestQueryDto) {
+        return this.friendRequestService.adminFindMany(query);
     }
 
     @Get(':request_id')
@@ -55,6 +54,12 @@ export class AdminFriendReqController {
 
 
 
+
+    /** Khôi phục quan hệ đã bị xoá mềm */
+    @Patch('restore/:request_id')
+    restore(@Param('request_id') request_id: string) {
+        return this.friendRequestService.adminRestore(request_id);
+    }
 
     @Delete(':request_id')
     forceDelete(@Param('request_id') request_id: string) {

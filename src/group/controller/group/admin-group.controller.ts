@@ -14,6 +14,7 @@ import {
 import { GroupService } from '../../service/group/group.service.js';
 import { ParseLimitPipe } from '../../../_common/pipe/ParseLimitPipe.js';
 import { UpdateGroupDto } from '../../dto/group.dto.js';
+import { AdminGroupQueryDto } from '../../dto/admin-group-query.dto.js';
 import { GetRequesterInfo } from '../../../_common/decorators/param/request_payload.decorator.js';
 import type { RequesterInfo } from '../../../_common/types/request.js';
 import { UserGuard } from '../../../_other_module/guards/user.guard.js';
@@ -32,16 +33,19 @@ export class AdminGroupController {
   // route tĩnh phải khai TRƯỚC route `:group_id`, nếu không `/admin/group/many`
   // sẽ bị nuốt bởi `:group_id` = 'many'
   @Get('many')
-  getMany(
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(20), ParseLimitPipe) limit: number,
-  ) {
-    return this.groupService.adminFindMany({ page, limit });
+  getMany(@Query() query: AdminGroupQueryDto) {
+    return this.groupService.adminFindMany(query);
   }
 
   @Get(':group_id')
   getOne(@Param('group_id') group_id: string) {
     return this.groupService.adminFindById(group_id);
+  }
+
+  /** Khôi phục nhóm đã bị xoá mềm */
+  @Patch(':group_id/restore')
+  restore(@Param('group_id') group_id: string) {
+    return this.groupService.adminRestore(group_id);
   }
 
   @Patch(':group_id')

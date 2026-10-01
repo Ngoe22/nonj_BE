@@ -126,13 +126,21 @@ export function adminWhere<T extends Record<string, unknown>>(
  * `operator does not exist: uuid ~~* unknown` vì `uuid` không có toán tử ILIKE.
  * Phải CAST cột sang text trước rồi mới so khớp một phần.
  */
+let uuidLikeSeq = 0;
+
 export function adminUuidLike(
   value?: string,
 ): FindOperator<string> | undefined {
   const trimmed = value?.trim();
   if (!trimmed) return undefined;
 
-  return Raw((alias: string) => `CAST(${alias} AS TEXT) ILIKE :admin_uuid_like`, {
-    admin_uuid_like: `%${trimmed}%`,
+  // Tên tham số PHẢI unique cho mỗi lần gọi. Nếu dùng cố định `:admin_uuid_like`
+  // thì khi một query lọc HAI cột uuid cùng lúc (vd bài tập: group_id +
+  // collection_id), tham số sau sẽ GHI ĐÈ tham số trước -> cả hai điều kiện
+  // cùng so với MỘT giá trị -> ra 0 kết quả. Dùng bộ đếm tăng dần cho khỏi đụng.
+  const param = `admin_uuid_like_${uuidLikeSeq++}`;
+
+  return Raw((alias: string) => `CAST(${alias} AS TEXT) ILIKE :${param}`, {
+    [param]: `%${trimmed}%`,
   });
 }

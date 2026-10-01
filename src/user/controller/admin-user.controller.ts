@@ -40,6 +40,12 @@ export class AdminUserController {
     return this.userService.adminRestore(user_id);
   }
 
+  /** Reset mật khẩu: sinh mật khẩu mới và GỬI QUA EMAIL (không trả về mật khẩu) */
+  @Patch(':user_id/reset_password')
+  resetPassword(@Param('user_id') user_id: string) {
+    return this.userService.adminResetPassword(user_id);
+  }
+
   @Patch(':user_id')
   update(
     @Body() body: AdminUpdateUserDto,

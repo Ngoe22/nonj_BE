@@ -507,6 +507,11 @@ export class GroupService {
   }
 
   /** Khôi phục một nhóm đã bị xoá mềm */
+  /** slug có bị ai dùng chưa — dùng cho nút Check ở form tạo/sửa nhóm */
+  async checkSlugExist(slug: string) {
+    return this.groupRepo.exists({ where: { slug } });
+  }
+
   async adminRestore(group_id: string) {
     const result = await this.groupRepo.restore({ id: group_id });
 

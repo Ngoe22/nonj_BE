@@ -1,3 +1,4 @@
+import { Public } from '../../../_common/decorators/method/public.decorator.js';
 import {
   Body,
   Controller,
@@ -19,6 +20,13 @@ import { ParseLimitPipe } from '../../../_common/pipe/ParseLimitPipe.js';
 @Controller('group')
 export class GroupController {
   constructor(private readonly groupService: GroupService) {}
+
+  /** Check slug đã bị dùng chưa (public — form tạo nhóm gọi trước khi submit) */
+  @Public()
+  @Post('check_existing/:slug')
+  checkSlugExist(@Param('slug') slug: string) {
+    return this.groupService.checkSlugExist(slug);
+  }
 
   @Post()
   create(

@@ -7,7 +7,7 @@ export interface RequestToken {
 
 export interface RequesterInfo {
   id: string;
-  user_name: string;
+  user_name: string | null;
   role: User_Role;
   jti: string;
 }

@@ -2,6 +2,8 @@ import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { UserService } from '../user.service.js';
 import { CreateUserDto } from '../dto/create-user.dto.js';
 import { UpdateUserDto } from '../dto/update-user.dto.js';
+import { ChangePasswordDto } from '../dto/change-password.dto.js';
+import { SetUsernameDto } from '../dto/set-username.dto.js';
 import type { RequesterInfo } from '../../_common/types/request.js';
 import { Public } from '../../_common/decorators/method/public.decorator.js';
 import { GetRequesterInfo } from '../../_common/decorators/param/request_payload.decorator.js';
@@ -60,6 +62,24 @@ export class UserController {
     @GetRequesterInfo() requester: RequesterInfo,
   ) {
     return this.userService.updateInfo({ user_id: requester.id, body });
+  }
+
+  /** Chọn username (tài khoản Google mới chưa có) */
+  @Post('username')
+  setUsername(
+    @Body() body: SetUsernameDto,
+    @GetRequesterInfo() requester: RequesterInfo,
+  ) {
+    return this.userService.setUsername({ user_id: requester.id, body });
+  }
+
+  /** Tự đổi mật khẩu — bắt buộc mật khẩu cũ */
+  @Post('change_password')
+  changePassword(
+    @Body() body: ChangePasswordDto,
+    @GetRequesterInfo() requester: RequesterInfo,
+  ) {
+    return this.userService.changePassword({ user_id: requester.id, body });
   }
 }
 

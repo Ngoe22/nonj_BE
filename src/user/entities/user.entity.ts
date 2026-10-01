@@ -45,8 +45,11 @@ export class User extends BaseEntity {
   @Column('varchar', {
     length: 50,
     unique: true,
+    // nullable vì tài khoản Google lúc mới tạo CHƯA có username — bắt chọn sau
+    // (Postgres cho nhiều NULL cùng lúc trong cột UNIQUE, không đụng nhau).
+    nullable: true,
   })
-  user_name: string;
+  user_name: string | null;
 
   @Index()
   @Column('text', {

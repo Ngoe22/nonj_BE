@@ -1,8 +1,11 @@
 import {
+  BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
-import { randomInt } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import {CreateUserDto} from './dto/create-user.dto.js';
 import {UpdateUserDto} from './dto/update-user.dto.js';
 import {AdminUpdateUserDto} from './dto/admin-update-user.dto.js';
@@ -23,6 +26,9 @@ import { projectBcrypt } from '../_common/helper/customBcrypt.js';
 import { FilterDbField } from '../_common/helper/filterQueryForRole.js';
 import { FriendRequest } from '../friend_request/entities/friend_request.entity.js';
 import { FriendRequestService } from '../friend_request/friend_request.service.js';
+import { mailHelper } from '../_common/helper/mail.helper.js';
+import { ChangePasswordDto } from './dto/change-password.dto.js';
+import { SetUsernameDto } from './dto/set-username.dto.js';
 
 // ==========================================
 
@@ -304,40 +310,42 @@ export class UserService {
     }
 
     // 3. tạo tài khoản mới (không có password -> chỉ đăng nhập được bằng Google)
+    //
+    // KHÔNG tự sinh user_name nữa: username mang tính cá nhân, không quyết hộ
+    // người dùng. Đặt NULL rồi FE bắt họ chọn username ở màn hình riêng; tới khi
+    // chọn xong mới dùng app được.
     const fallbackNickname = nickname?.trim() || email.split('@')[0] || 'user';
 
     return await this.userRepository.save({
       google_id,
       email,
-      user_name: await this.generateUniqueUserName(email),
+      user_name: null,
       nickname: fallbackNickname.slice(0, 50),
       avatar_url: avatar_url ?? null,
     });
   }
 
-  /** user_name phải là [a-zA-Z0-9]+ và duy nhất → sinh từ phần trước @ của email */
-  private async generateUniqueUserName(email: string) {
-    const base =
-      email
-        .split('@')[0]
-        .toLowerCase()
-        .replace(/[^a-zA-Z0-9]/g, '')
-        .slice(0, 45) || 'user';
+  /**
+   * Chọn username (cho tài khoản Google mới hoặc bất kỳ ai chưa có username).
+   *
+   * Check trùng trước; trùng thì trả 409 `user_name_taken` để FE báo ngay.
+   */
+  async setUsername(input: { user_id: string; body: SetUsernameDto }) {
+    const { user_id, body } = input;
 
-    let candidate = base;
+    const taken = await this.userRepository.exists({
+      where: { user_name: body.user_name },
+    });
+    if (taken) throw new ConflictException({ errorCode: 'user_name_taken' });
 
-    for (let i = 1; i <= 20; i++) {
-      const taken = await this.userRepository.exists({
-        where: { user_name: candidate },
-      });
-      if (!taken) return candidate;
+    const result = await this.userRepository.update(
+      { id: user_id },
+      { user_name: body.user_name },
+    );
+    if (result.affected === 0)
+      throw new NotFoundException({ errorCode: 'user_not_found' });
 
-      const tail = String(i);
-      candidate = `${base.slice(0, 50 - tail.length)}${tail}`;
-    }
-
-    // cực hiếm mới tới đây — thêm hậu tố ngẫu nhiên cho chắc
-    return `user${randomInt(100000, 1000000)}`;
+    return this.getMyInfo(user_id);
   }
 
   // =======================================================
@@ -409,21 +417,112 @@ export class UserService {
   }) {
     const { user_id, body, admin_id } = input;
 
-    if (body.password)
-      body.password = await projectBcrypt.encode(body.password);
+    const user = await this.userRepository.findOne({ where: { id: user_id } });
+    if (!user) throw new NotFoundException({ errorCode: 'user_not_found' });
 
-    const patch: Record<string, any> = { ...body };
-
-    if (body.status) {
-      patch.status_changed_at = new Date();
-      if (admin_id) patch.status_changed_by = admin_id;
+    // user_name / email là cột UNIQUE -> phải check trước, nếu không `save`
+    // sẽ ném lỗi vi phạm unique và thành 500 khó hiểu.
+    if (body.user_name && body.user_name !== user.user_name) {
+      const taken = await this.userRepository.exists({
+        where: { user_name: body.user_name },
+      });
+      if (taken) throw new ConflictException({ errorCode: 'user_name_taken' });
     }
 
-    const result = await this.userRepository.update({ id: user_id }, patch);
-    if (result.affected === 0)
-      throw new NotFoundException({ errorCode: 'user_not_found' });
+    if (body.email && body.email !== user.email) {
+      const taken = await this.userRepository.exists({
+        where: { email: body.email },
+      });
+      if (taken) throw new ConflictException({ errorCode: 'email_taken' });
+    }
+
+    const { status, ...rest } = body;
+    Object.assign(user, rest);
+
+    if (status) {
+      user.status = status;
+      user.status_changed_at = new Date();
+
+      // `status_changed_by` là tên CỘT FK, không phải property của entity —
+      // property là `status_by_admin` (ManyToOne). Trước đây ghi
+      // `patch.status_changed_by` nên TypeORM ném
+      // `Property "status_changed_by" was not found in "User"`.
+      if (admin_id) user.status_by_admin = { id: admin_id } as User;
+    }
+
+    await this.userRepository.save(user);
 
     return this.adminGetOne(user_id);
+  }
+
+  /**
+   * Reset mật khẩu của một user — admin KHÔNG nhập mật khẩu trực tiếp.
+   *
+   * Sinh mật khẩu ngẫu nhiên, GỬI QUA EMAIL trước, chỉ khi gửi thành công mới
+   * lưu mật khẩu mới. Như vậy nếu Resend lỗi thì mật khẩu cũ vẫn còn dùng được,
+   * không khoá trái tài khoản.
+   */
+  async adminResetPassword(user_id: string) {
+    const user = await this.userRepository.findOne({
+      where: { id: user_id },
+      select: { id: true, email: true, password: true },
+    });
+    if (!user) throw new NotFoundException({ errorCode: 'user_not_found' });
+
+    if (!user.email)
+      throw new BadRequestException({ errorCode: 'user_has_no_email' });
+
+    const newPassword = randomBytes(9).toString('base64url');
+
+    try {
+      await mailHelper.sendNewPasswordEmail({
+        to: user.email,
+        password: newPassword,
+      });
+    } catch {
+      // Gửi mail lỗi -> KHÔNG đổi mật khẩu (tránh khoá trái tài khoản). Báo lỗi
+      // rõ ràng để admin biết là do email, không phải lỗi hệ thống chung chung.
+      throw new ServiceUnavailableException({ errorCode: 'email_send_failed' });
+    }
+
+    await this.userRepository.update(
+      { id: user_id },
+      { password: await projectBcrypt.encode(newPassword) },
+    );
+
+    return true;
+  }
+
+  /**
+   * Tự đổi mật khẩu — bắt buộc mật khẩu cũ.
+   *
+   * KHÔNG đụng tới các field khác; đây là endpoint riêng, không dùng chung
+   * `PATCH /user/me`.
+   */
+  async changePassword(input: {
+    user_id: string;
+    body: ChangePasswordDto;
+  }) {
+    const { user_id, body } = input;
+
+    const user = await this.userRepository.findOne({
+      where: { id: user_id },
+      select: { id: true, password: true },
+    });
+    if (!user) throw new NotFoundException({ errorCode: 'user_not_found' });
+
+    if (
+      !user.password ||
+      !(await projectBcrypt.compare(body.old_password, user.password))
+    )
+      throw new BadRequestException({ errorCode: 'old_password_incorrect' });
+
+    await this.userRepository.update(
+      { id: user_id },
+      { password: await projectBcrypt.encode(body.new_password) },
+    );
+
+    return true;
   }
 }
 

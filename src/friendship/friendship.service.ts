@@ -8,6 +8,15 @@ import {UserService} from "../user/user.service.js";
 import {FriendRequest} from "../friend_request/entities/friend_request.entity.js";
 import {FriendRequestService} from "../friend_request/friend_request.service.js";
 import {User} from "../user/entities/user.entity.js";
+import { AdminFriendshipQueryDto } from './dto/admin-friendship-query.dto.js';
+import {
+  adminCreatedRange,
+  adminLike,
+  adminPage,
+  adminUuidLike,
+  adminWhere,
+  markDeleted,
+} from '../_common/helper/admin_query.helper.js';
 
 
 // ======================================================================
@@ -196,6 +205,65 @@ export class FriendshipService {
     if (result2.affected === 0) {
       throw new NotFoundException({ errorCode });
     }
+
+    return true;
+  }
+
+  /**
+   * Danh sách BẠN BÈ cho admin, có lọc.
+   *
+   * Trả kèm hai phía `user` + `user_friend` (id, user_name, nickname) để FE hiển
+   * thị trực tiếp. `user_name` tìm ở CẢ HAI phía (TypeORM hiểu mảng `where` là OR).
+   */
+  async adminFindMany(query: AdminFriendshipQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+
+    const base = {
+      id: adminUuidLike(query.id),
+      user: { user_name: adminLike(query.a_user_name) },
+      user_friend: { user_name: adminLike(query.b_user_name) },
+      created_at: adminCreatedRange(query),
+    };
+
+    const byAnySide = query.user_name?.trim();
+
+    const [items, total] = await this.friendshipRepo.findAndCount({
+      where: adminWhere(
+        byAnySide
+          ? [
+              { ...base, user: { user_name: adminLike(query.user_name) } },
+              { ...base, user_friend: { user_name: adminLike(query.user_name) } },
+            ]
+          : base,
+      ),
+      relations: { user: true, user_friend: true },
+      select: {
+        id: true,
+        be_friend_at: true,
+        created_at: true,
+        updated_at: true,
+        deleted_at: true,
+        user: { id: true, user_name: true, nickname: true },
+        user_friend: { id: true, user_name: true, nickname: true },
+      },
+      order: { be_friend_at: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+      withDeleted: query.with_deleted === true,
+    });
+
+    return adminPage({ items: items.map(markDeleted), total, page, limit });
+  }
+
+  /** Khôi phục một quan hệ bạn bè đã bị xoá mềm */
+  async adminRestore(friendship_id: string) {
+    const result = await this.friendshipRepo.restore({ id: friendship_id });
+
+    if (!result.affected)
+      throw new NotFoundException({
+        errorCode: 'friendship_not_found_or_not_deleted',
+      });
 
     return true;
   }

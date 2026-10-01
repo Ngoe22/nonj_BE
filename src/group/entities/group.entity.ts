@@ -25,7 +25,7 @@ export class Group extends BaseEntity {
   founder: Relation<User>;
 
   @Index()
-  @Matches(/^[a-z0-9]+$/)
+  @Matches(/^[a-zA-Z0-9]+$/)
   @Column({
     type: 'varchar',
     length: 50,

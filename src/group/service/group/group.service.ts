@@ -60,6 +60,10 @@ export class GroupService {
         create_collection: ['founder'],
         // giao bài trong nhóm: cả trưởng nhóm lẫn phó nhóm
         create_post: ['founder', 'admin'],
+        // Người NGOÀI nhóm được gán label 'unjoin' -> false.
+        // FE dùng cờ này để hiện dải "tham gia nhóm để làm bài tập" thay vì
+        // để người dùng bấm vào rồi nhận lỗi khó hiểu.
+        is_member: ['founder', 'admin', 'member'],
       },
     });
   }

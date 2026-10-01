@@ -39,9 +39,18 @@ import { StorageModule } from './storage/storage.module.js';
       username: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
+      // Supabase (và hầu hết Postgres managed) BẮT BUỘC SSL.
+      // Postgres local bằng docker thì không có SSL -> mặc định tắt,
+      // bật bằng DB_SSL=true khi trỏ sang Supabase.
+      ssl:
+        process.env.DB_SSL === 'true'
+          ? { rejectUnauthorized: false }
+          : false,
       // entities: [User, QuestionPreparation, QuestionPreparationCollection ],
       autoLoadEntities: true,
-      synchronize: true,
+      // Supabase là DB thật: mặc định vẫn true để test nhanh, nhưng chỉ cần
+      // đặt DB_SYNCHRONIZE=false là tắt được NGAY, không phải sửa code.
+      synchronize: process.env.DB_SYNCHRONIZE !== 'false',
     }),
     UserModule,
     PostModule,

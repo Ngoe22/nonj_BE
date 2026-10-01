@@ -9,6 +9,7 @@ import { Server, Socket } from 'socket.io';
 
 import { TokenService } from '../refresh_token/refresh_token.service.js';
 import { ACCESS_COOKIE_NAME } from '../_common/constants/auth.constant.js';
+import { isOriginAllowed } from '../_common/helper/cors.helper.js';
 
 /**
  * Gateway thông báo realtime.
@@ -26,7 +27,12 @@ import { ACCESS_COOKIE_NAME } from '../_common/constants/auth.constant.js';
 @WebSocketGateway({
   namespace: 'notif',
   cors: {
-    origin: process.env.FE_URL,
+    // Dạng callback: decorator chạy TRƯỚC khi dotenv nạp .env, nên nếu đọc
+    // process.env.FE_URL ở đây sẽ luôn undefined.
+    origin: (
+      requestOrigin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => callback(null, isOriginAllowed(requestOrigin)),
     credentials: true,
   },
 })

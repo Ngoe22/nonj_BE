@@ -1,3 +1,4 @@
+import { IsFutureDate } from '../../_common/decorators/validator/is_future_date.decorator.js';
 import {
   IsArray,
   IsDateString,
@@ -34,9 +35,10 @@ export class CreatePostDto {
   @IsEnum(Retake)
   retake?: Retake;
 
-  /** Không có deadline = không giới hạn thời gian */
+  /** Không có deadline = không giới hạn thời gian; có thì PHẢI ở tương lai */
   @IsOptional()
   @IsDateString()
+  @IsFutureDate()
   deadline_at?: string;
 
   @IsOptional()
@@ -71,6 +73,7 @@ export class CreatePostFromPreparationDto {
 
   @IsOptional()
   @IsDateString()
+  @IsFutureDate()
   deadline_at?: string;
 
   @IsOptional()
@@ -81,9 +84,12 @@ export class CreatePostFromPreparationDto {
 /**
  * Sửa post — CỐ Ý chỉ cho sửa các field "bọc ngoài".
  *
- * KHÔNG cho sửa `content` / `correct_answer` / `retake`: bài làm của học viên đã
- * gửi trước đó tham chiếu tới đúng thứ tự section/item, đổi câu hỏi sẽ khiến
- * các bài làm cũ bị lệch và chấm sai.
+ * KHÔNG cho sửa `content` / `correct_answer`: bài làm của học viên đã gửi trước
+ * đó tham chiếu tới đúng thứ tự section/item, đổi câu hỏi sẽ khiến các bài làm
+ * cũ bị lệch và chấm sai.
+ *
+ * `retake` thì CHO sửa — nó chỉ quyết định có cho làm lượt MỚI hay không, không
+ * đụng tới bài đã nộp nên không làm lệch dữ liệu cũ.
  */
 export class UpdatePostDto {
   @IsOptional()
@@ -97,6 +103,11 @@ export class UpdatePostDto {
   @MaxLength(500)
   description?: string;
 
+  /**
+   * KHÔNG gắn `@IsFutureDate()` ở đây: sửa tiêu đề của một bài ĐÃ hết hạn vẫn
+   * gửi kèm hạn cũ, gắn validator sẽ chặn luôn việc sửa. Kiểm tra "tương lai
+   * hoặc giữ nguyên hạn cũ" nằm ở `PostService.update`.
+   */
   @IsOptional()
   @IsDateString()
   deadline_at?: string;
@@ -104,4 +115,8 @@ export class UpdatePostDto {
   @IsOptional()
   @IsEnum(View_Each_Other_Answer)
   view_each_other_answer?: View_Each_Other_Answer;
+
+  @IsOptional()
+  @IsEnum(Retake)
+  retake?: Retake;
 }

@@ -53,7 +53,7 @@ export class PostAnswer extends BaseEntity {
   @JoinColumn({ name: 'graded_by', referencedColumnName: 'id' })
   graded_by: Relation<User> | null;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   graded_at: Date | null;
 
   /** `{ auto: GradeResult, manual?: {...} }` — nullable vì bài PENDING chưa chấm */

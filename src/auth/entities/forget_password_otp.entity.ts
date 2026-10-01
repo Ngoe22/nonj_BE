@@ -29,12 +29,12 @@ export class ForgetPasswordOtp extends BaseEntity {
   @Column({ type: 'boolean', default: false })
   is_pass_otp: boolean;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'timestamptz' })
   expires_at: Date;
 
-  // LUU Y ve created_at (ke thua tu BaseEntity):
-  // TypeORM ghi @CreateDateColumn bang UTC, nhung cot 'timestamp' thuong (nhu expires_at)
-  // lai ghi bang LOCAL. Khi doc lai, driver parse 'timestamp' theo LOCAL -> created_at
-  // bi lech (o VN la +7h) so voi thuc te. Vi vay KHONG dung created_at de tinh khoang
-  // thoi gian; dung expires_at (cung frame, dung) thay the.
+  // GHI CHU (đã xử lý): trước đây cột dùng `timestamp` KHÔNG có múi giờ, nên
+  // @CreateDateColumn (Postgres tự điền) lưu UTC còn cột app tự ghi (expires_at)
+  // lại lưu giờ local — hai cột LỆCH NHAU 7 giờ ở VN, không so sánh được.
+  // Nay mọi cột thời gian đều là `timestamptz`: lưu một mốc tuyệt đối, đọc ra
+  // luôn đúng bất kể tiến trình chạy ở múi giờ nào.
 }

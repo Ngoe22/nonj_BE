@@ -29,10 +29,10 @@ export class RefreshToken extends BaseEntity {
   @Column({ type: 'varchar', length: 257 })
   token_hash: string;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'timestamptz' })
   expires_at: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   revoked_at: Date | null;
 
   @Column({ type: 'text', nullable: true })

@@ -32,7 +32,7 @@ export class Post extends BaseEntity {
 
   // ================
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   deadline_at: Date | null;
 
   @Column({ type: 'enum', enum: Retake, default: Retake.NEVER })

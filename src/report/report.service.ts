@@ -187,7 +187,6 @@ export class ReportService {
 
     if (result.affected === 0) throw new NotFoundException({ errorCode: 'report_not_found' });
 
-    // báo cho người gửi báo cáo là đã xử lý
     const reporterId = existing.user_report?.id;
     if (reporterId) {
       await this.notifService

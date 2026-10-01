@@ -18,7 +18,11 @@ import {
 import { UserNotifService } from '../user_notif/user_notif.service.js';
 import { User_Notif_Type } from '../user_notif/enum/user_notif.enum.js';
 import { Retake, View_Each_Other_Answer } from '../post/enum/post.enum.js';
-import { isFullyAutoGraded } from '../_common/helper/question_content.helper.js';
+import {
+  getQuestionSections,
+  isFullyAutoGraded,
+} from '../_common/helper/question_content.helper.js';
+import { Question_Section_Type } from '../_common/helper/question_content.helper.js';
 import { gradeAnswer } from '../_common/helper/grading.helper.js';
 import { Post_Answer_Status } from './enum/post_answer.enum.js';
 import { Group_Member_Role } from '../group/enum/group.enum.js';
@@ -60,6 +64,11 @@ export class PostAnswerService {
         },
         // member xem được bài của người khác CHỈ KHI view_each_other_answer cho phép;
         // điều kiện đó đã được chặn ở findOthersMany/findOthersOne.
+        // `created_at` BẮT BUỘC phải có: findOthersMany/adminFindMany dùng
+        // `order: { created_at }` mà TypeORM phân trang bằng subquery DISTINCT,
+        // thiếu cột trong select sẽ nổ
+        // 'column distinctAlias.PostAnswer_created_at does not exist'.
+        created_at: ['SA', 'me', 'member', 'admin', 'founder'],
         answer_content: ['SA', 'me', 'member', 'admin', 'founder'],
         point: ['SA', 'me', 'member', 'admin', 'founder'],
         max_point: ['SA', 'me', 'member', 'admin', 'founder'],
@@ -442,14 +451,34 @@ export class PostAnswerService {
     };
     const auto = review.auto;
 
+    // ---------- kẹp điểm tự luận vào [0, trần của CHÍNH phần đó] ----------
+    // FE đã chặn rồi, nhưng BE là tầng có thẩm quyền: gọi API trực tiếp vẫn phải
+    // đúng, không thể cho quá điểm tối đa của phần.
+    const essayMaxByIndex = new Map<number, number>();
+    getQuestionSections(post.content).forEach((raw, index) => {
+      if (raw.type === Question_Section_Type.ESSAY) {
+        essayMaxByIndex.set(index, Number((raw as { point?: number }).point ?? 0));
+      }
+    });
+
+    const sections = (body.sections ?? []).map((section) => {
+      const max = essayMaxByIndex.get(section.index) ?? 0;
+      const raw = Number(section.point);
+      const point = Number.isFinite(raw)
+        ? Math.min(Math.max(raw, 0), max)
+        : 0;
+
+      return { ...section, point };
+    });
+
     // ---------- ghi đè đáp án mẫu lên ĐỀ ----------
     const sampleAnswerByIndex = await this.applySampleAnswers({
       post,
-      sections: body.sections ?? [],
+      sections,
     });
 
     // ---------- tính điểm ----------
-    const manualSections = (body.sections ?? []).map((section) => ({
+    const manualSections = sections.map((section) => ({
       index: section.index,
       point: section.point,
       comment: section.comment ?? '',

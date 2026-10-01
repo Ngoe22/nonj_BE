@@ -39,7 +39,7 @@ export class Report extends BaseEntity {
   @JoinColumn({ name: 'reviewed_by', referencedColumnName: 'id' })
   review_by: Relation<User> | null;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   reviewed_at: Date | null;
 
   @Column({ type: 'text', nullable: true })

@@ -85,7 +85,7 @@ export class User extends BaseEntity {
   status: User_Status;
 
   @Column({
-    type: 'timestamp',
+    type: 'timestamptz',
     nullable: true,
   })
   status_changed_at: Date | null;

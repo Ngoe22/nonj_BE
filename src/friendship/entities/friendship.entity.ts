@@ -21,7 +21,7 @@ export class Friendship extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'timestamptz' })
   be_friend_at: Date;
 
   @ManyToOne(() => User, (user) => user.friend_user)

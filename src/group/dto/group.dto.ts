@@ -10,7 +10,7 @@ import { Group_Join_Mode, Group_View_Mode } from '../enum/group.enum.js';
 
 export class CreateGroupDto {
   @IsString()
-  @Matches(/^[a-z0-9_]+$/)
+  @Matches(/^[a-zA-Z0-9]+$/)
   @MaxLength(50)
   slug: string;
 

@@ -1,4 +1,9 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 
@@ -53,8 +58,11 @@ export class PostService {
         title: ['SA', 'member', 'admin', 'founder'],
         description: ['SA', 'member', 'admin', 'founder'],
         content: ['SA', 'member', 'admin', 'founder'],
-        // ĐÁP ÁN — member KHÔNG BAO GIỜ thấy
-        correct_answer: ['SA', 'admin', 'founder'],
+        // `correct_answer` CÓ trong select cho cả 'member' — vì member ĐÃ LÀM BÀI
+        // thì được xem đáp án để tự so sánh, còn CHƯA làm thì `findOne` xoá đi.
+        // (Trước đây để thiếu 'member' nên field không được select, và nhánh
+        // "đã làm bài thì cho xem đáp án" không bao giờ chạy được.)
+        correct_answer: ['SA', 'member', 'admin', 'founder'],
         deadline_at: ['SA', 'member', 'admin', 'founder'],
         retake: ['SA', 'member', 'admin', 'founder'],
         view_each_other_answer: ['SA', 'member', 'admin', 'founder'],
@@ -372,7 +380,16 @@ export class PostService {
     });
 
     const permission = this.filterByLabels.getLabelPermission(label);
-    return posts.map((post) => ({ ...post, permission }));
+
+    return posts.map((post) => {
+      const item = { ...post, permission } as Record<string, any>;
+
+      // DANH SÁCH không bao giờ trả đáp án cho member — kể cả đã làm bài.
+      // Muốn so đáp án thì mở chi tiết post (findOne kiểm tra đã làm hay chưa).
+      if (label === 'member') delete item.correct_answer;
+
+      return item;
+    });
   }
 
   // ==================== Update ====================
@@ -381,6 +398,45 @@ export class PostService {
    * Chỉ sửa được title / description / deadline_at / view_each_other_answer.
    * Nội dung câu hỏi và `retake` bị chặn ở tầng DTO để không phá bài làm cũ.
    */
+  /**
+   * Hạn chót mới phải ở TƯƠNG LAI — TRỪ khi giữ nguyên đúng hạn đang lưu.
+   *
+   * Ngoại lệ này là bắt buộc: sửa tiêu đề của một bài đã hết hạn vẫn gửi kèm
+   * hạn cũ, nếu chặn thì sau khi hết hạn sẽ không sửa được gì nữa.
+   */
+  private async assertDeadlineIsFutureOrUnchanged(input: {
+    post_id: string;
+    group_id: string;
+    collection_id: string;
+    deadline_at?: string;
+  }) {
+    const { post_id, group_id, collection_id, deadline_at } = input;
+
+    if (deadline_at === undefined) return; // không đụng tới hạn
+
+    const next = deadline_at ? new Date(deadline_at).getTime() : null;
+
+    // bỏ hạn, hoặc hạn ở tương lai -> hợp lệ
+    if (next === null || Number.isNaN(next) || next > Date.now()) return;
+
+    const current = await this.postRepo.findOne({
+      where: {
+        id: post_id,
+        group: { id: group_id },
+        post_collection: { id: collection_id },
+      },
+      select: { id: true, deadline_at: true },
+    });
+
+    const currentTime = current?.deadline_at
+      ? new Date(current.deadline_at).getTime()
+      : null;
+
+    if (currentTime !== null && currentTime === next) return; // giữ nguyên hạn cũ
+
+    throw new BadRequestException({ errorCode: 'deadline_must_be_future' });
+  }
+
   async update(input: {
     group_id: string;
     collection_id: string;
@@ -394,6 +450,13 @@ export class PostService {
       actor_id: requester_id,
       group_id,
       actor_allow_roles: [Group_Member_Role.ADMIN, Group_Member_Role.FOUNDER],
+    });
+
+    await this.assertDeadlineIsFutureOrUnchanged({
+      post_id,
+      group_id,
+      collection_id,
+      deadline_at: body.deadline_at,
     });
 
     const result = await this.postRepo.update(

@@ -43,7 +43,7 @@ export class GroupMember extends BaseEntity {
   })
   role: Group_Member_Role;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   rejoin_at: Date;
 
   //

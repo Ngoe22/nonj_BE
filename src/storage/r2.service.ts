@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   S3Client,
@@ -37,22 +41,68 @@ export interface PresignedUploadOutput {
 
 @Injectable()
 export class R2Service {
-  private readonly s3: S3Client;
-  private readonly bucket: string;
-  private readonly publicUrlBase: string;
+  private client: S3Client | null = null;
+  private bucket = '';
+  private publicUrlBase = '';
 
-  constructor(private readonly config: ConfigService) {
-    this.bucket = this.config.getOrThrow<string>('r2.bucketName');
-    this.publicUrlBase = this.config.getOrThrow<string>('r2.publicUrl');
+  constructor(private readonly config: ConfigService) {}
 
-    this.s3 = new S3Client({
+  /**
+   * Đọc cấu hình R2 LẦN ĐẦU DÙNG, không phải trong constructor.
+   *
+   * Trước đây constructor gọi `config.getOrThrow('r2.*')` nên chỉ cần THIẾU MỘT
+   * biến R2_* là cả API chết ngay lúc khởi động — dù R2 chỉ dùng cho upload.
+   * Giờ BE vẫn boot bình thường; ai gọi upload mới nhận 503 rõ ràng.
+   */
+  private getClient(): { s3: S3Client; bucket: string; publicUrlBase: string } {
+    if (this.client) {
+      return {
+        s3: this.client,
+        bucket: this.bucket,
+        publicUrlBase: this.publicUrlBase,
+      };
+    }
+
+    const bucketName = this.config.get<string>('r2.bucketName');
+    const publicUrl = this.config.get<string>('r2.publicUrl');
+    const endpoint = this.config.get<string>('r2.endpoint');
+    const accessKeyId = this.config.get<string>('r2.accessKeyId');
+    const secretAccessKey = this.config.get<string>('r2.secretAccessKey');
+
+    const missing = Object.entries({
+      R2_BUCKET_NAME: bucketName,
+      R2_PUBLIC_URL: publicUrl,
+      R2_ENDPOINT: endpoint,
+      R2_ACCESS_KEY_ID: accessKeyId,
+      R2_SECRET_ACCESS_KEY: secretAccessKey,
+    })
+      .filter(([, value]) => !value)
+      .map(([key]) => key);
+
+    if (missing.length > 0) {
+      throw new ServiceUnavailableException({
+        errorCode: 'storage_not_configured',
+        missing,
+      });
+    }
+
+    this.bucket = bucketName!;
+    this.publicUrlBase = publicUrl!.replace(/\/$/, '');
+
+    this.client = new S3Client({
       region: 'auto',
-      endpoint: this.config.getOrThrow<string>('r2.endpoint'),
+      endpoint: endpoint!,
       credentials: {
-        accessKeyId: this.config.getOrThrow<string>('r2.accessKeyId'),
-        secretAccessKey: this.config.getOrThrow<string>('r2.secretAccessKey'),
+        accessKeyId: accessKeyId!,
+        secretAccessKey: secretAccessKey!,
       },
     });
+
+    return {
+      s3: this.client,
+      bucket: this.bucket,
+      publicUrlBase: this.publicUrlBase,
+    };
   }
 
   // ============================================================
@@ -62,6 +112,7 @@ export class R2Service {
     input: PresignedUploadInput,
   ): Promise<PresignedUploadOutput> {
     const { fileName, contentType, folder, fileType } = input;
+    const { s3, bucket, publicUrlBase } = this.getClient();
 
     // 1. Validate MIME type
     const allowed = ALLOWED_MIME_TYPES[fileType] as readonly string[];
@@ -86,12 +137,12 @@ export class R2Service {
 
     // 3. Tạo presigned URL
     const command = new PutObjectCommand({
-      Bucket: this.bucket,
+      Bucket: bucket,
       Key: key,
       ContentType: contentType,
     });
 
-    const uploadUrl = await getSignedUrl(this.s3, command, {
+    const uploadUrl = await getSignedUrl(s3, command, {
       expiresIn: PRESIGNED_URL_EXPIRES,
     });
 
@@ -102,7 +153,7 @@ export class R2Service {
 
     return {
       uploadUrl,
-      publicUrl: `${this.publicUrlBase}/${key}`,
+      publicUrl: `${publicUrlBase}/${key}`,
       key,
       expiresAt,
       maxSize: MAX_FILE_SIZE[fileType],
@@ -113,9 +164,11 @@ export class R2Service {
   // DELETE
   // ============================================================
   async deleteObject(key: string): Promise<void> {
-    await this.s3.send(
+    const { s3, bucket } = this.getClient();
+
+    await s3.send(
       new DeleteObjectCommand({
-        Bucket: this.bucket,
+        Bucket: bucket,
         Key: key,
       }),
     );
@@ -124,9 +177,11 @@ export class R2Service {
   async deleteMany(keys: string[]): Promise<void> {
     if (!keys.length) return;
 
-    await this.s3.send(
+    const { s3, bucket } = this.getClient();
+
+    await s3.send(
       new DeleteObjectsCommand({
-        Bucket: this.bucket,
+        Bucket: bucket,
         Delete: {
           Objects: keys.map((Key) => ({ Key })),
           Quiet: true,

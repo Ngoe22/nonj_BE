@@ -41,7 +41,6 @@ export class UserService {
         nickname: ['SA', 'for_auth', 'me', 'friend', 'not_friend'],
         bio: ['SA', 'for_auth', 'me', 'friend'],
         avatar_url: ['SA', 'for_auth', 'me', 'friend', 'not_friend'],
-        // 'me' để FE biết mình là SYSTEM_ADMIN mà hiện trang admin
         role: ['SA', 'for_auth', 'me'],
         status: ['SA', 'for_auth'],
         created_at: ['SA'],
@@ -177,8 +176,8 @@ export class UserService {
     if (condition.id) qb.where('u.id = :id', { id: condition.id });
     if (condition.username)
       qb.where('u.user_name = :username', { username: condition.username });
-    const user = await qb.getRawOne();
 
+    const user = await qb.getRawOne();
     if (!user) throw new NotFoundException({ errorCode: 'user_not_found' });
 
     const isFriend = user.is_friend === 'true';
@@ -188,7 +187,6 @@ export class UserService {
       label,
     });
 
-    // KHÔNG thêm key `is_firend` (lỗi typo cũ) — chỉ trả `is_friend` ở ngoài
     return { info: output, is_friend: isFriend };
   }
 
@@ -200,6 +198,7 @@ export class UserService {
 
     const user = await this.userRepository.findOne({
       where: { id: user_id },
+      relations ,
       select,
     });
     if (!user) return new NotFoundException({ error: 'user_not_found' });
@@ -232,11 +231,10 @@ export class UserService {
     const result = await this.userRepository.update({ id: user_id }, body);
     if (result.affected === 0)
       throw new NotFoundException({ errorCode: 'update_setting_failed' });
-    // trả FULL profile (cùng shape GET /user/me) để FE cập nhật cache không cần refetch
     return this.getMyInfo(user_id);
   }
 
-  // ================= Password (dùng cho luồng quên/đổi mật khẩu) =================
+  // ================= Password ( ) =================
 
   async getAuthInfoById(user_id: string) {
     return await this.userRepository.findOne({
@@ -305,13 +303,13 @@ export class UserService {
     });
   }
 
-  /** user_name phải là [a-z0-9]+ và duy nhất → sinh từ phần trước @ của email */
+  /** user_name phải là [a-zA-Z0-9]+ và duy nhất → sinh từ phần trước @ của email */
   private async generateUniqueUserName(email: string) {
     const base =
       email
         .split('@')[0]
         .toLowerCase()
-        .replace(/[^a-z0-9]/g, '')
+        .replace(/[^a-zA-Z0-9]/g, '')
         .slice(0, 45) || 'user';
 
     let candidate = base;
@@ -340,6 +338,7 @@ export class UserService {
     });
     return this.userRepository.findOne({
       where: { id: user_id },
+      relations ,
       select,
     });
   }
@@ -351,6 +350,7 @@ export class UserService {
 
     return await this.userRepository.find({
       where: {},
+      relations ,
       select,
       order: { created_at: 'DESC' },
       skip: (page - 1) * limit,
@@ -370,7 +370,6 @@ export class UserService {
 
     const patch: Record<string, any> = { ...body };
 
-    // đổi status (BAN / mở khoá) -> ghi vết ai đổi và lúc nào
     if (body.status) {
       patch.status_changed_at = new Date();
       if (admin_id) patch.status_changed_by = admin_id;
@@ -380,7 +379,6 @@ export class UserService {
     if (result.affected === 0)
       throw new NotFoundException({ errorCode: 'user_not_found' });
 
-    // trả user đã update để FE cache đúng ngay
     return this.adminGetOne(user_id);
   }
 }

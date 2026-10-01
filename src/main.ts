@@ -14,6 +14,10 @@ import {
 import { DataSource } from 'typeorm';
 import { formatDtoException } from './_common/filters/dto_exception_format.js';
 import cookieParser from 'cookie-parser';
+import {
+  assertCorsConfigured,
+  isOriginAllowed,
+} from './_common/helper/cors.helper.js';
 
 
 
@@ -26,6 +30,17 @@ import cookieParser from 'cookie-parser';
 // typeorm-transactional patch DataSource ngay lúc nó được khởi tạo, nếu gọi sau
 // thì @Transactional() sẽ KHÔNG rollback (bug: write vẫn persist dù request fail).
 initializeTransactionalContext();
+
+/*
+ * KHÔNG cần ép `process.env.TZ` ở đây.
+ *
+ * Mọi cột thời gian trong DB đều là `timestamptz` — Postgres lưu một mốc tuyệt
+ * đối, driver đọc ra luôn đúng dù tiến trình chạy ở múi giờ nào, và trình duyệt
+ * tự đổi sang giờ của người dùng. Nhờ vậy không có biến môi trường nào phải nhớ.
+ *
+ * (Trước đây cột là `timestamp` KHÔNG có múi giờ nên phải ép TZ=UTC mới đúng —
+ * xem chú thích ở `_common/entities/base.entity.ts`.)
+ */
 
 async function bootstrap() {
 
@@ -41,9 +56,16 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
+      // KHÔNG bật `enableImplicitConversion`.
+      //
+      // Với class-transformer, `enableImplicitConversion: true` + `@IsArray()`
+      // trên property khai kiểu `object[]` (design:type = Array) sẽ khiến MỖI
+      // PHẦN TỬ của mảng bị đưa qua `Array.from(phanTu)`. Mà
+      // `Array.from({ type: 'multiple_choice', ... })` trả về `[]`
+      // -> `content: [{...}]` biến thành `[[]]`: mất sạch nội dung đề.
+      //
+      // Không cần ép kiểu ngầm ở đây: body là JSON nên số/chuỗi đã đúng kiểu,
+      // còn mọi query param đều đi qua ParseIntPipe / ParseLimitPipe.
       // exceptionFactory :(errors: ValidationError[]) =>{
       //   const formatedErrors = errors.map((error) => formatDtoException(error));
       //   return new BadRequestException({
@@ -59,9 +81,16 @@ async function bootstrap() {
 
   // cookie
   app.use(cookieParser());
+  // ném lỗi ngay nếu production mà thiếu FE_URL
+  assertCorsConfigured();
+
   app.enableCors({
-      origin: process.env.FE_URL,
-      credentials: true,
+    // dạng callback: đọc FE_URL ở từng request và hỗ trợ danh sách nhiều origin
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => callback(null, isOriginAllowed(origin)),
+    credentials: true,
   });
 
   await app.listen(process.env.PORT ?? 3000);

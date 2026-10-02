@@ -1,14 +1,5 @@
 import { BaseEntity } from '../../_common/entities/base.entity.js';
-import {
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-  OneToOne,
-  PrimaryGeneratedColumn,
-  type Relation,
-} from 'typeorm';
+import {Column, Entity, Index, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn, type Relation} from 'typeorm';
 import { User } from '../../user/entities/user.entity.js';
 
 
@@ -51,7 +42,7 @@ export class RefreshToken extends BaseEntity {
   //
 
   @OneToOne(() => RefreshToken, (old_token) => old_token.new_token)
-  old_token: RefreshToken;
+  old_token: Relation<RefreshToken>;
 }
 
 

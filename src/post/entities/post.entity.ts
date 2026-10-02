@@ -1,5 +1,5 @@
 import {BaseEntity} from "../../_common/entities/base.entity.js";
-import {Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, type Relation } from "typeorm";
+import {Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, type Relation} from 'typeorm';
 import {User} from "../../user/entities/user.entity.js";
 import {PostCollection} from "../../group/entities/post_collection.entity.js";
 import {Group} from "../../group/entities/group.entity.js";
@@ -63,5 +63,5 @@ export class Post extends BaseEntity {
   post_collection: Relation<PostCollection>;
 
   @OneToMany(() => PostAnswer, (a) => a.post)
-  post_answer: PostAnswer[];
+  post_answer: Relation<PostAnswer[]>;
 }

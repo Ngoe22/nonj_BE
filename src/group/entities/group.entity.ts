@@ -1,4 +1,4 @@
-import {Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn, type Relation } from "typeorm";
+import {Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn, type Relation} from 'typeorm';
 import {BaseEntity} from "../../_common/entities/base.entity.js";
 import {User} from "../../user/entities/user.entity.js";
 import {Matches} from "class-validator";
@@ -63,13 +63,13 @@ export class Group extends BaseEntity {
   // ===============================
 
   @OneToMany(() => GroupMember, (group_member) => group_member.group)
-  group_member: GroupMember;
+  group_member: Relation<GroupMember[]>;
 
   @OneToMany(
     () => GroupJoinRequest,
     (group_join_request) => group_join_request.group,
   )
-  group_join_request: GroupJoinRequest;
+  group_join_request: Relation<GroupJoinRequest[]>;
 
   @OneToMany(() => PostCollection, (collection) => collection.group)
   collection: Relation<PostCollection>;

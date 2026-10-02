@@ -1,15 +1,4 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-  OneToMany,
-  PrimaryColumn,
-  PrimaryGeneratedColumn, Relation,
-  UpdateDateColumn,
-} from 'typeorm';
+import {Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, OneToMany, PrimaryColumn, PrimaryGeneratedColumn, UpdateDateColumn, type Relation} from 'typeorm';
 import { User_Role, User_Status } from "../enums/user.enum.js"
 import { BaseEntity } from "../../_common/entities/base.entity.js"
 import { QuestionPreparation } from "../../question_preparation/entities/question_preparation.entity.js";
@@ -107,7 +96,7 @@ export class User extends BaseEntity {
   // controller -> user
 
   @OneToMany(() => User, (user) => user.status_by_admin)
-  status_changed_users: User[];
+  status_changed_users: Relation<User[]>;
 
   // self
 
@@ -115,32 +104,32 @@ export class User extends BaseEntity {
     () => QuestionPreparation,
     (question_preparation) => question_preparation.user,
   )
-  question_preparation: QuestionPreparation[];
+  question_preparation: Relation<QuestionPreparation[]>;
 
   @OneToMany(
     () => QuestionPreparationCollection,
     (question_preparation_collection) => question_preparation_collection.user,
   )
-  question_preparation_collection: QuestionPreparationCollection[];
+  question_preparation_collection: Relation<QuestionPreparationCollection[]>;
 
   // group
   @OneToMany(() => Group, (group) => group.founder)
-  group: Group;
+  group: Relation<Group[]>;
 
   @OneToMany(() => GroupMember, (group_member) => group_member.user)
-  group_member: GroupMember;
+  group_member: Relation<GroupMember[]>;
 
   @OneToMany(
     () => GroupJoinRequest,
     (group_join_request) => group_join_request.sender,
   )
-  group_join_request_sender: GroupJoinRequest;
+  group_join_request_sender: Relation<GroupJoinRequest[]>;
 
   @OneToMany(
     () => GroupJoinRequest,
     (group_join_request) => group_join_request.reviewer,
   )
-  group_join_request_reviewer: GroupJoinRequest;
+  group_join_request_reviewer: Relation<GroupJoinRequest[]>;
 
   // friend
 
@@ -148,56 +137,56 @@ export class User extends BaseEntity {
     () => FriendRequest,
     (user_sender) => user_sender.sender,
   )
-  friend_request_sender: FriendRequest;
+  friend_request_sender: Relation<FriendRequest[]>;
 
   @OneToMany(
     () => FriendRequest,
     (user_receiver) => user_receiver.receiver,
   )
-  friend_request_receiver: FriendRequest;
+  friend_request_receiver: Relation<FriendRequest[]>;
 
   @OneToMany(() => Friendship, (friend_user) => friend_user.user)
-  friend_user: Friendship;
+  friend_user: Relation<Friendship[]>;
 
   @OneToMany(
     () => Friendship,
     (friend_user_friend) => friend_user_friend.user_friend,
   )
-  friend_user_friend: Friendship;
+  friend_user_friend: Relation<Friendship[]>;
 
   // Post
 
   @OneToMany(() => Post, (post) => post.user)
-  post: Post;
+  post: Relation<Post[]>;
 
   @OneToMany(() => PostAnswer, (post_answer) => post_answer.user)
-  post_answer: PostAnswer;
+  post_answer: Relation<PostAnswer[]>;
 
   @OneToMany(
     () => PostAnswer,
     (post_answer_graded_by) => post_answer_graded_by.graded_by,
   )
-  post_answer_graded: PostAnswer;
+  post_answer_graded: Relation<PostAnswer[]>;
 
   // Notif
 
   @OneToMany(() => UserNotif, (notif) => notif.user)
-  notif: UserNotif;
+  notif: Relation<UserNotif[]>;
 
   // Report
 
   @OneToMany(() => Report, (reporter) => reporter.user_report)
-  reporter: Report;
+  reporter: Relation<Report[]>;
 
   @OneToMany(() => Report, (report_reviewer) => report_reviewer.review_by)
-  report_reviewer: Report;
+  report_reviewer: Relation<Report[]>;
 
   // Auth
 
   @OneToMany(() => RefreshToken, (refresh_token) => refresh_token.user)
-  refresh_token: RefreshToken;
+  refresh_token: Relation<RefreshToken[]>;
 
   @OneToMany(() => ForgetPasswordOtp, (otp) => otp.user)
-  forget_password_otp: ForgetPasswordOtp;
+  forget_password_otp: Relation<ForgetPasswordOtp[]>;
 }
 

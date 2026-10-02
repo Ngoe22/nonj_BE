@@ -1,12 +1,4 @@
-import {
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-  type Relation,
-} from 'typeorm';
+import {Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, type Relation} from 'typeorm';
 import { User } from '../../user/entities/user.entity.js';
 import { User_Notif_Type } from '../enum/user_notif.enum.js';
 import { BaseEntity } from '../../_common/entities/base.entity.js';

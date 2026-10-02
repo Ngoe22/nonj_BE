@@ -1,13 +1,5 @@
 import { BaseEntity } from '../../_common/entities/base.entity.js';
-import {
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-  type Relation,
-} from 'typeorm';
+import {Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, type Relation} from 'typeorm';
 import { User } from '../../user/entities/user.entity.js';
 import { Post } from '../../post/entities/post.entity.js';
 import { Post_Answer_Status } from '../enum/post_answer.enum.js';

@@ -53,7 +53,19 @@ import { AppConfigModule } from './app_config/app_config.module.js';
       autoLoadEntities: true,
       // Supabase là DB thật: mặc định vẫn true để test nhanh, nhưng chỉ cần
       // đặt DB_SYNCHRONIZE=false là tắt được NGAY, không phải sửa code.
+      //
+      // ⚠️ Ở PRODUCTION phải là `false` (main.ts fail-fast nếu không): chỉ cần
+      // quên là TypeORM tự ALTER/DROP cột -> mất dữ liệu thật. Schema production
+      // do MIGRATION quản lý.
       synchronize: process.env.DB_SYNCHRONIZE !== 'false',
+
+      // Schema production tạo/sửa bằng migration trong `src/migrations`
+      // (`npm run migration:run`) — các file này được biên dịch sang `dist/migrations`.
+      migrations: ['dist/migrations/*.js'],
+      // Bật để BE TỰ chạy migration còn thiếu lúc khởi động. Production nên bật
+      // (`DB_MIGRATIONS_RUN=true`) để deploy là schema tự đúng, không phải chạy
+      // tay. Dev để trống vì đã có `synchronize`.
+      migrationsRun: process.env.DB_MIGRATIONS_RUN === 'true',
     }),
     UserModule,
     PostModule,

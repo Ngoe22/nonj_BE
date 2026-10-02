@@ -1,13 +1,4 @@
-import {
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-  OneToMany,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
-import type { Relation } from 'typeorm';
+import {Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, type Relation} from 'typeorm';
 
 import { BaseEntity } from '../../_common/entities/base.entity.js';
 import { User } from '../../user/entities/user.entity.js';

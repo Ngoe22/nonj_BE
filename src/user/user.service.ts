@@ -21,11 +21,13 @@ import {
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import {User} from "./entities/user.entity.js";
+import { User_Role } from './enums/user.enum.js';
 import { Transactional } from 'typeorm-transactional';
 import { projectBcrypt } from '../_common/helper/customBcrypt.js';
 import { FilterDbField } from '../_common/helper/filterQueryForRole.js';
 import { FriendRequest } from '../friend_request/entities/friend_request.entity.js';
 import { FriendRequestService } from '../friend_request/friend_request.service.js';
+import { StorageRefService } from '../storage/storage_ref.service.js';
 import { mailHelper } from '../_common/helper/mail.helper.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { SetUsernameDto } from './dto/set-username.dto.js';
@@ -44,6 +46,7 @@ export class UserService {
     private readonly userRepository: Repository<User>,
     //
     private readonly friendRequestService: FriendRequestService,
+    private readonly storageRef: StorageRefService,
   ) {
     // ============================== Filter DB & QueryField
 
@@ -219,7 +222,7 @@ export class UserService {
       relations ,
       select,
     });
-    if (!user) return new NotFoundException({ error: 'user_not_found' });
+    if (!user) throw new NotFoundException({ errorCode: 'user_not_found' });
     return user;
   }
 
@@ -246,9 +249,20 @@ export class UserService {
 
     if (body.password)
       body.password = await projectBcrypt.encode(body.password);
+
+    const old = await this.userRepository.findOne({
+      where: { id: user_id },
+      select: { avatar_url: true },
+    });
+
     const result = await this.userRepository.update({ id: user_id }, body);
     if (result.affected === 0)
       throw new NotFoundException({ errorCode: 'update_setting_failed' });
+
+    // Đổi avatar -> xoá file cũ trên R2 + trả ref-count (theo yêu cầu)
+    if (body.avatar_url !== undefined)
+      await this.storageRef.syncAvatar(old?.avatar_url ?? null, body.avatar_url);
+
     return this.getMyInfo(user_id);
   }
 
@@ -420,6 +434,8 @@ export class UserService {
     const user = await this.userRepository.findOne({ where: { id: user_id } });
     if (!user) throw new NotFoundException({ errorCode: 'user_not_found' });
 
+    const oldAvatar = user.avatar_url ?? null;
+
     // user_name / email là cột UNIQUE -> phải check trước, nếu không `save`
     // sẽ ném lỗi vi phạm unique và thành 500 khó hiểu.
     if (body.user_name && body.user_name !== user.user_name) {
@@ -437,7 +453,15 @@ export class UserService {
     }
 
     const { status, ...rest } = body;
-    Object.assign(user, rest);
+
+    // Chỉ assign field KHÁC null/undefined: `@IsOptional()` cho null lọt qua
+    // validate, nếu client gửi `user_name: null` thì `Object.assign` sẽ NULL
+    // hoá cột unique -> hỏng dữ liệu.
+    const patch: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(rest)) {
+      if (value !== null && value !== undefined) patch[key] = value;
+    }
+    Object.assign(user, patch);
 
     if (status) {
       user.status = status;
@@ -451,6 +475,10 @@ export class UserService {
     }
 
     await this.userRepository.save(user);
+
+    // Đổi avatar -> xoá file cũ trên R2 + trả ref-count
+    if (user.avatar_url !== oldAvatar)
+      await this.storageRef.syncAvatar(oldAvatar, user.avatar_url ?? null);
 
     return this.adminGetOne(user_id);
   }
@@ -491,6 +519,42 @@ export class UserService {
     );
 
     return true;
+  }
+
+  /**
+   * Nâng quyền một user lên SYSTEM_ADMIN.
+   *
+   * TÁCH RIÊNG khỏi `adminUpdateInfo` — đổi vai trò là thao tác nhạy cảm nên cần
+   * một endpoint + nút riêng để không vô tình đổi khi đang sửa thông tin.
+   */
+  async adminPromote(user_id: string) {
+    const result = await this.userRepository.update(
+      { id: user_id },
+      { role: User_Role.SYSTEM_ADMIN },
+    );
+    if (result.affected === 0)
+      throw new NotFoundException({ errorCode: 'user_not_found' });
+
+    return this.adminGetOne(user_id);
+  }
+
+  /**
+   * Hạ quyền SYSTEM_ADMIN về USER thường.
+   *
+   * Cấm hạ quyền CHÍNH MÌNH — tránh admin cuối cùng tự khoá trái tài khoản.
+   */
+  async adminDemote(user_id: string, admin_id: string) {
+    if (user_id === admin_id)
+      throw new BadRequestException({ errorCode: 'cannot_demote_self' });
+
+    const result = await this.userRepository.update(
+      { id: user_id },
+      { role: User_Role.USER },
+    );
+    if (result.affected === 0)
+      throw new NotFoundException({ errorCode: 'user_not_found' });
+
+    return this.adminGetOne(user_id);
   }
 
   /**

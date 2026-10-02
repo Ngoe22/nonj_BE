@@ -15,6 +15,7 @@ import { User_Role } from '../../../user/enums/user.enum.js';
 import { GroupJoinRequestService } from '../../service/group_join_request/group_join_request.service.js';
 import { ParseLimitPipe } from '../../../_common/pipe/ParseLimitPipe.js';
 import { UpdateGroupJoinRequest } from '../../dto/join_group_request.dto.js';
+import { AdminGroupJoinRequestQueryDto } from '../../dto/admin-group-join-request-query.dto.js';
 import { GetRequesterInfo } from '../../../_common/decorators/param/request_payload.decorator.js';
 import type { RequesterInfo } from '../../../_common/types/request.js';
 
@@ -22,6 +23,12 @@ import type { RequesterInfo } from '../../../_common/types/request.js';
 @UseGuards(UserGuard([User_Role.SYSTEM_ADMIN]))
 export class AdminGroupJoinRequestController {
   constructor(private readonly joinRequestService: GroupJoinRequestService) {}
+
+  /** Tìm kiếm yêu cầu tham gia nhóm trên TOÀN HỆ THỐNG */
+  @Get()
+  getAll(@Query() query: AdminGroupJoinRequestQueryDto) {
+    return this.joinRequestService.adminFindMany(query);
+  }
 
   @Get('group/:group_id')
   getMany(

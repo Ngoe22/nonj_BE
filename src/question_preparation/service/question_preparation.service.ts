@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 
@@ -17,6 +17,8 @@ import { QuestionPreparationCollection } from '../entities/question_preparation_
 import { User } from '../../user/entities/user.entity.js';
 import { CreateQuestionPreparationDto } from '../dto/question_preparation.dto.js';
 import { QuestionPreparationCollectionService } from './question_preparation_collection.service.js';
+import { StorageRefService } from '../../storage/storage_ref.service.js';
+import { AppConfigService } from '../../app_config/app_config.service.js';
 
 type CreateQuestionPreparationInput = CreateQuestionPreparationDto & {
   user: string;
@@ -40,6 +42,8 @@ export class QuestionPreparationService {
     @InjectRepository(QuestionPreparation)
     private readonly preparationRepo: Repository<QuestionPreparation>,
     private readonly collectionService: QuestionPreparationCollectionService,
+    private readonly storageRef: StorageRefService,
+    private readonly appConfig: AppConfigService,
   ) {
     this.filterByLabels = FilterDbField.create({
       labels: ['SA', 'me'],
@@ -166,16 +170,47 @@ export class QuestionPreparationService {
         errorCode: 'collection_not_belong_to_user',
       });
 
+    await this.assertMediaLimit(input.content);
+
     const saveInfo = FilterDbField.turnObjInfoToRelationObjToSave(input, [
       'user',
       'collection',
     ]);
     const saved = await this.preparationRepo.save(saveInfo as any);
 
+    await this.storageRef.syncContentReferences(null, input.content);
+
     return this.filterByLabels.filterDataOfQueryResult({
       object: saved,
       label: 'me',
     });
+  }
+
+  // ==================== Media limit + ref-count helpers ====================
+
+  private async assertMediaLimit(content: unknown): Promise<void> {
+    const limits = await this.appConfig.getMediaLimits();
+    const count = this.storageRef.countMedia(content);
+    if (count.images > limits.images)
+      throw new BadRequestException({
+        errorCode: 'too_many_images',
+        max: limits.images,
+        current: count.images,
+      });
+    if (count.audio > limits.audio)
+      throw new BadRequestException({
+        errorCode: 'too_many_audio',
+        max: limits.audio,
+        current: count.audio,
+      });
+  }
+
+  private async loadPrepContent(preparation_id: string): Promise<unknown> {
+    const prep = await this.preparationRepo.findOne({
+      where: { id: preparation_id },
+      select: { content: true },
+    });
+    return prep?.content ?? null;
   }
 
   // ==================== Update ====================
@@ -201,6 +236,9 @@ export class QuestionPreparationService {
       body.collection = { id: body.collection };
     }
 
+    const oldContent = await this.loadPrepContent(preparation_id);
+    if (body.content !== undefined) await this.assertMediaLimit(body.content);
+
     const result = await this.preparationRepo.update(
       {
         user: { id: user_id },
@@ -214,6 +252,9 @@ export class QuestionPreparationService {
         errorCode: 'preparation_or_owner_not_found',
       });
     }
+
+    if (body.content !== undefined)
+      await this.storageRef.syncContentReferences(oldContent, body.content);
 
     return this.findOne({
       condition: {
@@ -230,6 +271,8 @@ export class QuestionPreparationService {
   async softDelete(input: { user_id: string; preparation_id: string }) {
     const { user_id, preparation_id } = input;
 
+    const oldContent = await this.loadPrepContent(preparation_id);
+
     const result = await this.preparationRepo.update(
       { user: { id: user_id }, id: preparation_id },
       { deleted_at: new Date(), deleted_by: user_id },
@@ -239,6 +282,8 @@ export class QuestionPreparationService {
         errorCode: 'preparation_or_owner_not_found',
       });
     }
+
+    await this.storageRef.syncContentReferences(oldContent, null);
     return true;
   }
 
@@ -286,6 +331,11 @@ export class QuestionPreparationService {
         errorCode: 'preparation_not_found_or_not_deleted',
       });
 
+    await this.storageRef.syncContentReferences(
+      null,
+      await this.loadPrepContent(preparation_id),
+    );
+
     return this.adminGetOne({ preparation_id });
   }
 
@@ -321,6 +371,9 @@ export class QuestionPreparationService {
   }) {
     const { user_id, preparation_id, body } = input;
 
+    const oldContent = await this.loadPrepContent(preparation_id);
+    if (body.content !== undefined) await this.assertMediaLimit(body.content);
+
     const result = await this.preparationRepo.update(
       { user: { id: user_id }, id: preparation_id },
       body,
@@ -330,11 +383,17 @@ export class QuestionPreparationService {
         errorCode: 'preparation_or_owner_not_found',
       });
     }
+
+    if (body.content !== undefined)
+      await this.storageRef.syncContentReferences(oldContent, body.content);
     return body;
   }
 
   async adminSoftDelete(input: { preparation_id: string; admin_id: string }) {
     const { preparation_id, admin_id } = input;
+
+    const oldContent = await this.loadPrepContent(preparation_id);
+
     const result = await this.preparationRepo.update(
       { id: preparation_id },
       { deleted_at: new Date(), deleted_by: admin_id },
@@ -344,6 +403,8 @@ export class QuestionPreparationService {
         errorCode: 'preparation_or_owner_not_found',
       });
     }
+
+    await this.storageRef.syncContentReferences(oldContent, null);
     return true;
   }
 }

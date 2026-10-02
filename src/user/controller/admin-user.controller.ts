@@ -46,6 +46,21 @@ export class AdminUserController {
     return this.userService.adminResetPassword(user_id);
   }
 
+  /** Nâng quyền user lên SYSTEM_ADMIN */
+  @Patch(':user_id/promote')
+  promote(@Param('user_id') user_id: string) {
+    return this.userService.adminPromote(user_id);
+  }
+
+  /** Hạ quyền SYSTEM_ADMIN về USER thường */
+  @Patch(':user_id/demote')
+  demote(
+    @Param('user_id') user_id: string,
+    @GetRequesterInfo() requester: RequesterInfo,
+  ) {
+    return this.userService.adminDemote(user_id, requester.id);
+  }
+
   @Patch(':user_id')
   update(
     @Body() body: AdminUpdateUserDto,

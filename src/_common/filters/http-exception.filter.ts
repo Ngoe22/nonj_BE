@@ -13,16 +13,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
       const request = ctx.getRequest<Request>();
       let returnObj = { statusCode :400 };
 
-      console.log(exception);
-
       if (exception instanceof HttpException) {
-        console.log(`http `);
         returnObj = handleHttpException(exception);
       } else if (exception instanceof QueryFailedError) {
-        console.log(`query failed `);
         returnObj = handleQueryException(exception);
       } else {
-        console.log(`unknown `);
         returnObj = handleUnknowException();
       }
 

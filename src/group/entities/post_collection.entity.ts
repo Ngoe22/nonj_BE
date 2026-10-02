@@ -17,7 +17,8 @@ export class PostCollection extends BaseEntity {
   desc: string;
 
   @Index()
-  @ManyToOne(() => Group, (group) => group.collection)
+  // CASCADE: xoá cứng nhóm thì bộ sưu tập đi theo (và bài tập trong đó cũng vậy)
+  @ManyToOne(() => Group, (group) => group.collection, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'group_id', referencedColumnName: 'id' })
   group: Relation<Group>;
 

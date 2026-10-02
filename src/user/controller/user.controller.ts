@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { UserService } from '../user.service.js';
 import { CreateUserDto } from '../dto/create-user.dto.js';
 import { UpdateUserDto } from '../dto/update-user.dto.js';
@@ -16,10 +24,15 @@ export class UserController {
 
   @Public()
   @Post('check_existing/:user_name')
-  check_existing (
-    @Param('user_name') user_name: string,
+  check_existing(@Param('user_name') user_name: string) {
+    // Chặn ở BE nữa: client nào gọi thẳng cũng không nhận được "chưa ai dùng"
+    // cho một username sai định dạng (dấu cách, ký tự đặc biệt, quá ngắn...).
+    // Regex PHẢI khớp `CreateUserDto`.
+    if (!/^[a-zA-Z0-9_]{3,50}$/.test(user_name))
+      throw new BadRequestException({
+        errorCode: 'invalid_user_name_format',
+      });
 
-  ) {
     return this.userService.checkUserNameExist(user_name);
   };
 

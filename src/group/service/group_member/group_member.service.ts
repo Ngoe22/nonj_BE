@@ -248,7 +248,10 @@ export class GroupMemberService {
   }
 
   private async join(input: { group_id: string; user_id: string }) {
-    const result =  this.groupMemberRepo.save({
+    // `await` là BẮT BUỘC: thiếu await thì lỗi save (vd unique khi join 2 lần)
+    // thành unhandled rejection (Node có thể crash), và transaction duyệt
+    // thành viên commit trong khi bản ghi chưa ghi xong.
+    await this.groupMemberRepo.save({
       group: { id: input.group_id },
       user: { id: input.user_id },
       role: Group_Member_Role.MEMBER,

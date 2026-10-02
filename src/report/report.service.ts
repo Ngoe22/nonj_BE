@@ -1,4 +1,5 @@
-import {Injectable, NotFoundException, Post} from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { Post } from "../post/entities/post.entity.js";
 import {CreateReportDto, ReviewReportDto} from "./dto/report.dto.js";
 import {Report_Status, Target_Type} from "./enum/report.enum.js";
 import {DataSource, Repository} from "typeorm";

@@ -144,7 +144,7 @@ export class FriendshipService {
   async delete(input: { user_id: string; friend_id: string }) {
     const { user_id, friend_id } = input;
 
-    const isFriend = this.isFriend({
+    const isFriend = await this.isFriend({
       user_id,
       friend_id,
     });

@@ -1,4 +1,5 @@
 import { Public } from '../../../_common/decorators/method/public.decorator.js';
+import { BadRequestException } from '@nestjs/common';
 import {
   Body,
   Controller,
@@ -25,6 +26,10 @@ export class GroupController {
   @Public()
   @Post('check_existing/:slug')
   checkSlugExist(@Param('slug') slug: string) {
+    // Regex PHẢI khớp `@Matches` ở Group entity (KHÔNG cho dấu `_`)
+    if (!/^[a-zA-Z0-9]{1,50}$/.test(slug))
+      throw new BadRequestException({ errorCode: 'invalid_slug_format' });
+
     return this.groupService.checkSlugExist(slug);
   }
 

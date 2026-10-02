@@ -34,6 +34,8 @@ import { PostAnswer } from '../post_answer/entities/post_answer.entity.js';
 import { Retake, View_Each_Other_Answer } from './enum/post.enum.js';
 import { UserNotifService } from '../user_notif/user_notif.service.js';
 import { User_Notif_Type } from '../user_notif/enum/user_notif.enum.js';
+import { StorageRefService } from '../storage/storage_ref.service.js';
+import { AppConfigService } from '../app_config/app_config.service.js';
 
 
 @Injectable()
@@ -59,6 +61,8 @@ export class PostService {
     private readonly groupMemberService: GroupMemberService,
     private readonly collectionService: PostCollectionService,
     private readonly notifService: UserNotifService,
+    private readonly storageRef: StorageRefService,
+    private readonly appConfig: AppConfigService,
   ) {
     this.filterByLabels = FilterDbField.create({
       labels: ['SA', 'member', 'admin', 'founder'],
@@ -214,6 +218,8 @@ export class PostService {
       requester_id,
     });
 
+    await this.assertMediaLimit(body.content);
+
     const post = await this.postRepo.save({
       title: body.title,
       description: body.description ?? null,
@@ -225,6 +231,8 @@ export class PostService {
         body.view_each_other_answer ?? View_Each_Other_Answer.NEVER,
       ...this.buildRelationFields(requester_id, group_id, collection_id),
     });
+
+    await this.storageRef.syncContentReferences(null, body.content);
 
     await this.notifyNewPost({
       post,
@@ -267,6 +275,8 @@ export class PostService {
     if (!preparation)
       throw new NotFoundException({ errorCode: 'preparation_not_found' });
 
+    await this.assertMediaLimit(preparation.content);
+
     const post = await this.postRepo.save({
       title: body.title ?? preparation.title,
       description: body.description ?? null,
@@ -278,6 +288,8 @@ export class PostService {
         body.view_each_other_answer ?? View_Each_Other_Answer.NEVER,
       ...this.buildRelationFields(requester_id, group_id, collection_id),
     });
+
+    await this.storageRef.syncContentReferences(null, preparation.content);
 
     await this.notifyNewPost({
       post,
@@ -322,6 +334,35 @@ export class PostService {
     } catch {
       // thông báo lỗi KHÔNG được làm hỏng việc giao bài
     }
+  }
+
+  // ==================== Media limit + ref-count helpers ====================
+
+  /** Ném 400 nếu vượt giới hạn ảnh/mp3 (cấu hình admin) */
+  private async assertMediaLimit(content: unknown): Promise<void> {
+    const limits = await this.appConfig.getMediaLimits();
+    const count = this.storageRef.countMedia(content);
+    if (count.images > limits.images)
+      throw new BadRequestException({
+        errorCode: 'too_many_images',
+        max: limits.images,
+        current: count.images,
+      });
+    if (count.audio > limits.audio)
+      throw new BadRequestException({
+        errorCode: 'too_many_audio',
+        max: limits.audio,
+        current: count.audio,
+      });
+  }
+
+  /** Lấy content cũ của post (để tính delta ref-count) */
+  private async loadPostContent(post_id: string): Promise<unknown> {
+    const post = await this.postRepo.findOne({
+      where: { id: post_id },
+      select: { content: true },
+    });
+    return post?.content ?? null;
   }
 
   // ==================== Read - One ====================
@@ -508,6 +549,8 @@ export class PostService {
       actor_allow_roles: [Group_Member_Role.ADMIN, Group_Member_Role.FOUNDER],
     });
 
+    const oldContent = await this.loadPostContent(post_id);
+
     const result = await this.postRepo.update(
       {
         id: post_id,
@@ -519,6 +562,8 @@ export class PostService {
 
     if (result.affected === 0)
       throw new NotFoundException({ errorCode: 'post_not_found' });
+
+    await this.storageRef.syncContentReferences(oldContent, null);
     return true;
   }
 
@@ -582,10 +627,18 @@ export class PostService {
         errorCode: 'post_not_found_or_not_deleted',
       });
 
+    // khôi phục -> ảnh/mp3 được tham chiếu trở lại
+    await this.storageRef.syncContentReferences(
+      null,
+      await this.loadPostContent(post_id),
+    );
+
     return this.adminFindOne({ post_id });
   }
 
   async adminUpdate(input: { post_id: string; body: UpdatePostDto }) {
+    // UpdatePostDto KHÔNG cho sửa content (bài làm cũ tham chiếu thứ tự section),
+    // nên không cần đồng bộ ref-count ở đây.
     const result = await this.postRepo.update({ id: input.post_id }, input.body);
     if (result.affected === 0)
       throw new NotFoundException({ errorCode: 'post_not_found' });
@@ -593,12 +646,16 @@ export class PostService {
   }
 
   async adminSoftDelete(input: { post_id: string; admin_id: string }) {
+    const oldContent = await this.loadPostContent(input.post_id);
+
     const result = await this.postRepo.update(
       { id: input.post_id },
       { deleted_at: new Date(), deleted_by: input.admin_id },
     );
     if (result.affected === 0)
       throw new NotFoundException({ errorCode: 'post_not_found' });
+
+    await this.storageRef.syncContentReferences(oldContent, null);
     return true;
   }
 }

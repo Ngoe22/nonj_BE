@@ -181,22 +181,46 @@ export class GroupService {
       'g.created_at AS created_at', // FE Group.created_at
     ];
 
+    // EXISTS thay LEFT JOIN: tránh nhân dòng khi có nhiều bản ghi thành viên,
+    // và BỔ SUNG `has_pending_request` để FE biết người dùng đã gửi yêu cầu
+    // tham gia rồi (nếu không, banner "cần tham gia nhóm" cứ hiện lại và người
+    // dùng bấm Join liên tục).
     const result = await this.groupRepo
       .createQueryBuilder('g')
-      .leftJoin(
-        'g.group_member',
-        'gm',
-        'gm.user_id = :requester_id AND gm.deleted_at IS NULL',
-        { requester_id },
-      )
       .select(selectArray)
       .addSelect(
-        'CASE WHEN gm.id IS NOT NULL THEN true ELSE false END',
+        `EXISTS (
+           SELECT 1 FROM group_member gm
+           WHERE gm.group_id = g.id
+             AND gm.user_id = :requester_id
+             AND gm.deleted_at IS NULL
+         )`,
         'is_joined',
       )
-      .addSelect('gm.role', 'role')
+      .addSelect(
+        `(SELECT gm2.role FROM group_member gm2
+           WHERE gm2.group_id = g.id
+             AND gm2.user_id = :requester_id
+             AND gm2.deleted_at IS NULL
+           ORDER BY gm2.created_at DESC
+           LIMIT 1)`,
+        'role',
+      )
+      .addSelect(
+        `EXISTS (
+           SELECT 1 FROM group_join_request jr
+           WHERE jr.group_id = g.id
+             AND jr.sender_id = :requester_id
+             AND jr.status = :pending
+         )`,
+        'has_pending_request',
+      )
       .where('g.id = :group_id', { group_id })
       .andWhere('g.deleted_at IS NULL')
+      .setParameters({
+        requester_id,
+        pending: Group_Join_Request_Status.PENDING,
+      })
       .getRawOne();
 
     if (!result) throw new NotFoundException({ errorCode: 'group_not_found' });
@@ -207,7 +231,15 @@ export class GroupService {
       object: result,
       label: role,
     });
-    return { ...final_group, permission };
+    return {
+      ...final_group,
+      id: result.id,
+      is_joined: result.is_joined === true || result.is_joined === 'true',
+      has_pending_request:
+        result.has_pending_request === true ||
+        result.has_pending_request === 'true',
+      permission,
+    };
   }
 
   // ==================== Search ====================
@@ -284,24 +316,47 @@ export class GroupService {
       'g.view_mode AS view_mode',
     ];
 
+    // Dùng EXISTS + subquery thay cho LEFT JOIN.
+    //
+    // LEFT JOIN vào `group_member` / `group_join_request` sẽ nhân dòng: một nhóm
+    // có N yêu cầu đang chờ thì hiện ra N lần trong kết quả tìm kiếm. EXISTS chỉ
+    // trả true/false nên mỗi nhóm luôn đúng MỘT dòng.
     const results = await this.groupRepo
         .createQueryBuilder('g')
-        .leftJoin(
-            'g.group_member', 'gm',
-            'gm.user_id = :requester_id AND gm.deleted_at IS NULL',
-            { requester_id },
-        )
-        .leftJoin(
-            'group_join_request', 'jr',
-            'jr.group_id = g.id AND jr.sender_id = :requester_id AND jr.status = :pending',
-            { requester_id, pending: Group_Join_Request_Status.PENDING },
-        )
         .select(selectArray)
-        .addSelect('CASE WHEN gm.id IS NOT NULL THEN true ELSE false END', 'is_joined')
-        .addSelect('CASE WHEN jr.id IS NOT NULL THEN true ELSE false END', 'has_pending_request')
-        .addSelect('gm.role', 'role')
+        .addSelect(
+            `EXISTS (
+               SELECT 1 FROM group_member gm
+               WHERE gm.group_id = g.id
+                 AND gm.user_id = :requester_id
+                 AND gm.deleted_at IS NULL
+             )`,
+            'is_joined',
+        )
+        .addSelect(
+            `EXISTS (
+               SELECT 1 FROM group_join_request jr
+               WHERE jr.group_id = g.id
+                 AND jr.sender_id = :requester_id
+                 AND jr.status = :pending
+             )`,
+            'has_pending_request',
+        )
+        .addSelect(
+            `(SELECT gm2.role FROM group_member gm2
+               WHERE gm2.group_id = g.id
+                 AND gm2.user_id = :requester_id
+                 AND gm2.deleted_at IS NULL
+               ORDER BY gm2.created_at DESC
+               LIMIT 1)`,
+            'role',
+        )
         .where('g.name ILIKE :name', { name: `%${name}%` })
         .andWhere('g.deleted_at IS NULL')
+        .setParameters({
+          requester_id,
+          pending: Group_Join_Request_Status.PENDING,
+        })
         .orderBy('g.created_at', 'DESC')
         .offset((page - 1) * limit)
         .limit(limit)

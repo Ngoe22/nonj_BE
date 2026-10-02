@@ -271,11 +271,13 @@ export class PostAnswerService {
       if (!result)
         throw new NotFoundException({ errorCode: 'answer_not_found' });
 
-      const canView =
-        result.view_each_other_answer ===
-          View_Each_Other_Answer.AFTER_DEADLINE &&
-        result.deadline_at &&
-        new Date() > new Date(result.deadline_at);
+      // Dùng CHUNG helper với findOthersMany — trước đây chỗ này chỉ cho
+      // AFTER_DEADLINE trong khi danh sách cho cả AFTER_ANSWER, nên danh sách
+      // hiện bài nhưng bấm vào từng bài bị 403.
+      const canView = this.isOthersAnswerVisible(
+        result.view_each_other_answer,
+        result.deadline_at,
+      );
 
       if (!canView) {
         throw new ForbiddenException({

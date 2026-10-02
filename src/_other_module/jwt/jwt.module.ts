@@ -5,7 +5,10 @@ import { JwtModule } from '@nestjs/jwt';
 @Module({
   imports: [
     JwtModule.register({
-      secret: process.env.JWT_SECRET,
+      // Module này HIỆN KHÔNG được import ở đâu (chứng thực thật dùng
+      // TokenService với JWT_ACCESS_SECRET/JWT_REFRESH_SECRET). Nếu sau này dùng
+      // lại thì PHẢI khớp secret access, không phải biến ma JWT_SECRET.
+      secret: process.env.JWT_ACCESS_SECRET,
       signOptions: { expiresIn: '15m' },
     }),
   ],

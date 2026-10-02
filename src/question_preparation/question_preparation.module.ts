@@ -9,6 +9,8 @@ import { QuestionPreparationController } from './controller/preparation/question
 import { AdminQuestionPreparationController } from './controller/preparation/admin-question_preparation.controller.js';
 import { QuestionPreparationCollectionController } from './controller/collection/question_preparation_collection.controller.js';
 import { AdminQuestionPreparationCollectionController } from './controller/collection/admin-question_preparation_collection.controller.js';
+import { StorageModule } from '../storage/storage.module.js';
+import { AppConfigModule } from '../app_config/app_config.module.js';
 
 /**
  * Đề tự soạn của cá nhân (tư nhân).
@@ -29,6 +31,8 @@ import { AdminQuestionPreparationCollectionController } from './controller/colle
       QuestionPreparation,
       QuestionPreparationCollection,
     ]),
+    StorageModule,
+    AppConfigModule,
   ],
   exports: [QuestionPreparationService, QuestionPreparationCollectionService],
 })

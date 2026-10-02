@@ -84,6 +84,24 @@ async function bootstrap() {
   // ném lỗi ngay nếu production mà thiếu FE_URL
   assertCorsConfigured();
 
+  // Fail-fast các cấu hình NGUY HIỂM khi thiếu ở production:
+  //
+  // 1. synchronize = true sẽ để TypeORM tự ALTER/DROP bảng — mất dữ liệu thật.
+  // 2. Thiếu JWT secret thì mọi token đều sign/verify bằng secret rỗng (có thể
+  //    chạy được nhưng bảo mật bằng 0).
+  if (process.env.NODE_ENV === 'production') {
+    if (process.env.DB_SYNCHRONIZE !== 'false') {
+      throw new Error(
+        'DB_SYNCHRONIZE phải = "false" ở production — tránh TypeORM tự sửa schema.',
+      );
+    }
+    if (!process.env.JWT_ACCESS_SECRET || !process.env.JWT_REFRESH_SECRET) {
+      throw new Error(
+        'Thiếu JWT_ACCESS_SECRET / JWT_REFRESH_SECRET ở production.',
+      );
+    }
+  }
+
   app.enableCors({
     // dạng callback: đọc FE_URL ở từng request và hỗ trợ danh sách nhiều origin
     origin: (

@@ -1,4 +1,4 @@
-import {
+import {ServiceUnavailableException,
   BadRequestException,
   Injectable,
   NotFoundException,
@@ -162,11 +162,17 @@ export class AuthService {
       created_by: user.id,
     });
 
-    await mailHelper.sendForgetPasswordOtpEmail({
-      to: user.email,
-      otp,
-      expired_minutes: FORGET_PASSWORD_OTP_TTL_MINUTES,
-    });
+    try {
+      await mailHelper.sendForgetPasswordOtpEmail({
+        to: user.email,
+        otp,
+        expired_minutes: FORGET_PASSWORD_OTP_TTL_MINUTES,
+      });
+    } catch {
+      // Gửi lỗi -> 503 rõ ràng thay vì 500 "something went wrong".
+      // Cả method có @Transactional nên OTP vừa lưu cũng bị rollback.
+      throw new ServiceUnavailableException({ errorCode: 'email_send_failed' });
+    }
 
     return { success: true };
   }
@@ -205,10 +211,16 @@ export class AuthService {
 
     await this.tokenService.deleteRefreshTokenFromDB({ user_id: user.id });
 
-    await mailHelper.sendNewPasswordEmail({
-      to: user.email,
-      password: newPassword,
-    });
+    try {
+      await mailHelper.sendNewPasswordEmail({
+        to: user.email,
+        password: newPassword,
+      });
+    } catch {
+      // Mail lỗi -> ném ra để @Transactional ROLLBACK: mật khẩu cũ giữ nguyên,
+      // người dùng KHÔNG bị khoá trái tài khoản.
+      throw new ServiceUnavailableException({ errorCode: 'email_send_failed' });
+    }
 
     return { success: true };
   }
@@ -235,10 +247,15 @@ export class AuthService {
       password_hash: await projectBcrypt.encode(newPassword),
     });
 
-    await mailHelper.sendNewPasswordEmail({
-      to: user.email,
-      password: newPassword,
-    });
+    try {
+      await mailHelper.sendNewPasswordEmail({
+        to: user.email,
+        password: newPassword,
+      });
+    } catch {
+      // Như trên: rollback để không đổi mật khẩu khi chưa gửi được mail.
+      throw new ServiceUnavailableException({ errorCode: 'email_send_failed' });
+    }
 
     return { success: true };
   }

@@ -24,7 +24,10 @@ export class GroupJoinRequest extends BaseEntity {
   })
   sender: Relation<User>;
 
-  @ManyToOne(() => Group, (group) => group.group_join_request)
+  // CASCADE: xoá cứng nhóm thì yêu cầu tham gia đi theo
+  @ManyToOne(() => Group, (group) => group.group_join_request, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({
     name: 'group_id',
     referencedColumnName: 'id',

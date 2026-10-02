@@ -11,12 +11,16 @@ import { QuestionPreparation } from '../question_preparation/entities/question_p
 import { PostAnswer } from '../post_answer/entities/post_answer.entity.js';
 
 import { UserNotifModule } from '../user_notif/user_notif.module.js';
+import { StorageModule } from '../storage/storage.module.js';
+import { AppConfigModule } from '../app_config/app_config.module.js';
 @Module({
   imports: [
     UserNotifModule,
     TypeOrmModule.forFeature([Post, QuestionPreparation, PostAnswer]),
     UserModule,
     GroupModule,
+    StorageModule,
+    AppConfigModule,
   ],
   controllers: [PostController, AdminPostController],
   providers: [PostService],

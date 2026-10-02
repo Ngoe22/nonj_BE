@@ -51,11 +51,14 @@ export class Post extends BaseEntity {
   @JoinColumn({ name: 'user_id', referencedColumnName: 'id' })
   user: Relation<User>;
 
-  @ManyToOne(() => Group)
+  // onDelete CASCADE: xoá cứng nhóm/bộ sưu tập thì bài tập đi theo.
+  // Cần cho cron dọn dữ liệu xoá mềm quá 2 tuần — nếu để NO ACTION, xoá nhóm sẽ
+  // bị khoá ngoại chặn vì con của nó vẫn đang sống.
+  @ManyToOne(() => Group, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'group_id', referencedColumnName: 'id' })
   group: Relation<Group>;
 
-  @ManyToOne(() => PostCollection, (c) => c.post)
+  @ManyToOne(() => PostCollection, (c) => c.post, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'post_collection_id', referencedColumnName: 'id' })
   post_collection: Relation<PostCollection>;
 

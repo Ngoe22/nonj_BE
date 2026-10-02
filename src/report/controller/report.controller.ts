@@ -25,7 +25,7 @@ export class ReportController {
   @Delete(':report_id')
   delete(
       @GetRequesterInfo() requester: RequesterInfo ,
-      @Param('report_id', ParseIntPipe) report_id: string,
+      @Param('report_id') report_id: string, // report_id là UUID, KHÔNG phải số -> bỏ ParseIntPipe
   ) {
 
     return this.reportService.hardDeleteMyReport( { user_id : requester.id , report_id } )

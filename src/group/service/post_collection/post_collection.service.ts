@@ -121,8 +121,11 @@ export class PostCollectionService {
     } catch (error) {
       // error mean not found in group
       const groupSetting = await this.groupService.getSetting(group_id);
-      if ( groupSetting.view_mode ) label = 'unjoin';
-      else return new ForbiddenException({errorCode : 'not_allow_to_access'});
+      // `view_mode` là enum 'PRIVATE'|'PUBLIC' LUÔN truthy -> trước đây nhánh
+      // chặn nhóm PRIVATE KHÔNG BAO GIỜ chạy (non-member vẫn đọc được danh sách
+      // collection của nhóm PRIVATE). Phải so sánh giá trị enum.
+      if (groupSetting.view_mode === Group_View_Mode.PUBLIC) label = 'unjoin';
+      else throw new ForbiddenException({ errorCode: 'not_allow_to_access' });
     }
 
     const { select ,relations } = this.filterByLabels.buildQueryObject({ label });

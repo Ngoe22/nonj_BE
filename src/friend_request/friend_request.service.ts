@@ -167,8 +167,6 @@ export class FriendRequestService {
         receiver: { id: receiver_id },
         status: Friend_Request_Status.PENDING,
       },
-      // phải khai báo relations, nếu chỉ `select: { sender: true }` thì
-      // request.sender là undefined -> TypeError khi đọc request.sender.id
       select: { id: true, sender: { id: true } },
       relations: { sender: true },
     });
@@ -181,7 +179,9 @@ export class FriendRequestService {
     // update status accept or refuse
     await this.requestRepo.update(
       { id: request_id },
-      { ...body, updated_by: receiver_id },
+      { ...body, updated_by: receiver_id,
+        deleted_at: new Date()  // for cronjob
+      },
     );
 
     // if accept run add friend from friendship service

@@ -105,6 +105,14 @@ export class R2Service {
     };
   }
 
+  /**
+   * Base URL công khai, KHÔNG ném lỗi nếu R2 chưa cấu hình (trả '').
+   * Dùng để đổi `url` đầy đủ thành `key` khi đếm tham chiếu.
+   */
+  getPublicUrlBase(): string {
+    return (this.config.get<string>('r2.publicUrl') ?? '').replace(/\/$/, '');
+  }
+
   // ============================================================
   // PRESIGNED UPLOAD
   // ============================================================

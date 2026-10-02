@@ -20,6 +20,9 @@ import {
 import { AccessTokenGuard } from './_other_module/guards/access_token_guard.service.js';
 import { PostModule } from './post/post.module.js';
 import { StorageModule } from './storage/storage.module.js';
+import { ScheduleModule } from '@nestjs/schedule';
+import { DataPurgeModule } from './_common/purge/data_purge.module.js';
+import { AppConfigModule } from './app_config/app_config.module.js';
 
 
 
@@ -65,6 +68,10 @@ import { StorageModule } from './storage/storage.module.js';
     AuthModule,
     TokenGuardModule,
     StorageModule,
+    // Cron dọn dữ liệu xoá mềm quá hạn (3h sáng mỗi ngày)
+    ScheduleModule.forRoot(),
+    DataPurgeModule,
+    AppConfigModule,
   ],
 })
 export class AppModule {}

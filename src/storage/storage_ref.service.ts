@@ -217,8 +217,19 @@ export class StorageRefService {
    */
   async collectGarbage(graceDays = 7): Promise<number> {
     const cutoff = new Date(Date.now() - graceDays * 24 * 60 * 60 * 1000);
+    /*
+     * ⚠️ Lọc theo `updated_at` (lần cuối ref_count ĐỔI), KHÔNG phải `created_at`.
+     *
+     * Trước đây dùng `created_at` nên với file CŨ thì không có ngày ân hạn nào:
+     * ảnh upload 3 tháng trước, hôm nay bỏ ra khỏi bài -> `created_at` đã 3 tháng
+     * -> cron 4h sáng HÔM SAU xoá ngay. Comment ghi "đã quá 7 ngày" nhưng thực tế
+     * không đúng.
+     *
+     * `updated_at` là `@UpdateDateColumn` nên tự đổi mỗi lần ref_count tăng/giảm
+     * -> đúng nghĩa "object mồ côi ĐÃ 7 NGÀY".
+     */
     const candidates = (await this.repo.find({ where: { ref_count: 0 } })).filter(
-      (c) => c.created_at && c.created_at < cutoff,
+      (c) => c.updated_at && c.updated_at < cutoff,
     );
     if (candidates.length === 0) return 0;
 
@@ -242,6 +253,49 @@ export class StorageRefService {
       deleted++;
     }
     return deleted;
+  }
+
+  /**
+   * Danh sách object trong kho — cho trang admin xem R2 đang giữ những gì.
+   *
+   * `onlyOrphans` = chỉ lấy object `ref_count === 0` (rác chờ cron dọn).
+   */
+  async listObjects(options: {
+    page?: number;
+    limit?: number;
+    onlyOrphans?: boolean;
+  }): Promise<{
+    items: StorageObject[];
+    total: number;
+    page: number;
+    limit: number;
+    stats: { total: number; orphans: number; referenced: number };
+  }> {
+    const page = Math.max(1, Number(options.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(options.limit) || 20));
+
+    const [items, total] = await this.repo.findAndCount({
+      where: options.onlyOrphans ? { ref_count: 0 } : {},
+      order: { updated_at: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    // Số liệu tổng cho phần đầu trang
+    const totalAll = await this.repo.count();
+    const orphans = await this.repo.count({ where: { ref_count: 0 } });
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      stats: {
+        total: totalAll,
+        orphans,
+        referenced: totalAll - orphans,
+      },
+    };
   }
 
   /**

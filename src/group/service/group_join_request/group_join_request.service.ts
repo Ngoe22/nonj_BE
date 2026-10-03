@@ -424,13 +424,7 @@ export class GroupJoinRequestService {
 
   // ============ Update (Admin) ============
 
-  /**
-   * Admin duyệt / từ chối yêu cầu tham gia nhóm.
-   *
-   * Trước đây ghi `review_at` (Sai tên cột — entity là `reviewed_at`) nên ném
-   * lỗi ngay, VÀ không add thành viên khi APPROVED. Giờ làm đầy đủ như luồng
-   * của founder: approve thì add member + gửi thông báo.
-   */
+
   async adminUpdate(input: {
     body: any;
     sys_admin_id: string;

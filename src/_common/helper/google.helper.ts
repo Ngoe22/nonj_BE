@@ -2,7 +2,6 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { OAuth2Client } from 'google-auth-library';
 
-/** Thông tin tối thiểu lấy ra từ ID token của Google */
 type GoogleProfile = {
   google_id: string;
   email: string;

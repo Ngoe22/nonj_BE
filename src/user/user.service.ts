@@ -377,12 +377,7 @@ export class UserService {
     });
   }
 
-  /**
-   * Danh sách người dùng cho admin, có lọc.
-   *
-   * Mọi filter đều tùy chọn; bỏ trống thì TypeORM tự bỏ qua (giá trị undefined).
-   * `with_deleted` bật thì trả cả bản ghi đã xoá mềm kèm cờ `is_deleted`.
-   */
+
   async adminFindMany(query: AdminUserQueryDto) {
     const { select, relations } = this.filterByLabels.buildQueryObject({
       label: 'SA',

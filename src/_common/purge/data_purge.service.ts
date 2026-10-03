@@ -112,8 +112,6 @@ export class DataPurgeService {
 
 
 
-
-
     // Thông báo: quá `days` ngày là dọn, không cần biết đã xoá mềm hay chưa
     report.user_notif = await this.deleteWhere(
       UserNotif,

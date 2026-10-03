@@ -41,9 +41,6 @@ export class AdminListQueryDto {
 
   /**
    * `true` = TRẢ CẢ bản ghi đã xoá mềm (mặc định chỉ trả bản ghi còn sống).
-   *
-   * Khi bật, mỗi dòng có thêm `is_deleted` + `deleted_at` để FE hiển thị trạng
-   * thái và cho khôi phục.
    */
   @IsOptional()
   @Transform(({ value }) => value === true || value === 'true')

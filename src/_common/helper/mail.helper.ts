@@ -21,7 +21,7 @@ class MailHelper {
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey)
       throw new Error(
-        'Missing RESEND_API_KEY — thêm biến này vào file .env rồi restart server',
+        'Missing RESEND_API_KEY — add it to .env ',
       );
 
     // RESEND_BASE_URL: chỉ dùng khi test local (trỏ về mock server). Bỏ trống = gọi api.resend.com thật

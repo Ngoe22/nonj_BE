@@ -10,6 +10,8 @@ export const CONFIG_KEYS = {
   homeText: 'home_text',
   contactFacebook: 'contact_facebook',
   contactEmail: 'contact_email',
+  authImageUrl: 'auth_image_url',
+  faviconUrl: 'favicon_url',
 } as const;
 
 /** Khoá kiểu SỐ NGUYÊN + giá trị mặc định */
@@ -23,6 +25,10 @@ export const CONFIG_STRING_DEFAULTS: Record<string, string> = {
   [CONFIG_KEYS.homeText]: '',
   [CONFIG_KEYS.contactFacebook]: '',
   [CONFIG_KEYS.contactEmail]: '',
+  // Ảnh nền trang đăng nhập (rỗng = dùng ảnh mặc định trong code)
+  [CONFIG_KEYS.authImageUrl]: '',
+  // Favicon (rỗng = dùng favicon mặc định của Next)
+  [CONFIG_KEYS.faviconUrl]: '',
 };
 
 /** Độ dài tối đa cho khoá chuỗi */
@@ -30,6 +36,8 @@ export const CONFIG_STRING_MAX_LENGTH: Record<string, number> = {
   [CONFIG_KEYS.homeText]: 2000,
   [CONFIG_KEYS.contactFacebook]: 300,
   [CONFIG_KEYS.contactEmail]: 200,
+  [CONFIG_KEYS.authImageUrl]: 500,
+  [CONFIG_KEYS.faviconUrl]: 500,
 };
 
 /** Toàn bộ khoá hợp lệ = số + chuỗi */
@@ -53,6 +61,10 @@ export interface PublicConfig {
   home_text: string;
   contact_facebook: string;
   contact_email: string;
+  /** Ảnh nền trang đăng nhập (rỗng = FE dùng ảnh mặc định) */
+  auth_image_url: string;
+  /** Favicon (rỗng = dùng mặc định của Next) */
+  favicon_url: string;
 }
 
 export interface SetValueResult {
@@ -94,13 +106,16 @@ export class AppConfigService {
 
   /** Cấu hình cho FE (giới hạn upload + nội dung trang chủ) */
   async getPublicConfig(): Promise<PublicConfig> {
-    const [images, audio, homeText, facebook, email] = await Promise.all([
-      this.getInt(CONFIG_KEYS.postMaxImages),
-      this.getInt(CONFIG_KEYS.postMaxAudio),
-      this.getString(CONFIG_KEYS.homeText),
-      this.getString(CONFIG_KEYS.contactFacebook),
-      this.getString(CONFIG_KEYS.contactEmail),
-    ]);
+    const [images, audio, homeText, facebook, email, authImage, favicon] =
+      await Promise.all([
+        this.getInt(CONFIG_KEYS.postMaxImages),
+        this.getInt(CONFIG_KEYS.postMaxAudio),
+        this.getString(CONFIG_KEYS.homeText),
+        this.getString(CONFIG_KEYS.contactFacebook),
+        this.getString(CONFIG_KEYS.contactEmail),
+        this.getString(CONFIG_KEYS.authImageUrl),
+        this.getString(CONFIG_KEYS.faviconUrl),
+      ]);
 
     return {
       post_max_images: images,
@@ -108,6 +123,8 @@ export class AppConfigService {
       home_text: homeText,
       contact_facebook: facebook,
       contact_email: email,
+      auth_image_url: authImage,
+      favicon_url: favicon,
     };
   }
 

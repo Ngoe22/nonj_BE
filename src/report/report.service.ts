@@ -56,7 +56,6 @@ export class ReportService {
         },
         reviewed_at: ['SA', 'me'],
         review_note: ['SA'],
-        // admin cần thấy mốc tạo/cập nhật + trạng thái xoá mềm
         created_at: ['SA', 'me'],
         updated_at: ['SA'],
         deleted_at: ['SA'],

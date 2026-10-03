@@ -62,12 +62,7 @@ export class PostAnswerService {
           slug: ['SA'],
           name: ['SA'],
         },
-        // member xem được bài của người khác CHỈ KHI view_each_other_answer cho phép;
-        // điều kiện đó đã được chặn ở findOthersMany/findOthersOne.
-        // `created_at` BẮT BUỘC phải có: findOthersMany/adminFindMany dùng
-        // `order: { created_at }` mà TypeORM phân trang bằng subquery DISTINCT,
-        // thiếu cột trong select sẽ nổ
-        // 'column distinctAlias.PostAnswer_created_at does not exist'.
+
         created_at: ['SA', 'me', 'member', 'admin', 'founder'],
         answer_content: ['SA', 'me', 'member', 'admin', 'founder'],
         point: ['SA', 'me', 'member', 'admin', 'founder'],
@@ -75,8 +70,7 @@ export class PostAnswerService {
         status: ['SA', 'me', 'member', 'admin', 'founder'],
         graded_at: ['SA', 'me', 'member', 'admin', 'founder'],
         graded_by: ['SA', 'me', 'admin', 'founder'],
-        // KHÔNG có 'member': review_content chứa đáp án đúng (auto.expected)
-        // nên không bao giờ được trả cho người khác xem.
+
         review_content: ['SA', 'me', 'admin', 'founder'],
       },
       dataBases: {
@@ -271,9 +265,6 @@ export class PostAnswerService {
       if (!result)
         throw new NotFoundException({ errorCode: 'answer_not_found' });
 
-      // Dùng CHUNG helper với findOthersMany — trước đây chỗ này chỉ cho
-      // AFTER_DEADLINE trong khi danh sách cho cả AFTER_ANSWER, nên danh sách
-      // hiện bài nhưng bấm vào từng bài bị 403.
       const canView = this.isOthersAnswerVisible(
         result.view_each_other_answer,
         result.deadline_at,

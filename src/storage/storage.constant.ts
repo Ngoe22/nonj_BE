@@ -3,6 +3,8 @@ export const STORAGE_FOLDER = {
   QUESTION_PREPARATION_AUDIO: 'question_preparation/audio',
   AVATAR: 'avatars',
   POST_IMAGE: 'post/images',
+  /** Ảnh hệ thống do ADMIN upload: ảnh trang đăng nhập, favicon... */
+  SYSTEM: 'system',
 } as const;
 
 export type StorageFolder =

@@ -9,12 +9,7 @@ import {
   UpdateQuestionPreparationCollectionDto,
 } from '../dto/question_preparation_collection.dto.js';
 
-/**
- * Thư mục cá nhân chứa đề tự soạn.
- *
- * KHÔNG có nhánh chia sẻ: `question_preparation` là tư nhân nên chỉ tồn tại
- * label `SA` (admin) và `me` (chủ sở hữu). Mọi truy vấn đều khoá theo user_id.
- */
+
 @Injectable()
 export class QuestionPreparationCollectionService {
   filterByLabels: FilterDbField<QuestionPreparationCollection, string>;

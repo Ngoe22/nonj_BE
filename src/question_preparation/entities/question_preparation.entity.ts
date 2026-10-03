@@ -3,12 +3,7 @@ import { BaseEntity } from '../../_common/entities/base.entity.js';
 import { User } from '../../user/entities/user.entity.js';
 import { QuestionPreparationCollection } from './question_preparation_collection.entity.js';
 
-/**
- * Đề do cá nhân tự soạn — TƯ NHÂN, chỉ chủ sở hữu truy cập được.
- *
- * Không có `question_type` ở cấp này: một đề chứa nhiều `section`, mỗi section
- * tự mang loại của nó (multiple_choice / essay) nên type cấp đề là dư thừa.
- */
+
 @Index(['created_by'])
 @Entity('question_preparation')
 export class QuestionPreparation extends BaseEntity {

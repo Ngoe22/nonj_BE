@@ -1,9 +1,6 @@
 import { IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
-/**
- * Chọn username (dùng sau khi đăng ký bằng Google — lúc đó tài khoản chưa có
- * username). Quy tắc trùng với lúc đăng ký bằng email.
- */
+
 export class SetUsernameDto {
   @IsString()
   @MinLength(3)

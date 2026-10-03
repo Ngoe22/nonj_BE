@@ -91,16 +91,6 @@ export class AuthController {
     setAccessCookie(res, accessToken);
     setRefreshCookie(res, refreshToken);
 
-    // ⚠️ Trả `info` TRỰC TIẾP, KHÁC `register`/`login` (hai cái đó trả `{ info }`).
-    //
-    // Nghĩa là sau khi TransformInterceptor bọc:
-    //   POST /auth/google  -> user ở  res.data.data          (PHẲNG)
-    //   POST /auth/login   -> user ở  res.data.data.info     (LỒNG)
-    //   POST /auth/register-> user ở  res.data.data.info     (LỒNG)
-    //
-    // Đã từng gây bug: `useGoogleAuth` lấy `res.data` -> cache `my_profile` sai
-    // shape -> `user.user_name` luôn undefined -> guard đá về /username mọi lần
-    // đăng nhập Google. Sửa cho ĐỒNG NHẤT thì phải sửa cả FE cùng lúc.
     return info;
   }
 

@@ -12,20 +12,6 @@ import { ACCESS_COOKIE_NAME } from '../_common/constants/auth.constant.js';
 import { isOriginAllowed } from '../_common/helper/cors.helper.js';
 import { User_Role } from '../user/enums/user.enum.js';
 
-/**
- * Gateway thông báo realtime.
- *
- * XÁC THỰC BẰNG COOKIE, không phải token trong JS:
- * `access_token` là cookie HttpOnly nên FE KHÔNG đọc được để nhét vào
- * `handshake.auth` (cách cũ luôn thất bại). Trình duyệt tự gửi cookie kèm
- * handshake (same-site), BE đọc lại và validate qua TokenService — đúng cùng
- * một đường đi với AccessTokenGuard của HTTP.
- *
- * Cách cũ còn sai ở chỗ dùng `process.env.JWT_SECRET` trong khi .env chỉ có
- * `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` -> secret undefined -> verify ném
- * lỗi -> mọi kết nối bị ngắt ngay.
- */
-/** Phòng chỉ SYSTEM_ADMIN vào — dùng để phát số người đang online */
 const ADMIN_ROOM = 'admin';
 
 @WebSocketGateway({

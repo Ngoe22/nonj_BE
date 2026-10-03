@@ -25,9 +25,4 @@ export class ForgetPasswordOtp extends BaseEntity {
   @Column({ type: 'timestamptz' })
   expires_at: Date;
 
-  // GHI CHU (đã xử lý): trước đây cột dùng `timestamp` KHÔNG có múi giờ, nên
-  // @CreateDateColumn (Postgres tự điền) lưu UTC còn cột app tự ghi (expires_at)
-  // lại lưu giờ local — hai cột LỆCH NHAU 7 giờ ở VN, không so sánh được.
-  // Nay mọi cột thời gian đều là `timestamptz`: lưu một mốc tuyệt đối, đọc ra
-  // luôn đúng bất kể tiến trình chạy ở múi giờ nào.
 }

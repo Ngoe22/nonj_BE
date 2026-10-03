@@ -12,12 +12,7 @@ import { AdminQuestionPreparationCollectionController } from './controller/colle
 import { StorageModule } from '../storage/storage.module.js';
 import { AppConfigModule } from '../app_config/app_config.module.js';
 
-/**
- * Đề tự soạn của cá nhân (tư nhân).
- *
- * Không import UserModule / FriendshipModule nữa: trước đây chúng chỉ phục vụ
- * nhánh chia sẻ `who_can_see_my_template` đã bị xoá.
- */
+
 @Module({
   controllers: [
     QuestionPreparationController,

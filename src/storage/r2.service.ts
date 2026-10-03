@@ -47,13 +47,7 @@ export class R2Service {
 
   constructor(private readonly config: ConfigService) {}
 
-  /**
-   * Đọc cấu hình R2 LẦN ĐẦU DÙNG, không phải trong constructor.
-   *
-   * Trước đây constructor gọi `config.getOrThrow('r2.*')` nên chỉ cần THIẾU MỘT
-   * biến R2_* là cả API chết ngay lúc khởi động — dù R2 chỉ dùng cho upload.
-   * Giờ BE vẫn boot bình thường; ai gọi upload mới nhận 503 rõ ràng.
-   */
+
   private getClient(): { s3: S3Client; bucket: string; publicUrlBase: string } {
     if (this.client) {
       return {
@@ -105,10 +99,7 @@ export class R2Service {
     };
   }
 
-  /**
-   * Base URL công khai, KHÔNG ném lỗi nếu R2 chưa cấu hình (trả '').
-   * Dùng để đổi `url` đầy đủ thành `key` khi đếm tham chiếu.
-   */
+
   getPublicUrlBase(): string {
     return (this.config.get<string>('r2.publicUrl') ?? '').replace(/\/$/, '');
   }

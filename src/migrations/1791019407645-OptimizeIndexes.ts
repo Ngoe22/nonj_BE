@@ -1,21 +1,6 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
 /**
- * Tối ưu index.
- *
- * 1) THÊM index cho các cột khoá ngoại (FK) đang thiếu — Postgres KHÔNG tự đánh
- *    index cho FK nên mọi `WHERE fk=...`/`JOIN`/`ON DELETE CASCADE` đều quét toàn
- *    bảng:
- *    - refresh_token.user_id  (logout/logout-all xoá theo user — nóng nhất)
- *    - post.group_id / post.user_id  (liệt kê bài theo nhóm / theo người tạo)
- *    - forget_password_otp.user_id, report.user_id, post_answer.graded_by,
- *      friendship.source_request_id
- *
- * 2) XOÁ index THỪA (redundant): cột vừa có `@Index()` vừa có `unique: true` nên
- *    sinh ra 2 index cho cùng 1 cột (unique đã đủ, non-unique là thừa). Và
- *    friend_request.sender_id đơn lẻ thừa so với index kép (sender_id, receiver_id).
- *
- * Dùng `IF EXISTS` / `IF NOT EXISTS` để idempotent (chạy lại không lỗi).
  */
 export class OptimizeIndexes1791019407645 implements MigrationInterface {
     name = 'OptimizeIndexes1791019407645'

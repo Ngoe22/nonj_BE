@@ -17,10 +17,7 @@ export class StorageController {
     private readonly storageRef: StorageRefService,
   ) {}
 
-  /**
-   * FE xin presigned URL để upload file lên R2.
-   * Sau khi upload xong, FE dùng `publicUrl` để lưu DB.
-   */
+
   @Post('upload-url')
   async getUploadUrl(
     @Body() body: PresignedUploadDto,

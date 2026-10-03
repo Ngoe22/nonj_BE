@@ -71,10 +71,6 @@ export class PostService {
         title: ['SA', 'member', 'admin', 'founder'],
         description: ['SA', 'member', 'admin', 'founder'],
         content: ['SA', 'member', 'admin', 'founder'],
-        // `correct_answer` CÓ trong select cho cả 'member' — vì member ĐÃ LÀM BÀI
-        // thì được xem đáp án để tự so sánh, còn CHƯA làm thì `findOne` xoá đi.
-        // (Trước đây để thiếu 'member' nên field không được select, và nhánh
-        // "đã làm bài thì cho xem đáp án" không bao giờ chạy được.)
         correct_answer: ['SA', 'member', 'admin', 'founder'],
         deadline_at: ['SA', 'member', 'admin', 'founder'],
         retake: ['SA', 'member', 'admin', 'founder'],
@@ -130,10 +126,6 @@ export class PostService {
   }
 
   /**
-   * `getRole()` trả enum CHỮ HOA ('ADMIN' | 'FOUNDER' | 'MEMBER') còn label của
-   * FilterDbField là chữ thường. Trước đây truyền thẳng role vào
-   * `buildQueryObject` nên KHÔNG match label nào → `select` rỗng → TypeORM trả
-   * về TOÀN BỘ cột, tức là rò rỉ `correct_answer` cho học viên.
    */
   private async resolveReadLabel(input: {
     group_id: string;

@@ -3,12 +3,7 @@ import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 import { AdminListQueryDto } from '../../_common/dto/admin_list_query.dto.js';
 import { User_Role, User_Status } from '../enums/user.enum.js';
 
-/**
- * Bộ lọc cho màn quản trị người dùng.
- *
- * `id` / `user_name` / `email` khớp MỘT PHẦN (LIKE, không phân biệt hoa thường)
- * để gõ vài ký tự đầu là ra — tiện hơn bắt gõ đủ uuid.
- */
+
 export class AdminUserQueryDto extends AdminListQueryDto {
   @IsOptional()
   @IsString()

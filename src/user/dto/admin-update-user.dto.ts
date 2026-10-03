@@ -10,12 +10,7 @@ import {
 
 import { User_Status } from '../enums/user.enum.js';
 
-/**
- * Admin sửa user — thêm quyền đổi `user_name` + `email`.
- *
- * CỐ Ý KHÔNG có `password`: admin KHÔNG được đặt thẳng mật khẩu. Muốn thì bấm
- * "reset password" (một endpoint riêng) để gửi mật khẩu mới qua email.
- */
+
 export class AdminUpdateUserDto {
   @IsOptional()
   @IsString()

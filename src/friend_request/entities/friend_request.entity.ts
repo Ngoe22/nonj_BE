@@ -11,7 +11,6 @@ export class FriendRequest extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Index()
   @ManyToOne(() => User, (user_sender) => user_sender.friend_request_sender)
   @JoinColumn({ name: 'sender_id', referencedColumnName: 'id' })
   sender: Relation<User>;

@@ -30,7 +30,6 @@ export class User extends BaseEntity {
   })
   role: User_Role;
 
-  @Index()
   @Column('varchar', {
     length: 50,
     unique: true,
@@ -40,7 +39,6 @@ export class User extends BaseEntity {
   })
   user_name: string | null;
 
-  @Index()
   @Column('text', {
     unique: true,
   })

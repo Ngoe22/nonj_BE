@@ -38,6 +38,7 @@ export class PostAnswer extends BaseEntity {
   @Column({ type: 'float', nullable: true })
   max_point: number | null;
 
+  @Index()
   @ManyToOne(() => User, (user_graded) => user_graded.post_answer_graded, {
     nullable: true,
     onDelete: 'SET NULL',

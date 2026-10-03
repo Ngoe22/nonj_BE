@@ -22,6 +22,7 @@ export class Friendship extends BaseEntity {
   @JoinColumn({ name: 'friend_id', referencedColumnName: 'id' })
   user_friend: Relation<User>;
 
+  @Index()
   @ManyToOne(() => FriendRequest, (request) => request.friendship, {
     nullable: true,
     onDelete: 'SET NULL',

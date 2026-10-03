@@ -7,6 +7,7 @@ export class ForgetPasswordOtp extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Index()
   @ManyToOne(() => User, (user) => user.forget_password_otp, {
     onDelete: 'CASCADE',
   })

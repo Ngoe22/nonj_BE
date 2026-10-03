@@ -11,7 +11,6 @@ import {
 } from 'class-validator';
 import { Retake, View_Each_Other_Answer } from '../enum/post.enum.js';
 
-/** Tạo post thủ công (soạn ngay trong nhóm, giống builder preparation) */
 export class CreatePostDto {
   @IsString()
   @MinLength(1)
@@ -23,7 +22,6 @@ export class CreatePostDto {
   @MaxLength(500)
   description?: string;
 
-  /** Mảng section ĐÃ TÁCH ĐÁP ÁN — cùng shape với QuestionPreparation.content */
   @IsArray()
   content: object[];
 
@@ -35,7 +33,6 @@ export class CreatePostDto {
   @IsEnum(Retake)
   retake?: Retake;
 
-  /** Không có deadline = không giới hạn thời gian; có thì PHẢI ở tương lai */
   @IsOptional()
   @IsDateString()
   @IsFutureDate()

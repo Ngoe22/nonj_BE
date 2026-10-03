@@ -11,6 +11,7 @@ export class Report extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Index()
   @ManyToOne(() => User, (user) => user.reporter, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'user_id', referencedColumnName: 'id' })
   user_report: Relation<User>;

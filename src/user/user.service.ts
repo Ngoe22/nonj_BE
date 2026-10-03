@@ -341,9 +341,6 @@ export class UserService {
 
     // 3. tạo tài khoản mới (không có password -> chỉ đăng nhập được bằng Google)
     //
-    // KHÔNG tự sinh user_name nữa: username mang tính cá nhân, không quyết hộ
-    // người dùng. Đặt NULL rồi FE bắt họ chọn username ở màn hình riêng; tới khi
-    // chọn xong mới dùng app được.
     const fallbackNickname = nickname?.trim() || email.split('@')[0] || 'user';
 
     return await this.userRepository.save({
@@ -448,7 +445,6 @@ export class UserService {
     const oldAvatar = user.avatar_url ?? null;
 
     // user_name / email là cột UNIQUE -> phải check trước, nếu không `save`
-    // sẽ ném lỗi vi phạm unique và thành 500 khó hiểu.
     if (body.user_name && body.user_name !== user.user_name) {
       const taken = await this.userRepository.exists({
         where: { user_name: body.user_name },
@@ -552,7 +548,6 @@ export class UserService {
   /**
    * Hạ quyền SYSTEM_ADMIN về USER thường.
    *
-   * Cấm hạ quyền CHÍNH MÌNH — tránh admin cuối cùng tự khoá trái tài khoản.
    */
   async adminDemote(user_id: string, admin_id: string) {
     if (user_id === admin_id)

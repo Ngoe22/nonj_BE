@@ -3,8 +3,7 @@ import { User } from '../../user/entities/user.entity.js';
 import { User_Notif_Type } from '../enum/user_notif.enum.js';
 import { BaseEntity } from '../../_common/entities/base.entity.js';
 
-// Trước đây thiếu dấu `@` -> index không bao giờ được tạo, mọi query
-// "notif của tôi, mới nhất trước" đều phải sort toàn bảng.
+
 @Index('notif_user_created_at', ['user', 'created_at'])
 @Entity('user_notif')
 export class UserNotif extends BaseEntity {
@@ -19,7 +18,7 @@ export class UserNotif extends BaseEntity {
   type: User_Notif_Type;
 
   /**
-   * Dữ liệu để FE render + deep link. Quy ước:
+   * Dữ liệu để FE render +  link. Quy ước:
    *  - NEW_POST / GRADED_POST        : { group_id, collection_id, post_id, title, ... }
    *  - GROUP_JOIN_APPROVED/REJECTED  : { group_id, group_name }
    *  - GROUP_JOIN_REQUEST            : { group_id, group_name, requester_name }

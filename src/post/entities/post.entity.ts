@@ -7,6 +7,8 @@ import {PostAnswer} from "../../post_answer/entities/post_answer.entity.js";
 import {Retake, View_Each_Other_Answer} from "../enum/post.enum.js";
 
 
+//
+
 @Index(['post_collection', 'created_at'])
 @Entity('post')
 export class Post extends BaseEntity {

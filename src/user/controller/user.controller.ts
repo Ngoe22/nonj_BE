@@ -12,6 +12,7 @@ import { CreateUserDto } from '../dto/create-user.dto.js';
 import { UpdateUserDto } from '../dto/update-user.dto.js';
 import { ChangePasswordDto } from '../dto/change-password.dto.js';
 import { SetUsernameDto } from '../dto/set-username.dto.js';
+import { SetFirstPasswordDto } from '../dto/set-first-password.dto.js';
 import type { RequesterInfo } from '../../_common/types/request.js';
 import { Public } from '../../_common/decorators/method/public.decorator.js';
 import { GetRequesterInfo } from '../../_common/decorators/param/request_payload.decorator.js';
@@ -93,6 +94,15 @@ export class UserController {
     @GetRequesterInfo() requester: RequesterInfo,
   ) {
     return this.userService.changePassword({ user_id: requester.id, body });
+  }
+
+  /** Đặt mật khẩu LẦN ĐẦU — chỉ cho tài khoản Google chưa có mật khẩu */
+  @Post('set_password')
+  setFirstPassword(
+    @Body() body: SetFirstPasswordDto,
+    @GetRequesterInfo() requester: RequesterInfo,
+  ) {
+    return this.userService.setFirstPassword({ user_id: requester.id, body });
   }
 }
 

@@ -19,7 +19,7 @@ import {
   adminWhere,
 } from '../_common/helper/admin_query.helper.js';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, IsNull, Not, Repository } from 'typeorm';
 import {User} from "./entities/user.entity.js";
 import { User_Role } from './enums/user.enum.js';
 import { Transactional } from 'typeorm-transactional';
@@ -31,6 +31,7 @@ import { StorageRefService } from '../storage/storage_ref.service.js';
 import { mailHelper } from '../_common/helper/mail.helper.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { SetUsernameDto } from './dto/set-username.dto.js';
+import { SetFirstPasswordDto } from './dto/set-first-password.dto.js';
 
 // ==========================================
 
@@ -223,7 +224,22 @@ export class UserService {
       select,
     });
     if (!user) throw new NotFoundException({ errorCode: 'user_not_found' });
-    return user;
+
+    /**
+     * `has_password` KHÔNG phải cột DB — tính từ `password != null`.
+     *
+     * Label 'me' CỐ TÌNH KHÔNG select `password` (không để lộ hash), nên không
+     * đọc được trực tiếp từ `user` ở trên. Thay vào đó dùng `exists` để chỉ biết
+     * CÓ/KHÔNG mà không tải hash về.
+     *
+     * Dùng để FE quyết định: tài khoản Google chưa có mật khẩu (false) thì hiện
+     * form "Đặt mật khẩu", còn có rồi (true) thì hiện "Đổi mật khẩu".
+     */
+    const hasPassword = await this.userRepository.exists({
+      where: { id: user_id, password: Not(IsNull()) },
+    });
+
+    return { ...user, has_password: hasPassword };
   }
 
   // ----------------- Create -----------------
@@ -582,6 +598,42 @@ export class UserService {
     );
 
     return true;
+  }
+
+  /**
+   * Đặt mật khẩu LẦN ĐẦU — chỉ cho tài khoản CHƯA có mật khẩu (đăng ký bằng Google).
+   *
+   * Khác `changePassword` ở chỗ KHÔNG cần `old_password`: tài khoản Google chưa
+   * có mật khẩu nên không có gì để chứng minh. Nhưng PHẢI chặn nếu đã có mật khẩu
+   * (tránh ai đó dùng endpoint này ghi đè mật khẩu mà không cần mật khẩu cũ).
+   *
+   * Trả về `getMyInfo` (giống `setUsername`) để FE ghi thẳng vào cache
+   * `['my_profile']` — sau khi đặt xong, `has_password` thành `true` và UI đổi
+   * sang "Đổi mật khẩu" ngay lập tức.
+   */
+  async setFirstPassword(input: {
+    user_id: string;
+    body: SetFirstPasswordDto;
+  }) {
+    const { user_id, body } = input;
+
+    const user = await this.userRepository.findOne({
+      where: { id: user_id },
+      select: { id: true, password: true },
+    });
+    if (!user) throw new NotFoundException({ errorCode: 'user_not_found' });
+
+    // Đã có mật khẩu -> phải dùng /change_password (kèm old_password), không cho
+    // ghi đè thẳng qua đây.
+    if (user.password)
+      throw new BadRequestException({ errorCode: 'password_already_set' });
+
+    await this.userRepository.update(
+      { id: user_id },
+      { password: await projectBcrypt.encode(body.new_password) },
+    );
+
+    return this.getMyInfo(user_id);
   }
 }
 

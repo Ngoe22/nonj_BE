@@ -225,16 +225,6 @@ export class UserService {
     });
     if (!user) throw new NotFoundException({ errorCode: 'user_not_found' });
 
-    /**
-     * `has_password` KHÔNG phải cột DB — tính từ `password != null`.
-     *
-     * Label 'me' CỐ TÌNH KHÔNG select `password` (không để lộ hash), nên không
-     * đọc được trực tiếp từ `user` ở trên. Thay vào đó dùng `exists` để chỉ biết
-     * CÓ/KHÔNG mà không tải hash về.
-     *
-     * Dùng để FE quyết định: tài khoản Google chưa có mật khẩu (false) thì hiện
-     * form "Đặt mật khẩu", còn có rồi (true) thì hiện "Đổi mật khẩu".
-     */
     const hasPassword = await this.userRepository.exists({
       where: { id: user_id, password: Not(IsNull()) },
     });

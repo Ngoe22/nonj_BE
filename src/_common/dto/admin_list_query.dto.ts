@@ -9,11 +9,6 @@ import {
 } from 'class-validator';
 
 /**
- * Tham số CHUNG cho mọi endpoint danh sách của admin.
- *
- * Lưu ý: global ValidationPipe KHÔNG bật `enableImplicitConversion`, mà query
- * param thì luôn là string — nên phải tự chuyển kiểu bằng `@Type`/`@Transform`,
- * không dựa vào ép kiểu ngầm.
  */
 export class AdminListQueryDto {
   @IsOptional()

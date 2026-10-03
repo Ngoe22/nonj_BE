@@ -25,19 +25,6 @@ export type PurgeReport = Record<string, number>;
 const DEFAULT_RETENTION_DAYS = 14;
 
 /**
- * Dọn dẹp vĩnh viễn dữ liệu đã xoá mềm.
- *
- * Quy tắc:
- *  - Bảng NGHIỆP VỤ: bản ghi có `deleted_at` cũ hơn `PURGE_AFTER_DAYS` (mặc
- *    định 14) thì xoá cứng.
- *  - `user`: **KHÔNG BAO GIỜ** xoá — tài khoản người dùng phải giữ lại.
- *  - `user_notif`: quá 14 ngày là xoá, KHÔNG cần quan tâm đã xoá mềm hay chưa.
- *  - `refresh_token`: vừa bị thu hồi (`revoked_at`) hoặc xoá mềm là xoá cứng
- *    ngay ở lần chạy kế tiếp — token đã vô hiệu thì giữ lại cũng vô nghĩa.
- *  - `forget_password_otp`: hết hạn VÀ đã quá 14 ngày.
- *
- * Xoá theo thứ tự con → cha cho dễ đọc log; khoá ngoại đã đặt `ON DELETE
- * CASCADE` nên kể cả xoá cha trước thì con cũng tự đi theo.
  */
 @Injectable()
 export class DataPurgeService {
@@ -48,10 +35,8 @@ export class DataPurgeService {
     private readonly dataSource: DataSource,
   ) {}
 
-  /**
-   * Số ngày giữ lại. Đọc từ env mỗi lần chạy để đổi cấu hình không cần deploy
-   * lại code. Giá trị không hợp lệ (`<= 0`, chữ…) thì dùng mặc định 14.
-   */
+
+
   get retentionDays(): number {
     const raw = Number(process.env.PURGE_AFTER_DAYS);
     return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_RETENTION_DAYS;
@@ -73,7 +58,6 @@ export class DataPurgeService {
     );
   }
 
-  /** Chạy dọn dẹp. Trả về số bản ghi đã xoá theo từng bảng. */
   async purge(): Promise<PurgeReport> {
     const days = this.retentionDays;
     const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
